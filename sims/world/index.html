@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Forager Worlds</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a lab bench. Controls and the comparison chart on top, one dish per world below, side by side. */
+:root {
+  --bg: #f1f3f0;
+  --surface: #fbfcfa;
+  --ink: #1b2420;
+  --muted: #5b6862;
+  --line: #d3dad5;
+  --accent: #2a6f73;
+  --dish: #0f1613;
+  --dish-line: #24302b;
+  --green: #5cc46d;
+  --violet: #a97ff2;
+  --danger: #b4412b;
+  --s1: #2a6f73; --s2: #c0532a; --s3: #a07a12; --s4: #3d5aa8;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111614; --surface: #19201d; --ink: #e2e9e4; --muted: #95a39c; --line: #2b3531;
+    --accent: #6db6b8; --dish: #0b100e; --dish-line: #1f2925; --danger: #e07a62;
+    --s1: #6db6b8; --s2: #e8875c; --s3: #d4ad45; --s4: #8aa2e6;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111614; --surface: #19201d; --ink: #e2e9e4; --muted: #95a39c; --line: #2b3531;
+  --accent: #6db6b8; --dish: #0b100e; --dish-line: #1f2925; --danger: #e07a62;
+  --s1: #6db6b8; --s2: #e8875c; --s3: #d4ad45; --s4: #8aa2e6;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--ink); font: 14px/1.5 var(--sans);
+  padding-inline: 16px; padding-block: 20px 40px;
+}
+.wrap { max-width: 1400px; margin: 0 auto; display: grid; gap: 20px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+.sub { color: var(--muted); max-width: 70ch; margin: 0; }
+.eyebrow { font: 500 11px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button, select, input {
+  font: inherit; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px;
+}
+button { cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button.primary { background: var(--accent); color: var(--surface); border-color: var(--accent); font-weight: 600; min-width: 84px; }
+.clock { font: 500 13px var(--mono); color: var(--muted); margin-left: auto; font-variant-numeric: tabular-nums; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.chart-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 12px; padding: 4px 9px; border-radius: 999px; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 12px; height: 3px; border-radius: 2px; display: inline-block; }
+#chart { width: 100%; height: 220px; display: block; }
+.chart-note { font-size: 12px; color: var(--muted); margin: 0; }
+
+.worlds { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); }
+.world { display: grid; gap: 10px; align-content: start; grid-template-columns: minmax(0, 1fr); }
+.world-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.world-name { flex: 1 1 8ch; }
+.world-head .sw { width: 10px; height: 10px; border-radius: 50%; }
+.world-name { font-weight: 600; border: 1px solid transparent; background: transparent; padding: 2px 4px; flex: 1; min-width: 0; }
+.world-name:hover, .world-name:focus { border-color: var(--line); }
+.icon-btn { padding: 2px 8px; font-size: 12px; color: var(--muted); }
+canvas.dish { width: 100%; aspect-ratio: 1; max-width: 100%; display: block; background: var(--dish); border-radius: 6px; cursor: crosshair; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.stat { display: grid; gap: 2px; }
+.stat b { font: 500 16px var(--mono); font-variant-numeric: tabular-nums; }
+.stat small { font-size: 11px; color: var(--muted); }
+.badge { font: 500 11px var(--mono); padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.badge.extinct { color: var(--danger); border-color: var(--danger); }
+.season { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; vertical-align: middle; }
+.inspect { font: 12px/1.5 var(--mono); color: var(--muted); min-height: 1.5em; overflow-wrap: anywhere; }
+details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+.params { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 10px; margin-top: 10px; }
+.params label { display: grid; gap: 3px; font-size: 12px; color: var(--muted); }
+.params input { width: 100%; padding: 4px 6px; font: 13px var(--mono); }
+.params .row { grid-column: 1 / -1; display: flex; gap: 8px; }
+.key { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); }
+@media (max-width: 480px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Forager Worlds</h1>
+    <span class="eyebrow">W1 · instincts only, no brains yet</span>
+    <p class="sub">Each dish is a separate world with its own plants and its own gene pool. Creatures steer by colour with inherited reflexes and reproduce with mutation. Green and violet plants are food or poison; in seasonal worlds the meaning swaps.</p>
+  </header>
+
+  <div class="toolbar">
+    <button id="play" class="primary" type="button">Pause</button>
+    <button id="step" type="button">Step 100</button>
+    <label for="speed" class="eyebrow">Speed</label>
+    <select id="speed">
+      <option value="1">1 step/frame</option>
+      <option value="5">5 steps/frame</option>
+      <option value="20" selected>20 steps/frame</option>
+      <option value="60">60 steps/frame</option>
+    </select>
+    <button id="reset" type="button">Restart all</button>
+    <button id="add" type="button">Add world</button>
+    <span class="clock" id="clock">t = 0</span>
+  </div>
+
+  <section class="panel" aria-label="Comparison chart">
+    <div class="chart-head">
+      <div class="chips" id="metrics"></div>
+      <div class="legend" id="legend"></div>
+    </div>
+    <canvas id="chart"></canvas>
+    <p class="chart-note" id="chart-note"></p>
+  </section>
+
+  <div class="key">
+    <span><i class="dot" style="background:var(--green)"></i> green plant</span>
+    <span><i class="dot" style="background:var(--violet)"></i> violet plant</span>
+    <span>Creature colour shows which plant colour its instincts prefer. Click a creature to read its genes.</span>
+  </div>
+
+  <div class="worlds" id="worlds"></div>
+</div>
+
+<script src="engine.js"></script>
+<script>
+(function () {
+  'use strict';
+  const { World, DEFAULTS, GREEN } = window.WorldSim;
+
+  const METRICS = [
+    { key: 'population', label: 'Population', fmt: (v) => v.toFixed(0) },
+    { key: 'foodPref', label: 'Prefers food colour', fmt: (v) => v.toFixed(2),
+      note: 'Mean attraction to the colour that is food right now, minus attraction to the poison colour. Above 0 means instincts point the right way.' },
+    { key: 'food', label: 'Food plants', fmt: (v) => v.toFixed(0) },
+    { key: 'poison', label: 'Poison plants', fmt: (v) => v.toFixed(0) },
+    { key: 'maxGen', label: 'Generations', fmt: (v) => v.toFixed(0) },
+    { key: 'speed', label: 'Mean speed', fmt: (v) => v.toFixed(2) },
+    { key: 'senseRange', label: 'Mean sight range', fmt: (v) => v.toFixed(0) },
+  ];
+
+  const PARAMS = [
+    ['seed', 'Seed', 1],
+    ['seasonLength', 'Season length (0 = none)', 100],
+    ['poisonFraction', 'Poison share of plants', 0.05],
+    ['foodEnergy', 'Energy per food', 1],
+    ['poisonDamage', 'Damage per poison', 1],
+    ['plantCapacity', 'Plants per patch', 5],
+    ['patches', 'Patches', 1],
+    ['plantLifespan', 'Plant lifespan', 100],
+    ['startCreatures', 'Starting creatures', 5],
+    ['mutation', 'Mutation size', 0.01],
+  ];
+
+  const PRESETS = [
+    { name: 'Stable', params: { seed: 1, seasonLength: 0 } },
+    { name: 'Fast seasons', params: { seed: 1, seasonLength: 1000 } },
+    { name: 'Slow seasons', params: { seed: 1, seasonLength: 3000 } },
+    { name: 'Rich soil', params: { seed: 1, seasonLength: 0, foodEnergy: 50 } },
+  ];
+  const MAX_WORLDS = 4;
+
+  const css = getComputedStyle(document.documentElement);
+  const tok = (name) => css.getPropertyValue(name).trim();
+  let colours = {};
+  function readColours() {
+    const s = getComputedStyle(document.documentElement);
+    colours = {
+      ink: s.getPropertyValue('--ink').trim(), muted: s.getPropertyValue('--muted').trim(),
+      line: s.getPropertyValue('--line').trim(), dish: s.getPropertyValue('--dish').trim(),
+      dishLine: s.getPropertyValue('--dish-line').trim(), green: s.getPropertyValue('--green').trim(),
+      violet: s.getPropertyValue('--violet').trim(), danger: s.getPropertyValue('--danger').trim(),
+      series: ['--s1', '--s2', '--s3', '--s4'].map((v) => s.getPropertyValue(v).trim()),
+    };
+  }
+  readColours();
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { readColours(); drawAll(); });
+  new MutationObserver(() => { readColours(); drawAll(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  const state = { running: true, speed: 20, metric: 'population', slots: [] };
+  const worldsEl = document.getElementById('worlds');
+
+  function freeSlot() {
+    for (let i = 0; i < MAX_WORLDS; i++) if (!state.slots.some((s) => s.slot === i)) return i;
+    return -1;
+  }
+
+  function addWorld(preset) {
+    const slot = freeSlot();
+    if (slot < 0) return;
+    const entry = { slot, name: preset.name, params: Object.assign({}, DEFAULTS, preset.params), world: null, picked: null };
+    entry.world = new World(entry.params);
+    state.slots.push(entry);
+    entry.el = buildCard(entry);
+    worldsEl.appendChild(entry.el.root);
+    refreshControls();
+  }
+
+  function buildCard(entry) {
+    const root = document.createElement('section');
+    root.className = 'panel world';
+    const id = 'w' + entry.slot;
+    root.innerHTML = `
+      <div class="world-head">
+        <i class="sw"></i>
+        <input class="world-name" id="${id}-name" aria-label="World name">
+        <span class="badge"></span>
+        <button class="icon-btn remove" type="button" aria-label="Remove world">Remove</button>
+      </div>
+      <canvas class="dish" width="600" height="600" aria-label="World view"></canvas>
+      <div class="season"></div>
+      <div class="stats">
+        <div class="stat"><b data-k="pop">0</b><small>creatures</small></div>
+        <div class="stat"><b data-k="gen">0</b><small>generations</small></div>
+        <div class="stat"><b data-k="plants">0</b><small>food / poison</small></div>
+        <div class="stat"><b data-k="pref">0</b><small>prefers food</small></div>
+      </div>
+      <div class="inspect"></div>
+      <details>
+        <summary>World settings</summary>
+        <form class="params">
+          ${PARAMS.map(([k, label, step]) => `<label for="${id}-${k}">${label}<input id="${id}-${k}" name="${k}" type="number" step="${step}"></label>`).join('')}
+          <div class="row"><button type="submit">Restart with these settings</button></div>
+        </form>
+      </details>`;
+    const el = {
+      root,
+      sw: root.querySelector('.sw'),
+      name: root.querySelector('.world-name'),
+      badge: root.querySelector('.badge'),
+      canvas: root.querySelector('canvas'),
+      season: root.querySelector('.season'),
+      stats: Object.fromEntries([...root.querySelectorAll('[data-k]')].map((b) => [b.dataset.k, b])),
+      inspect: root.querySelector('.inspect'),
+      form: root.querySelector('form'),
+    };
+    el.sw.style.background = `var(--s${entry.slot + 1})`;
+    el.name.value = entry.name;
+    el.name.addEventListener('input', () => { entry.name = el.name.value || 'World'; drawLegend(); });
+    for (const [k] of PARAMS) el.form.elements[k].value = entry.params[k];
+    el.form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      for (const [k] of PARAMS) {
+        const v = parseFloat(el.form.elements[k].value);
+        if (Number.isFinite(v)) entry.params[k] = v;
+      }
+      entry.world = new World(entry.params);
+      entry.picked = null;
+      syncClock();
+      drawAll();
+    });
+    root.querySelector('.remove').addEventListener('click', () => {
+      state.slots = state.slots.filter((s) => s !== entry);
+      root.remove();
+      refreshControls();
+      drawAll();
+    });
+    el.canvas.addEventListener('click', (e) => {
+      const r = el.canvas.getBoundingClientRect();
+      const s = entry.world.p.size;
+      const x = (e.clientX - r.left) / r.width * s, y = (e.clientY - r.top) / r.height * s;
+      let best = null, bd = 400;
+      for (const c of entry.world.creatures) {
+        const dx = entry.world.delta(x, c.x), dy = entry.world.delta(y, c.y), d = dx * dx + dy * dy;
+        if (d < bd) { bd = d; best = c; }
+      }
+      entry.picked = best ? best.id : null;
+      drawWorld(entry);
+    });
+    return el;
+  }
+
+  function refreshControls() {
+    document.getElementById('add').disabled = state.slots.length >= MAX_WORLDS;
+    for (const s of state.slots) s.el.root.querySelector('.remove').hidden = state.slots.length <= 1;
+    drawLegend();
+  }
+
+  // ---------- drawing ----------
+
+  function prefColour(c) {
+    // Mix green to violet by which colour the reflexes favour.
+    const d = Math.tanh((c.g.wGreen - c.g.wViolet) / 2); // +1 green, -1 violet
+    return mix('#e8efe9', d >= 0 ? colours.green : colours.violet, Math.abs(d));
+  }
+  function hexToRgb(h) {
+    h = h.replace('#', '');
+    if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+    const n = parseInt(h, 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  function mix(a, b, t) {
+    const A = hexToRgb(a), B = hexToRgb(b);
+    return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * t)).join(',')})`;
+  }
+
+  function drawWorld(entry) {
+    const { world, el } = entry;
+    const ctx = el.canvas.getContext('2d');
+    const W = el.canvas.width, k = W / world.p.size;
+    ctx.fillStyle = colours.dish;
+    ctx.fillRect(0, 0, W, W);
+    ctx.strokeStyle = colours.dishLine;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 100; i < world.p.size; i += 100) {
+      ctx.moveTo(i * k, 0); ctx.lineTo(i * k, W); ctx.moveTo(0, i * k); ctx.lineTo(W, i * k);
+    }
+    ctx.stroke();
+
+    for (const pl of world.plants) {
+      ctx.fillStyle = world.plantColour(pl) === GREEN ? colours.green : colours.violet;
+      ctx.beginPath();
+      ctx.arc(pl.x * k, pl.y * k, 2.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    let picked = null;
+    for (const c of world.creatures) {
+      const sz = 4 + Math.min(4, c.energy / 40);
+      ctx.save();
+      ctx.translate(c.x * k, c.y * k);
+      ctx.rotate(c.heading);
+      ctx.fillStyle = prefColour(c);
+      ctx.beginPath();
+      ctx.moveTo(sz * 1.6, 0); ctx.lineTo(-sz, sz); ctx.lineTo(-sz * 0.5, 0); ctx.lineTo(-sz, -sz);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+      if (c.id === entry.picked) picked = c;
+    }
+
+    if (picked) {
+      const g = picked.g;
+      ctx.strokeStyle = '#ffffff';
+      ctx.globalAlpha = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(picked.x * k, picked.y * k);
+      ctx.arc(picked.x * k, picked.y * k, g.senseRange * k, picked.heading - g.fov / 2, picked.heading + g.fov / 2);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      el.inspect.textContent =
+        `#${picked.id} gen ${picked.gen} · energy ${picked.energy.toFixed(0)} · ate ${picked.eaten} food, ${picked.poisoned} poison · ` +
+        `likes green ${g.wGreen.toFixed(2)}, violet ${g.wViolet.toFixed(2)} · speed ${g.speed.toFixed(2)} · sight ${g.senseRange.toFixed(0)}`;
+    } else {
+      el.inspect.textContent = entry.picked ? 'That creature has died.' : '';
+    }
+
+    const h = world.history[world.history.length - 1];
+    el.stats.pop.textContent = world.creatures.length;
+    el.stats.gen.textContent = h.maxGen;
+    el.stats.plants.textContent = `${h.food} / ${h.poison}`;
+    el.stats.pref.textContent = h.foodPref === null ? '–' : h.foodPref.toFixed(2);
+
+    const foodIsGreen = world.foodColour === GREEN;
+    const sl = world.p.seasonLength;
+    el.season.innerHTML =
+      `Food is <i class="dot" style="background:var(${foodIsGreen ? '--green' : '--violet'})"></i>&nbsp;${foodIsGreen ? 'green' : 'violet'}` +
+      (sl > 0 ? ` · swaps in ${sl - (world.t % sl)} steps` : ' · never swaps');
+
+    if (world.extinctAt !== null) {
+      el.badge.textContent = `extinct at t ${world.extinctAt}`;
+      el.badge.className = 'badge extinct';
+    } else {
+      el.badge.textContent = `t ${world.t}`;
+      el.badge.className = 'badge';
+    }
+  }
+
+  const chart = document.getElementById('chart');
+  function drawChart() {
+    const dpr = window.devicePixelRatio || 1;
+    const cw = chart.clientWidth, ch = chart.clientHeight;
+    if (chart.width !== Math.round(cw * dpr)) { chart.width = Math.round(cw * dpr); chart.height = Math.round(ch * dpr); }
+    const ctx = chart.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cw, ch);
+    const m = METRICS.find((x) => x.key === state.metric);
+    const pad = { l: 44, r: 12, t: 10, b: 24 };
+    const pw = cw - pad.l - pad.r, ph = ch - pad.t - pad.b;
+
+    let tMax = 1, vMin = Infinity, vMax = -Infinity;
+    for (const s of state.slots) {
+      for (const r of s.world.history) {
+        const v = r[m.key];
+        if (v === null || v === undefined) continue;
+        if (r.t > tMax) tMax = r.t;
+        if (v < vMin) vMin = v;
+        if (v > vMax) vMax = v;
+      }
+    }
+    if (!Number.isFinite(vMin)) { vMin = 0; vMax = 1; }
+    if (m.key === 'foodPref') { const a = Math.max(1, Math.abs(vMin), Math.abs(vMax)); vMin = -a; vMax = a; }
+    else { vMin = Math.min(0, vMin); if (vMax === vMin) vMax = vMin + 1; }
+    const ticks = niceTicks(vMin, vMax, 4);
+    vMin = Math.min(vMin, ticks[0]); vMax = Math.max(vMax, ticks[ticks.length - 1]);
+    const X = (t) => pad.l + (t / tMax) * pw;
+    const Y = (v) => pad.t + ph - ((v - vMin) / (vMax - vMin)) * ph;
+
+    ctx.font = '11px ' + tok('--mono');
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'right';
+    for (const v of ticks) {
+      ctx.strokeStyle = colours.line;
+      ctx.lineWidth = v === 0 ? 1.2 : 0.6;
+      ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(pad.l + pw, Y(v)); ctx.stroke();
+      ctx.fillStyle = colours.muted;
+      ctx.fillText(m.fmt(v), pad.l - 6, Y(v));
+    }
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for (const t of niceTicks(0, tMax, 5)) {
+      if (t > tMax) continue;
+      ctx.fillStyle = colours.muted;
+      ctx.fillText(t >= 1000 ? (t / 1000) + 'k' : String(t), X(t), pad.t + ph + 6);
+    }
+
+    for (const s of state.slots) {
+      const col = colours.series[s.slot];
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      let started = false, last = null;
+      for (const r of s.world.history) {
+        const v = r[m.key];
+        if (v === null || v === undefined) { started = false; continue; }
+        if (!started) { ctx.moveTo(X(r.t), Y(v)); started = true; } else ctx.lineTo(X(r.t), Y(v));
+        last = r;
+      }
+      ctx.stroke();
+      if (last) { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(X(last.t), Y(last[m.key]), 3, 0, Math.PI * 2); ctx.fill(); }
+      if (s.world.extinctAt !== null) {
+        const x = X(s.world.extinctAt), y = Y(m.key === 'population' ? 0 : vMin);
+        ctx.strokeStyle = col; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(x - 4, y - 4); ctx.lineTo(x + 4, y + 4); ctx.moveTo(x + 4, y - 4); ctx.lineTo(x - 4, y + 4); ctx.stroke();
+      }
+    }
+    document.getElementById('chart-note').textContent = m.note || 'One line per world. A cross marks an extinction.';
+  }
+
+  function niceTicks(lo, hi, n) {
+    const span = hi - lo || 1;
+    const raw = span / n;
+    const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const step = [1, 2, 2.5, 5, 10].map((f) => f * mag).find((s) => s >= raw);
+    const out = [];
+    for (let v = Math.floor(lo / step) * step; v <= hi + step * 0.001; v += step) out.push(Math.round(v / step) * step);
+    if (out[out.length - 1] < hi) out.push(out[out.length - 1] + step);
+    return out;
+  }
+
+  function drawLegend() {
+    document.getElementById('legend').innerHTML = state.slots
+      .map((s) => `<span><i class="sw" style="background:var(--s${s.slot + 1})"></i>${escapeHtml(s.name)}</span>`).join('');
+  }
+  function escapeHtml(s) {
+    return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  }
+
+  function buildMetricChips() {
+    const box = document.getElementById('metrics');
+    box.innerHTML = '';
+    for (const m of METRICS) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chip';
+      b.textContent = m.label;
+      b.setAttribute('aria-pressed', String(m.key === state.metric));
+      b.addEventListener('click', () => { state.metric = m.key; buildMetricChips(); drawChart(); });
+      box.appendChild(b);
+    }
+  }
+
+  function syncClock() {
+    const t = Math.max(0, ...state.slots.map((s) => s.world.t));
+    document.getElementById('clock').textContent = `t = ${t.toLocaleString('en-US')}`;
+  }
+
+  function drawAll() {
+    for (const s of state.slots) drawWorld(s);
+    drawChart();
+    syncClock();
+  }
+
+  function advance(n) {
+    for (const s of state.slots) {
+      for (let i = 0; i < n && s.world.extinctAt === null; i++) s.world.step();
+      // An extinct world keeps its clock running so the charts stay aligned.
+      if (s.world.extinctAt !== null) { s.world.t += n; if (s.world.t % s.world.p.statsEvery < n) s.world.recordStats(); }
+    }
+  }
+
+  let frame = 0;
+  function loop() {
+    if (state.running) {
+      advance(state.speed);
+      for (const s of state.slots) drawWorld(s);
+      if (++frame % 6 === 0) drawChart();
+      syncClock();
+    }
+    requestAnimationFrame(loop);
+  }
+
+  // ---------- controls ----------
+  const playBtn = document.getElementById('play');
+  playBtn.addEventListener('click', () => {
+    state.running = !state.running;
+    playBtn.textContent = state.running ? 'Pause' : 'Play';
+    drawAll();
+  });
+  document.getElementById('step').addEventListener('click', () => { advance(100); drawAll(); });
+  document.getElementById('speed').addEventListener('change', (e) => { state.speed = parseInt(e.target.value, 10); });
+  document.getElementById('reset').addEventListener('click', () => {
+    for (const s of state.slots) { s.world = new World(s.params); s.picked = null; }
+    drawAll();
+  });
+  document.getElementById('add').addEventListener('click', () => {
+    const used = new Set(state.slots.map((s) => s.name));
+    const preset = PRESETS.find((p) => !used.has(p.name)) || { name: 'World ' + (state.slots.length + 1), params: { seed: state.slots.length + 1 } };
+    addWorld(preset);
+    drawAll();
+  });
+  window.addEventListener('resize', drawChart);
+
+  buildMetricChips();
+  addWorld(PRESETS[0]);
+  addWorld(PRESETS[1]);
+  addWorld(PRESETS[2]);
+  drawAll();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
