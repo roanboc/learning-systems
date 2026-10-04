@@ -157,8 +157,8 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
   <a class="back" href="../../index.html">← Learning Systems</a>
   <header>
     <h1>Forager Worlds</h1>
-    <span class="eyebrow">Environments · W2 · instincts vs learning brains</span>
-    <p class="sub">Each dish is a separate world with its own plants and its own gene pool. Green and violet plants are food or poison, and in seasonal worlds the meaning swaps. Creatures either follow inherited instincts, or carry a small spiking brain that wires itself and learns from what it eats.</p>
+    <span class="eyebrow">Environments · W3 · evolution shapes how brains grow</span>
+    <p class="sub">Each dish is a separate world with its own plants and its own gene pool. Green and violet plants are food or poison, and in seasonal worlds the meaning swaps. Creatures either follow inherited instincts, or carry a small spiking brain that wires itself and learns from what it eats. Brain genes set how big the brain is, how fast it learns and which inborn reflexes it starts with; evolution tunes them over generations, never the synapses themselves.</p>
   </header>
 
   <div class="toolbar">
@@ -171,6 +171,7 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
       <option value="10" selected>10 steps/frame</option>
       <option value="20">20 steps/frame</option>
       <option value="60">60 steps/frame</option>
+      <option value="0">Fast-forward</option>
     </select>
     <button id="reset" type="button">Restart all</button>
     <button id="add" type="button">Add world</button>
@@ -215,6 +216,12 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
     { key: 'speed', label: 'Mean speed', fmt: (v) => v.toFixed(2) },
     { key: 'senseRange', label: 'Mean sight range', fmt: (v) => v.toFixed(0) },
     { key: 'synapses', label: 'Synapses per brain', fmt: (v) => v.toFixed(0), note: 'Brain worlds only. Mean number of synapses, which grow and get pruned during each life.' },
+    { key: 'learnRate', label: 'Learning rate (gene)', fmt: (v) => v.toFixed(3),
+      note: 'Brain worlds only. Mean inherited learning rate. Learning costs energy, so it only rises if it pays.' },
+    { key: 'instinct', label: 'Inborn food bias', fmt: (v) => v.toFixed(2),
+      note: 'Brain worlds only. How much stronger the inborn reflexes are for the colour that is food right now than for the poison colour. Above 0 means evolution has built in the right answer; it flips sign when the seasons swap.' },
+    { key: 'hidden', label: 'Brain size (gene)', fmt: (v) => v.toFixed(1),
+      note: 'Brain worlds only. Mean number of interneurons. Each one costs energy every step.' },
   ];
 
   const PARAMS = [
@@ -231,12 +238,12 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
   ];
 
   const PRESETS = [
+    { name: 'Brains, stable', params: { seed: 1, seasonLength: 0, mind: 'brain' } },
+    { name: 'Brains, slow seasons', params: { seed: 2, seasonLength: 3000, mind: 'brain' } },
+    { name: 'Brains, no learning', params: { seed: 2, seasonLength: 3000, mind: 'brain', fixed: { learnRate: 0 } } },
+    { name: 'Brains, fast seasons', params: { seed: 1, seasonLength: 1000, mind: 'brain' } },
     { name: 'Instincts, stable', params: { seed: 1, seasonLength: 0 } },
     { name: 'Instincts, slow seasons', params: { seed: 1, seasonLength: 3000 } },
-    { name: 'Brains, slow seasons', params: { seed: 1, seasonLength: 3000, mind: 'brain' } },
-    { name: 'Brains, no learning', params: { seed: 1, seasonLength: 3000, mind: 'brain', brain: { learningRate: 0 } } },
-    { name: 'Brains, stable', params: { seed: 1, seasonLength: 0, mind: 'brain' } },
-    { name: 'Instincts, fast seasons', params: { seed: 1, seasonLength: 1000 } },
   ];
   const MAX_WORLDS = 4;
 
@@ -324,11 +331,11 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
     el.name.addEventListener('input', () => { entry.name = el.name.value || 'World'; drawLegend(); });
     for (const [k] of PARAMS) el.form.elements[k].value = entry.params[k];
     el.form.elements.mind.value = entry.params.mind;
-    el.form.elements.learning.value = entry.params.brain && entry.params.brain.learningRate === 0 ? 'off' : 'on';
+    el.form.elements.learning.value = entry.params.fixed && entry.params.fixed.learnRate === 0 ? 'off' : 'on';
     el.form.addEventListener('submit', (e) => {
       e.preventDefault();
       entry.params.mind = el.form.elements.mind.value;
-      entry.params.brain = el.form.elements.learning.value === 'off' ? { learningRate: 0 } : null;
+      entry.params.fixed = el.form.elements.learning.value === 'off' ? { learnRate: 0 } : null;
       for (const [k] of PARAMS) {
         const v = parseFloat(el.form.elements[k].value);
         if (Number.isFinite(v)) entry.params[k] = v;
@@ -455,7 +462,7 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
       const base = `#${picked.id} gen ${picked.gen} · age ${picked.age} · energy ${picked.energy.toFixed(0)} · ate ${picked.eaten} food, ${picked.poisoned} poison · `;
       if (picked.brain) {
         const [bg, bv] = biteWeights(picked);
-        el.inspect.textContent = base + `${picked.brain.synapseCount()} synapses · bite drive green ${bg.toFixed(2)}, violet ${bv.toFixed(2)}`;
+        el.inspect.textContent = base + `${picked.brain.synapseCount()} synapses · bite drive green ${bg.toFixed(2)}, violet ${bv.toFixed(2)} (born ${g.biteGreen.toFixed(2)}, ${g.biteViolet.toFixed(2)}) · learning rate ${g.learnRate.toFixed(3)} · ${Math.round(g.hidden)} interneurons`;
         el.brainview.hidden = false;
         drawBrain(el.brainview, picked);
       } else {
@@ -683,6 +690,12 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
       // While zoomed in, every world runs at the explorer's slow pace so spikes are visible.
       if (state.running) advance(explorer.speed);
       explorer.draw();
+    } else if (state.running && state.speed === 0) {
+      // Fast-forward: run steps for most of the frame budget, redraw now and then.
+      const until = performance.now() + 30;
+      while (performance.now() < until) advance(25);
+      if (++frame % 4 === 0) { for (const s of state.slots) drawWorld(s); drawChart(); }
+      syncClock();
     } else if (state.running) {
       advance(state.speed);
       for (const s of state.slots) drawWorld(s);

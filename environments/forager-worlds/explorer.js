@@ -669,7 +669,13 @@
         let gw = 0, vw = 0;
         const R = this.rays(), eat = b.firstMotor + 2;
         for (const s of b.inList[eat]) { if (b.pre[s] === R * 2) gw += b.w[s]; else if (b.pre[s] === R * 2 + 1) vw += b.w[s]; }
-        facts.push(['Bite drive', `green ${gw.toFixed(2)} · violet ${vw.toFixed(2)}`]);
+        facts.push(['Bite drive now', `green ${gw.toFixed(2)} · violet ${vw.toFixed(2)}`]);
+        if (g.biteGreen !== undefined) {
+          // Genes: what it was born with, so learned change is visible.
+          facts.push(['Born with bite drive', `green ${g.biteGreen.toFixed(2)} · violet ${g.biteViolet.toFixed(2)}`]);
+          facts.push(['Learning rate (gene)', g.learnRate.toFixed(3)]);
+          facts.push(['Interneurons (gene)', Math.round(g.hidden)]);
+        }
         facts.push(['Food is now', this.entry.world.foodColour === 0 ? 'green' : 'violet']);
       }
       this.q('.ex-facts').innerHTML = facts.map(([k, v]) => `<div><small>${k}</small><b>${v}</b></div>`).join('');

@@ -55,6 +55,7 @@
     senseCost: 0.0004,      // times sense range
     maxAge: 8000,
     mutation: 0.08,         // mutation size as a share of each gene's range
+    brainMutation: 0.02,    // the same for brain genes (slower, so instincts are not rewritten every season)
     statsEvery: 25,
     mind: 'reflex',         // 'reflex' (inherited instincts) or 'brain' (learns during life)
     rays: 7,                // brain mode: eye resolution
@@ -63,8 +64,10 @@
     poisonPunish: 3,        // brain mode: negative dopamine on eating poison
     eatNoise: 0.05,         // brain mode: spontaneous drive to the eat neuron
     eatTarget: 0.02,        // brain mode: set point of the eat neuron (bites are rare acts)
-    innateOrient: 0.3,      // brain mode: inborn weight, eye -> same-side turn
-    innateBite: 0.5,        // brain mode: inborn weight, mouth -> eat
+    neuronCost: 0.0003,     // brain mode: energy per interneuron per step
+    learnCost: 0.2,         // brain mode: energy per step per unit of learning rate
+    geneInit: null,         // optional starting ranges per gene, e.g. { learnRate: [0, 0.002] }
+    fixed: null,            // optional genes held constant, e.g. { learnRate: 0 }
     mouth: 6,               // reach of the mouth
     brain: null,            // brain mode: overrides for lib/brain.js defaults
   };
@@ -80,7 +83,21 @@
     wander:      { min: 0,   max: 0.5, init: [0.05, 0.25] },
     reproEnergy: { min: 60,  max: 300, init: [100, 160] },
   };
+
+  // Brain genes (brain mode only). Evolution sets how the brain is built and how
+  // fast it learns, never individual synapses. The four inborn weights are the
+  // brain's instincts: how strongly each colour seen on one side turns the body
+  // that way, and how strongly each colour at the mouth triggers a bite.
+  const BRAIN_GENES = {
+    learnRate:    { min: 0, max: 0.06, init: [0.015, 0.025] }, // plasticity
+    hidden:       { min: 4, max: 48,   init: [20, 28] },       // interneurons
+    orientGreen:  { min: 0, max: 0.8,  init: [0.25, 0.35] },
+    orientViolet: { min: 0, max: 0.8,  init: [0.25, 0.35] },
+    biteGreen:    { min: 0, max: 1.2,  init: [0.45, 0.55] },
+    biteViolet:   { min: 0, max: 1.2,  init: [0.45, 0.55] },
+  };
   const GENE_NAMES = Object.keys(GENES);
+  const BRAIN_GENE_NAMES = Object.keys(BRAIN_GENES);
 
   const CELL = 40; // spatial grid cell size
 
@@ -147,20 +164,30 @@
       return plant.poison ? 1 - this.foodColour : this.foodColour;
     }
 
+    geneSpec(k) {
+      return GENES[k] || BRAIN_GENES[k];
+    }
+
+    geneNames() {
+      return this.p.mind === 'brain' ? GENE_NAMES.concat(BRAIN_GENE_NAMES) : GENE_NAMES;
+    }
+
     randomGenome() {
-      const g = {};
-      for (const k of GENE_NAMES) {
-        const [lo, hi] = GENES[k].init;
-        g[k] = lo + (hi - lo) * this.rng();
+      const g = {}, init = this.p.geneInit || {}, fixed = this.p.fixed || {};
+      for (const k of this.geneNames()) {
+        const [lo, hi] = init[k] || this.geneSpec(k).init;
+        g[k] = k in fixed ? fixed[k] : lo + (hi - lo) * this.rng();
       }
       return g;
     }
 
     mutate(parent) {
-      const g = {};
-      for (const k of GENE_NAMES) {
-        const spec = GENES[k];
-        g[k] = clamp(parent[k] + gauss(this.rng) * this.p.mutation * (spec.max - spec.min), spec.min, spec.max);
+      const g = {}, fixed = this.p.fixed || {};
+      for (const k of this.geneNames()) {
+        const spec = GENES[k] || BRAIN_GENES[k];
+        const size = GENES[k] ? this.p.mutation : this.p.brainMutation;
+        g[k] = k in fixed ? fixed[k]
+          : clamp(parent[k] + gauss(this.rng) * size * (spec.max - spec.min), spec.min, spec.max);
       }
       return g;
     }
@@ -181,6 +208,7 @@
         motorL: 0,
         motorR: 0,
         pain: 0,
+        brainCost: 0,
       };
       if (this.p.mind === 'brain') {
         // On screen (y points down) a positive angle is clockwise, i.e. the
@@ -195,21 +223,26 @@
         }
         rows.push(0.5, 0.5);   // mouth: touching green, touching violet
         rows.push(0.5, 0.5);   // hunger, pain
-        // Inborn reflexes, the same for both colours: orient toward anything seen
-        // on one side, and bite whatever touches the mouth. Learning has to
-        // find out which colour is worth it.
-        const innate = [];
+        // Inborn reflexes, with strengths from the genome: orient toward a colour
+        // seen on one side, and bite a colour that touches the mouth. They start
+        // equal for both colours; evolution can bias them, learning can retune them.
+        const g = c.g, innate = [];
         for (let r = 0; r < R; r++) {
           const side = r < (R - 1) / 2 ? 0 : r > (R - 1) / 2 ? 1 : -1;
           if (side < 0) continue;
-          innate.push([r * 2, side, this.p.innateOrient], [r * 2 + 1, side, this.p.innateOrient]);
+          innate.push([r * 2, side, g.orientGreen], [r * 2 + 1, side, g.orientViolet]);
         }
-        innate.push([R * 2, 2, this.p.innateBite], [R * 2 + 1, 2, this.p.innateBite]);
+        innate.push([R * 2, 2, g.biteGreen], [R * 2 + 1, 2, g.biteViolet]);
         const bp = Object.assign({
           motorNoiseOverride: [0.35, 0.35, this.p.eatNoise],
           motorTargetOverride: [0.12, 0.12, this.p.eatTarget],
-        }, this.p.brain);
+        }, this.p.brain, {
+          hidden: Math.round(g.hidden),
+          learningRate: g.learnRate,
+        });
         c.brain = new BrainSim.Brain(this.rng, rows, [0.25, 0.75, 0.5], bp, innate);
+        // Neurons and plasticity are not free: tissue and synapse turnover cost energy.
+        c.brainCost = this.p.neuronCost * bp.hidden + this.p.learnCost * bp.learningRate;
         c.drive = new Float32Array(rows.length);
       }
       this.creatures.push(c);
@@ -326,7 +359,7 @@
           }
         }
 
-        c.energy -= p.basalCost + p.moveCost * g.speed * g.speed + p.senseCost * g.senseRange;
+        c.energy -= p.basalCost + p.moveCost * g.speed * g.speed + p.senseCost * g.senseRange + c.brainCost;
         c.age++;
 
         if (c.energy > g.reproEnergy && this.creatures.length + newborns.length < p.maxCreatures) {
@@ -395,16 +428,22 @@
 
     recordStats() {
       const n = this.creatures.length;
-      const mean = {};
-      for (const k of GENE_NAMES) mean[k] = 0;
+      const mean = {}, names = this.geneNames();
+      for (const k of names) mean[k] = 0;
       let energy = 0, maxGen = 0, synapses = 0, brains = 0;
       for (const c of this.creatures) {
         if (c.brain) { synapses += c.brain.synapseCount(); brains++; }
-        for (const k of GENE_NAMES) mean[k] += c.g[k];
+        for (const k of names) mean[k] += c.g[k];
         energy += c.energy;
         if (c.gen > maxGen) maxGen = c.gen;
       }
-      if (n) { for (const k of GENE_NAMES) mean[k] /= n; energy /= n; }
+      if (n) { for (const k of names) mean[k] /= n; energy /= n; }
+      const brainMode = n > 0 && this.p.mind === 'brain';
+      // Inborn bias toward the colour that is food right now: how much stronger
+      // the instincts for that colour are than for the poison colour.
+      const g = this.foodColour === GREEN ? 1 : -1;
+      const instinct = brainMode
+        ? g * (mean.biteGreen - mean.biteViolet + mean.orientGreen - mean.orientViolet) : null;
       let food = 0, poison = 0;
       for (const pl of this.plants) { if (pl.poison) poison++; else food++; }
       // Preference for whichever colour is currently food, minus the poison colour.
@@ -429,6 +468,9 @@
           ? this.intervalFoodMeals / (this.intervalFoodMeals + this.intervalPoisonMeals) : null,
         synapses: brains ? synapses / brains : null,
         picky: this.pickiness(),
+        learnRate: brainMode ? mean.learnRate : null,
+        hidden: brainMode ? mean.hidden : null,
+        instinct,
       });
       this.intervalBirths = 0;
       this.intervalDeaths = 0;
@@ -442,7 +484,7 @@
     }
   }
 
-  const api = { World, DEFAULTS, GENES, GENE_NAMES, GREEN, VIOLET };
+  const api = { World, DEFAULTS, GENES, GENE_NAMES, BRAIN_GENES, BRAIN_GENE_NAMES, GREEN, VIOLET };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.WorldSim = api;
 })(typeof self !== 'undefined' ? self : this);
