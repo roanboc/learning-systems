@@ -1,0 +1,726 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Forager Worlds</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a lab bench. Controls and the comparison chart on top, one dish per world below, side by side. */
+:root {
+  --bg: #f1f3f0;
+  --surface: #fbfcfa;
+  --ink: #1b2420;
+  --muted: #5b6862;
+  --line: #d3dad5;
+  --accent: #2a6f73;
+  --dish: #0f1613;
+  --dish-line: #24302b;
+  --green: #5cc46d;
+  --violet: #a97ff2;
+  --danger: #b4412b;
+  --s1: #2a6f73; --s2: #c0532a; --s3: #a07a12; --s4: #3d5aa8;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111614; --surface: #19201d; --ink: #e2e9e4; --muted: #95a39c; --line: #2b3531;
+    --accent: #6db6b8; --dish: #0b100e; --dish-line: #1f2925; --danger: #e07a62;
+    --s1: #6db6b8; --s2: #e8875c; --s3: #d4ad45; --s4: #8aa2e6;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111614; --surface: #19201d; --ink: #e2e9e4; --muted: #95a39c; --line: #2b3531;
+  --accent: #6db6b8; --dish: #0b100e; --dish-line: #1f2925; --danger: #e07a62;
+  --s1: #6db6b8; --s2: #e8875c; --s3: #d4ad45; --s4: #8aa2e6;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--ink); font: 14px/1.5 var(--sans);
+  padding-inline: 16px; padding-block: 20px 40px;
+}
+.wrap { max-width: 1400px; margin: 0 auto; display: grid; gap: 20px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+.sub { color: var(--muted); max-width: 70ch; margin: 0; }
+.eyebrow { font: 500 11px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+
+.back { font-size: 13px; color: var(--accent); text-decoration: none; justify-self: start; margin-bottom: -10px; }
+.back:hover { text-decoration: underline; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button, select, input {
+  font: inherit; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px;
+}
+button { cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button.primary { background: var(--accent); color: var(--surface); border-color: var(--accent); font-weight: 600; min-width: 84px; }
+.clock { font: 500 13px var(--mono); color: var(--muted); margin-left: auto; font-variant-numeric: tabular-nums; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.chart-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 12px; padding: 4px 9px; border-radius: 999px; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 12px; height: 3px; border-radius: 2px; display: inline-block; }
+#chart { width: 100%; height: 220px; display: block; }
+.chart-note { font-size: 12px; color: var(--muted); margin: 0; }
+
+.worlds { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); }
+.world { display: grid; gap: 10px; align-content: start; grid-template-columns: minmax(0, 1fr); }
+.world-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.world-name { flex: 1 1 8ch; }
+.world-head .sw { width: 10px; height: 10px; border-radius: 50%; }
+.world-name { font-weight: 600; border: 1px solid transparent; background: transparent; padding: 2px 4px; flex: 1; min-width: 0; }
+.world-name:hover, .world-name:focus { border-color: var(--line); }
+.icon-btn { padding: 2px 8px; font-size: 12px; color: var(--muted); }
+canvas.brainview { width: 100%; max-width: 100%; display: block; border-radius: 6px; background: var(--dish); }
+canvas.dish { width: 100%; aspect-ratio: 1; max-width: 100%; display: block; background: var(--dish); border-radius: 6px; cursor: crosshair; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.stat { display: grid; gap: 2px; }
+.stat b { font: 500 16px var(--mono); font-variant-numeric: tabular-nums; }
+.stat small { font-size: 11px; color: var(--muted); }
+.badge { font: 500 11px var(--mono); padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.badge.extinct { color: var(--danger); border-color: var(--danger); }
+.season { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; vertical-align: middle; }
+.inspect { font: 12px/1.5 var(--mono); color: var(--muted); min-height: 1.5em; overflow-wrap: anywhere; }
+details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+.params { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 10px; margin-top: 10px; }
+.params select { width: 100%; padding: 4px 6px; }
+.params label { display: grid; gap: 3px; font-size: 12px; color: var(--muted); }
+.params input { width: 100%; padding: 4px 6px; font: 13px var(--mono); }
+.params .row { grid-column: 1 / -1; display: flex; gap: 8px; }
+.key { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); }
+@media (max-width: 480px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+.zoom-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.zoom-btn { font-weight: 600; color: var(--accent); border-color: var(--accent); }
+
+/* Explorer: a full-screen layer for zooming into one organism. */
+body.exploring { overflow: hidden; }
+.explorer {
+  position: fixed; inset: 0; z-index: 20; overflow: auto; background: var(--bg);
+  padding-inline: 16px; padding-block: calc(env(safe-area-inset-top, 0px) + 12px) calc(env(safe-area-inset-bottom, 0px) + 32px);
+  display: grid; gap: 16px; align-content: start;
+}
+.explorer > * { max-width: 1280px; width: 100%; margin-inline: auto; min-width: 0; }
+.explorer.ex-zoom { animation: ex-zoom 380ms cubic-bezier(.2,.7,.2,1); }
+@keyframes ex-zoom { from { transform: scale(0.08); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.ex-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--bg); padding-block: 6px; z-index: 1; }
+.ex-crumbs { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; min-width: 0; }
+.ex-crumbs button { border: 0; background: transparent; padding: 4px 6px; color: var(--accent); font-weight: 500; }
+.ex-crumbs button[aria-current] { color: var(--ink); font-weight: 600; }
+.ex-crumbs .sep { color: var(--muted); }
+.ex-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ex-status { font-size: 13px; color: var(--danger); display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+.ex-level { display: grid; gap: 16px; }
+.ex-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); align-items: start; }
+.ex-fig { margin: 0; display: grid; gap: 8px; min-width: 0; }
+.ex-fig figcaption { font-size: 13px; color: var(--muted); max-width: 75ch; }
+.ex-fig figcaption b { color: var(--ink); font-weight: 600; }
+.ex-fig canvas { width: 100%; display: block; border-radius: 8px; background: var(--dish); cursor: pointer; }
+canvas.ex-outside { cursor: default; aspect-ratio: 1; }
+.ex-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px 16px; }
+.ex-facts div { display: grid; gap: 2px; }
+.ex-facts small { font-size: 11px; color: var(--muted); }
+.ex-facts b { font: 500 14px var(--mono); font-variant-numeric: tabular-nums; }
+.ex-note, .ex-small { font-size: 13px; color: var(--muted); margin: 0; max-width: 75ch; }
+.ex-cellinfo { display: grid; gap: 10px; align-content: start; }
+.ex-cellinfo h2 { margin: 0; font-size: 20px; font-weight: 600; }
+.ex-cellinfo p { margin: 0; max-width: 60ch; }
+.ex-dl { margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px 16px; }
+.ex-dl div { display: grid; gap: 2px; }
+.ex-dl dt { font-size: 11px; color: var(--muted); }
+.ex-dl dd { margin: 0; font: 500 14px var(--mono); }
+.ex-syn { display: grid; gap: 6px; align-content: start; min-width: 0; }
+.ex-syn h3 { margin: 0; font-size: 15px; }
+.ex-syn ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.ex-syn li { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(60px, 1fr) minmax(0, 1.2fr); gap: 10px; align-items: center; }
+.ex-syn li button { text-align: left; padding: 3px 8px; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ex-bar-w { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.ex-bar-w i { display: block; height: 100%; background: var(--accent); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } .explorer.ex-zoom { animation: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../../index.html">← Learning Systems</a>
+  <header>
+    <h1>Forager Worlds</h1>
+    <span class="eyebrow">Environments · W2 · instincts vs learning brains</span>
+    <p class="sub">Each dish is a separate world with its own plants and its own gene pool. Green and violet plants are food or poison, and in seasonal worlds the meaning swaps. Creatures either follow inherited instincts, or carry a small spiking brain that wires itself and learns from what it eats.</p>
+  </header>
+
+  <div class="toolbar">
+    <button id="play" class="primary" type="button">Pause</button>
+    <button id="step" type="button">Step 100</button>
+    <label for="speed" class="eyebrow">Speed</label>
+    <select id="speed">
+      <option value="1">1 step/frame</option>
+      <option value="5">5 steps/frame</option>
+      <option value="10" selected>10 steps/frame</option>
+      <option value="20">20 steps/frame</option>
+      <option value="60">60 steps/frame</option>
+    </select>
+    <button id="reset" type="button">Restart all</button>
+    <button id="add" type="button">Add world</button>
+    <span class="clock" id="clock">t = 0</span>
+  </div>
+
+  <section class="panel" aria-label="Comparison chart">
+    <div class="chart-head">
+      <div class="chips" id="metrics"></div>
+      <div class="legend" id="legend"></div>
+    </div>
+    <canvas id="chart"></canvas>
+    <p class="chart-note" id="chart-note"></p>
+  </section>
+
+  <div class="key">
+    <span><i class="dot" style="background:var(--green)"></i> green plant</span>
+    <span><i class="dot" style="background:var(--violet)"></i> violet plant</span>
+    <span>Creature colour shows which plant colour it prefers: its instincts, or what its brain has learned to bite. Click a creature to inspect it, then zoom in (or double-click) to explore its senses, brain and cells.</span>
+  </div>
+
+  <div class="worlds" id="worlds"></div>
+</div>
+
+<script src="../../lib/brain.js"></script>
+<script src="engine.js"></script>
+<script src="explorer.js"></script>
+<script>
+(function () {
+  'use strict';
+  const { World, DEFAULTS, GREEN } = window.WorldSim;
+
+  const METRICS = [
+    { key: 'population', label: 'Population', fmt: (v) => v.toFixed(0) },
+    { key: 'picky', label: 'Picky eating', fmt: (v) => v.toFixed(2),
+      note: 'How much more often creatures bite food than poison when it is at their mouth. 0.5 bites both alike, 1 bites only food, 0 only poison.' },
+    { key: 'foodPref', label: 'Prefers food colour', fmt: (v) => v.toFixed(2),
+      note: 'Instinct worlds only. Mean attraction to the colour that is food right now, minus attraction to the poison colour. Above 0 means instincts point the right way.' },
+    { key: 'food', label: 'Food plants', fmt: (v) => v.toFixed(0) },
+    { key: 'poison', label: 'Poison plants', fmt: (v) => v.toFixed(0) },
+    { key: 'maxGen', label: 'Generations', fmt: (v) => v.toFixed(0) },
+    { key: 'speed', label: 'Mean speed', fmt: (v) => v.toFixed(2) },
+    { key: 'senseRange', label: 'Mean sight range', fmt: (v) => v.toFixed(0) },
+    { key: 'synapses', label: 'Synapses per brain', fmt: (v) => v.toFixed(0), note: 'Brain worlds only. Mean number of synapses, which grow and get pruned during each life.' },
+  ];
+
+  const PARAMS = [
+    ['seed', 'Seed', 1],
+    ['seasonLength', 'Season length (0 = none)', 100],
+    ['poisonFraction', 'Poison share of plants', 0.05],
+    ['foodEnergy', 'Energy per food', 1],
+    ['poisonDamage', 'Damage per poison', 1],
+    ['plantCapacity', 'Plants per patch', 5],
+    ['patches', 'Patches', 1],
+    ['plantLifespan', 'Plant lifespan', 100],
+    ['startCreatures', 'Starting creatures', 5],
+    ['mutation', 'Mutation size', 0.01],
+  ];
+
+  const PRESETS = [
+    { name: 'Instincts, stable', params: { seed: 1, seasonLength: 0 } },
+    { name: 'Instincts, slow seasons', params: { seed: 1, seasonLength: 3000 } },
+    { name: 'Brains, slow seasons', params: { seed: 1, seasonLength: 3000, mind: 'brain' } },
+    { name: 'Brains, no learning', params: { seed: 1, seasonLength: 3000, mind: 'brain', brain: { learningRate: 0 } } },
+    { name: 'Brains, stable', params: { seed: 1, seasonLength: 0, mind: 'brain' } },
+    { name: 'Instincts, fast seasons', params: { seed: 1, seasonLength: 1000 } },
+  ];
+  const MAX_WORLDS = 4;
+
+  const css = getComputedStyle(document.documentElement);
+  const tok = (name) => css.getPropertyValue(name).trim();
+  let colours = {};
+  function readColours() {
+    const s = getComputedStyle(document.documentElement);
+    colours = {
+      ink: s.getPropertyValue('--ink').trim(), muted: s.getPropertyValue('--muted').trim(),
+      line: s.getPropertyValue('--line').trim(), dish: s.getPropertyValue('--dish').trim(),
+      dishLine: s.getPropertyValue('--dish-line').trim(), green: s.getPropertyValue('--green').trim(),
+      violet: s.getPropertyValue('--violet').trim(), danger: s.getPropertyValue('--danger').trim(),
+      series: ['--s1', '--s2', '--s3', '--s4'].map((v) => s.getPropertyValue(v).trim()),
+    };
+  }
+  readColours();
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { readColours(); drawAll(); });
+  new MutationObserver(() => { readColours(); drawAll(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  const state = { running: true, speed: 10, metric: 'population', slots: [] };
+  const worldsEl = document.getElementById('worlds');
+
+  function freeSlot() {
+    for (let i = 0; i < MAX_WORLDS; i++) if (!state.slots.some((s) => s.slot === i)) return i;
+    return -1;
+  }
+
+  function addWorld(preset) {
+    const slot = freeSlot();
+    if (slot < 0) return;
+    const entry = { slot, name: preset.name, params: Object.assign({}, DEFAULTS, preset.params), world: null, picked: null };
+    entry.world = new World(entry.params);
+    state.slots.push(entry);
+    entry.el = buildCard(entry);
+    worldsEl.appendChild(entry.el.root);
+    refreshControls();
+  }
+
+  function buildCard(entry) {
+    const root = document.createElement('section');
+    root.className = 'panel world';
+    const id = 'w' + entry.slot;
+    root.innerHTML = `
+      <div class="world-head">
+        <i class="sw"></i>
+        <input class="world-name" id="${id}-name" aria-label="World name">
+        <span class="badge"></span>
+        <button class="icon-btn remove" type="button" aria-label="Remove world">Remove</button>
+      </div>
+      <canvas class="dish" width="600" height="600" aria-label="World view"></canvas>
+      <div class="season"></div>
+      <div class="stats">
+        <div class="stat"><b data-k="pop">0</b><small>creatures</small></div>
+        <div class="stat"><b data-k="gen">0</b><small>generations</small></div>
+        <div class="stat"><b data-k="plants">0</b><small>food / poison</small></div>
+        <div class="stat"><b data-k="pref">0</b><small>picky eating</small></div>
+      </div>
+      <div class="zoom-row"><button type="button" class="zoom-btn" hidden>Zoom into this creature →</button><span class="inspect"></span></div>
+      <canvas class="brainview" width="640" height="300" aria-label="Brain of the selected creature" hidden></canvas>
+      <details>
+        <summary>World settings</summary>
+        <form class="params">
+          <label for="${id}-mind">Mind<select id="${id}-mind" name="mind"><option value="reflex">Instincts</option><option value="brain">Brain</option></select></label>
+          <label for="${id}-learning">Brain learning<select id="${id}-learning" name="learning"><option value="on">On</option><option value="off">Off</option></select></label>
+          ${PARAMS.map(([k, label, step]) => `<label for="${id}-${k}">${label}<input id="${id}-${k}" name="${k}" type="number" step="${step}"></label>`).join('')}
+          <div class="row"><button type="submit">Restart with these settings</button></div>
+        </form>
+      </details>`;
+    const el = {
+      root,
+      sw: root.querySelector('.sw'),
+      name: root.querySelector('.world-name'),
+      badge: root.querySelector('.badge'),
+      canvas: root.querySelector('canvas'),
+      season: root.querySelector('.season'),
+      stats: Object.fromEntries([...root.querySelectorAll('[data-k]')].map((b) => [b.dataset.k, b])),
+      inspect: root.querySelector('.inspect'),
+      zoom: root.querySelector('.zoom-btn'),
+      brainview: root.querySelector('.brainview'),
+      form: root.querySelector('form'),
+    };
+    el.sw.style.background = `var(--s${entry.slot + 1})`;
+    el.name.value = entry.name;
+    el.name.addEventListener('input', () => { entry.name = el.name.value || 'World'; drawLegend(); });
+    for (const [k] of PARAMS) el.form.elements[k].value = entry.params[k];
+    el.form.elements.mind.value = entry.params.mind;
+    el.form.elements.learning.value = entry.params.brain && entry.params.brain.learningRate === 0 ? 'off' : 'on';
+    el.form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      entry.params.mind = el.form.elements.mind.value;
+      entry.params.brain = el.form.elements.learning.value === 'off' ? { learningRate: 0 } : null;
+      for (const [k] of PARAMS) {
+        const v = parseFloat(el.form.elements[k].value);
+        if (Number.isFinite(v)) entry.params[k] = v;
+      }
+      entry.world = new World(entry.params);
+      entry.picked = null;
+      syncClock();
+      drawAll();
+    });
+    root.querySelector('.remove').addEventListener('click', () => {
+      state.slots = state.slots.filter((s) => s !== entry);
+      root.remove();
+      refreshControls();
+      drawAll();
+    });
+    const pick = (e) => {
+      const r = el.canvas.getBoundingClientRect();
+      const s = entry.world.p.size;
+      const x = (e.clientX - r.left) / r.width * s, y = (e.clientY - r.top) / r.height * s;
+      let best = null, bd = 400;
+      for (const c of entry.world.creatures) {
+        const dx = entry.world.delta(x, c.x), dy = entry.world.delta(y, c.y), d = dx * dx + dy * dy;
+        if (d < bd) { bd = d; best = c; }
+      }
+      entry.picked = best ? best.id : null;
+      drawWorld(entry);
+      return best;
+    };
+    el.canvas.addEventListener('click', pick);
+    el.canvas.addEventListener('dblclick', (e) => {
+      const c = pick(e);
+      if (c) explorer.open(entry, c.id, { x: e.clientX, y: e.clientY });
+    });
+    el.zoom.addEventListener('click', (e) => {
+      if (entry.picked) explorer.open(entry, entry.picked, { x: e.clientX, y: e.clientY });
+    });
+    return el;
+  }
+
+  function refreshControls() {
+    document.getElementById('add').disabled = state.slots.length >= MAX_WORLDS;
+    for (const s of state.slots) s.el.root.querySelector('.remove').hidden = state.slots.length <= 1;
+    drawLegend();
+  }
+
+  // ---------- drawing ----------
+
+  // Brain creatures: total weight from the mouth's green and violet sensors to the eat neuron.
+  function biteWeights(c) {
+    const b = c.brain, R = (b.nS - 4) / 2, eat = b.firstMotor + 2;
+    let g = 0, v = 0;
+    for (const s of b.inList[eat]) {
+      if (b.pre[s] === R * 2) g += b.w[s];
+      else if (b.pre[s] === R * 2 + 1) v += b.w[s];
+    }
+    return [g, v];
+  }
+
+  function prefColour(c) {
+    // Mix green to violet by which colour the creature favours.
+    let d;
+    if (c.brain) { const [g, v] = biteWeights(c); d = Math.tanh((g - v) * 2); }
+    else d = Math.tanh((c.g.wGreen - c.g.wViolet) / 2); // +1 green, -1 violet
+    return mix('#e8efe9', d >= 0 ? colours.green : colours.violet, Math.abs(d));
+  }
+  function hexToRgb(h) {
+    h = h.replace('#', '');
+    if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+    const n = parseInt(h, 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  function mix(a, b, t) {
+    const A = hexToRgb(a), B = hexToRgb(b);
+    return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * t)).join(',')})`;
+  }
+
+  function drawWorld(entry) {
+    const { world, el } = entry;
+    const ctx = el.canvas.getContext('2d');
+    const W = el.canvas.width, k = W / world.p.size;
+    ctx.fillStyle = colours.dish;
+    ctx.fillRect(0, 0, W, W);
+    ctx.strokeStyle = colours.dishLine;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 100; i < world.p.size; i += 100) {
+      ctx.moveTo(i * k, 0); ctx.lineTo(i * k, W); ctx.moveTo(0, i * k); ctx.lineTo(W, i * k);
+    }
+    ctx.stroke();
+
+    for (const pl of world.plants) {
+      ctx.fillStyle = world.plantColour(pl) === GREEN ? colours.green : colours.violet;
+      ctx.beginPath();
+      ctx.arc(pl.x * k, pl.y * k, 2.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    let picked = null;
+    for (const c of world.creatures) {
+      const sz = 4 + Math.min(4, c.energy / 40);
+      ctx.save();
+      ctx.translate(c.x * k, c.y * k);
+      ctx.rotate(c.heading);
+      ctx.fillStyle = prefColour(c);
+      ctx.beginPath();
+      ctx.moveTo(sz * 1.6, 0); ctx.lineTo(-sz, sz); ctx.lineTo(-sz * 0.5, 0); ctx.lineTo(-sz, -sz);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+      if (c.id === entry.picked) picked = c;
+    }
+
+    if (picked) {
+      const g = picked.g;
+      ctx.strokeStyle = '#ffffff';
+      ctx.globalAlpha = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(picked.x * k, picked.y * k);
+      ctx.arc(picked.x * k, picked.y * k, g.senseRange * k, picked.heading - g.fov / 2, picked.heading + g.fov / 2);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      el.zoom.hidden = false;
+      const base = `#${picked.id} gen ${picked.gen} · age ${picked.age} · energy ${picked.energy.toFixed(0)} · ate ${picked.eaten} food, ${picked.poisoned} poison · `;
+      if (picked.brain) {
+        const [bg, bv] = biteWeights(picked);
+        el.inspect.textContent = base + `${picked.brain.synapseCount()} synapses · bite drive green ${bg.toFixed(2)}, violet ${bv.toFixed(2)}`;
+        el.brainview.hidden = false;
+        drawBrain(el.brainview, picked);
+      } else {
+        el.inspect.textContent = base + `likes green ${g.wGreen.toFixed(2)}, violet ${g.wViolet.toFixed(2)} · speed ${g.speed.toFixed(2)} · sight ${g.senseRange.toFixed(0)}`;
+        el.brainview.hidden = true;
+      }
+    } else {
+      el.zoom.hidden = true;
+      el.inspect.textContent = entry.picked ? 'That creature has died.' : '';
+      el.brainview.hidden = true;
+    }
+
+    const h = world.history[world.history.length - 1];
+    el.stats.pop.textContent = world.creatures.length;
+    el.stats.gen.textContent = h.maxGen;
+    el.stats.plants.textContent = `${h.food} / ${h.poison}`;
+    let recent = null;
+    for (let i = world.history.length - 1; i >= Math.max(0, world.history.length - 40); i--) {
+      if (world.history[i].picky !== null) { recent = world.history[i].picky; break; }
+    }
+    el.stats.pref.textContent = recent === null ? '–' : recent.toFixed(2);
+
+    const foodIsGreen = world.foodColour === GREEN;
+    const sl = world.p.seasonLength;
+    el.season.innerHTML =
+      `Food is <i class="dot" style="background:var(${foodIsGreen ? '--green' : '--violet'})"></i>&nbsp;${foodIsGreen ? 'green' : 'violet'}` +
+      (sl > 0 ? ` · swaps in ${sl - (world.t % sl)} steps` : ' · never swaps');
+
+    if (world.extinctAt !== null) {
+      el.badge.textContent = `extinct at t ${world.extinctAt}`;
+      el.badge.className = 'badge extinct';
+    } else {
+      el.badge.textContent = `t ${world.t}`;
+      el.badge.className = 'badge';
+    }
+  }
+
+  // Tissue view of one brain: sensors on the left (eye rays by colour, mouth,
+  // hunger, pain), interneurons in the middle, motors on the right.
+  // Line width is synapse weight; neurons light up when they spike.
+  function drawBrain(cv, c) {
+    const b = c.brain, ctx = cv.getContext('2d');
+    const W = cv.width, H = cv.height, padX = 110, padY = 20;
+    const X = (i) => padX + b.x[i] * (W - padX * 2), Y = (i) => padY + b.y[i] * (H - padY * 2);
+    const R = (b.nS - 4) / 2;
+    // Sensors share rows in the tissue; spread pairs a little so both show.
+    // Drawing only: eye pairs side by side, body sensors in their own column.
+    const body = (i) => i >= R * 2 && i < b.nS;
+    const sx = (i) => body(i) ? X(i) - 46 : i < b.nS ? X(i) - (i % 2) * 14 : X(i);
+    const sy = (i) => body(i) ? padY + (H - padY * 2) * (0.3 + 0.13 * (i - R * 2)) : Y(i);
+    ctx.fillStyle = colours.dish;
+    ctx.fillRect(0, 0, W, H);
+    for (let s = 0; s < b.w.length; s++) {
+      const a = b.pre[s], d = b.post[s];
+      ctx.strokeStyle = b.type[a] === 2 ? colours.danger : '#9fb8b0';
+      ctx.globalAlpha = Math.min(0.9, 0.15 + b.w[s] / b.p.maxWeight);
+      ctx.lineWidth = 0.5 + 2.5 * b.w[s] / b.p.maxWeight;
+      ctx.beginPath(); ctx.moveTo(sx(a), sy(a)); ctx.lineTo(sx(d), sy(d)); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    for (let i = 0; i < b.n; i++) {
+      let fill = '#6f7f78';
+      if (i < R * 2) fill = i % 2 === 0 ? colours.green : colours.violet;
+      else if (i === R * 2) fill = colours.green;
+      else if (i === R * 2 + 1) fill = colours.violet;
+      else if (i < b.nS) fill = '#d8c690';
+      else if (b.type[i] === 2) fill = colours.danger;
+      else if (b.type[i] === 3) fill = '#e8efe9';
+      const r = b.type[i] === 3 ? 7 : 4.5;
+      ctx.globalAlpha = b.spiked[i] ? 1 : 0.55;
+      ctx.fillStyle = fill;
+      ctx.beginPath(); ctx.arc(sx(i), sy(i), b.spiked[i] ? r + 2 : r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#b7c4be';
+    ctx.font = '12px ' + tok('--mono');
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+    ['turn right', 'turn left', 'eat'].forEach((label, k) => ctx.fillText(label, X(b.firstMotor + k) + 12, Y(b.firstMotor + k)));
+    ctx.textAlign = 'right';
+    ctx.textAlign = 'center';
+    ctx.fillText('eye', X(0) - 7, padY - 9 < 6 ? 8 : padY - 9);
+    ctx.textAlign = 'right';
+    ['mouth', '', 'hunger', 'pain'].forEach((label, k) => label && ctx.fillText(label, sx(R * 2 + k) - 9, sy(R * 2 + k)));
+  }
+
+  const chart = document.getElementById('chart');
+  function drawChart() {
+    const dpr = window.devicePixelRatio || 1;
+    const cw = chart.clientWidth, ch = chart.clientHeight;
+    if (chart.width !== Math.round(cw * dpr)) { chart.width = Math.round(cw * dpr); chart.height = Math.round(ch * dpr); }
+    const ctx = chart.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cw, ch);
+    const m = METRICS.find((x) => x.key === state.metric);
+    const pad = { l: 44, r: 12, t: 10, b: 24 };
+    const pw = cw - pad.l - pad.r, ph = ch - pad.t - pad.b;
+
+    let tMax = 1, vMin = Infinity, vMax = -Infinity;
+    for (const s of state.slots) {
+      for (const r of s.world.history) {
+        const v = r[m.key];
+        if (v === null || v === undefined) continue;
+        if (r.t > tMax) tMax = r.t;
+        if (v < vMin) vMin = v;
+        if (v > vMax) vMax = v;
+      }
+    }
+    if (!Number.isFinite(vMin)) { vMin = 0; vMax = 1; }
+    if (m.key === 'foodPref') { const a = Math.max(1, Math.abs(vMin), Math.abs(vMax)); vMin = -a; vMax = a; }
+    else { vMin = Math.min(0, vMin); if (vMax === vMin) vMax = vMin + 1; }
+    const ticks = niceTicks(vMin, vMax, 4);
+    vMin = Math.min(vMin, ticks[0]); vMax = Math.max(vMax, ticks[ticks.length - 1]);
+    const X = (t) => pad.l + (t / tMax) * pw;
+    const Y = (v) => pad.t + ph - ((v - vMin) / (vMax - vMin)) * ph;
+
+    ctx.font = '11px ' + tok('--mono');
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'right';
+    for (const v of ticks) {
+      ctx.strokeStyle = colours.line;
+      ctx.lineWidth = v === 0 ? 1.2 : 0.6;
+      ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(pad.l + pw, Y(v)); ctx.stroke();
+      ctx.fillStyle = colours.muted;
+      ctx.fillText(m.fmt(v), pad.l - 6, Y(v));
+    }
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for (const t of niceTicks(0, tMax, 5)) {
+      if (t > tMax) continue;
+      ctx.fillStyle = colours.muted;
+      ctx.fillText(t >= 1000 ? (t / 1000) + 'k' : String(t), X(t), pad.t + ph + 6);
+    }
+
+    for (const s of state.slots) {
+      const col = colours.series[s.slot];
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      let started = false, last = null;
+      for (const r of s.world.history) {
+        const v = r[m.key];
+        if (v === null || v === undefined) { started = false; continue; }
+        if (!started) { ctx.moveTo(X(r.t), Y(v)); started = true; } else ctx.lineTo(X(r.t), Y(v));
+        last = r;
+      }
+      ctx.stroke();
+      if (last) { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(X(last.t), Y(last[m.key]), 3, 0, Math.PI * 2); ctx.fill(); }
+      if (s.world.extinctAt !== null) {
+        const x = X(s.world.extinctAt), y = Y(m.key === 'population' ? 0 : vMin);
+        ctx.strokeStyle = col; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(x - 4, y - 4); ctx.lineTo(x + 4, y + 4); ctx.moveTo(x + 4, y - 4); ctx.lineTo(x - 4, y + 4); ctx.stroke();
+      }
+    }
+    document.getElementById('chart-note').textContent = m.note || 'One line per world. A cross marks an extinction.';
+  }
+
+  function niceTicks(lo, hi, n) {
+    const span = hi - lo || 1;
+    const raw = span / n;
+    const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const step = [1, 2, 2.5, 5, 10].map((f) => f * mag).find((s) => s >= raw);
+    const out = [];
+    for (let v = Math.floor(lo / step) * step; v <= hi + step * 0.001; v += step) out.push(Math.round(v / step) * step);
+    if (out[out.length - 1] < hi) out.push(out[out.length - 1] + step);
+    return out;
+  }
+
+  function drawLegend() {
+    document.getElementById('legend').innerHTML = state.slots
+      .map((s) => `<span><i class="sw" style="background:var(--s${s.slot + 1})"></i>${escapeHtml(s.name)}</span>`).join('');
+  }
+  function escapeHtml(s) {
+    return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  }
+
+  function buildMetricChips() {
+    const box = document.getElementById('metrics');
+    box.innerHTML = '';
+    for (const m of METRICS) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chip';
+      b.textContent = m.label;
+      b.setAttribute('aria-pressed', String(m.key === state.metric));
+      b.addEventListener('click', () => { state.metric = m.key; buildMetricChips(); drawChart(); });
+      box.appendChild(b);
+    }
+  }
+
+  function syncClock() {
+    const t = Math.max(0, ...state.slots.map((s) => s.world.t));
+    document.getElementById('clock').textContent = `t = ${t.toLocaleString('en-US')}`;
+  }
+
+  function drawAll() {
+    for (const s of state.slots) drawWorld(s);
+    drawChart();
+    syncClock();
+  }
+
+  function advance(n) {
+    for (const s of state.slots) {
+      const watched = explorer.active && explorer.entry === s;
+      for (let i = 0; i < n && s.world.extinctAt === null; i++) {
+        s.world.step();
+        if (watched) explorer.record();
+      }
+      // An extinct world keeps its clock running so the charts stay aligned.
+      if (s.world.extinctAt !== null) { s.world.t += n; if (s.world.t % s.world.p.statsEvery < n) s.world.recordStats(); }
+    }
+  }
+
+  const explorer = new window.Explorer({
+    colours: () => colours,
+    font: tok('--mono'),
+    onClose: () => drawAll(),
+  });
+  explorer.isPaused = () => !state.running;
+  explorer.pauseBtn.addEventListener('click', () => { playBtn.click(); explorer.draw(); });
+
+  let frame = 0;
+  function loop() {
+    if (explorer.active) {
+      // While zoomed in, every world runs at the explorer's slow pace so spikes are visible.
+      if (state.running) advance(explorer.speed);
+      explorer.draw();
+    } else if (state.running) {
+      advance(state.speed);
+      for (const s of state.slots) drawWorld(s);
+      if (++frame % 6 === 0) drawChart();
+      syncClock();
+    }
+    requestAnimationFrame(loop);
+  }
+
+  // ---------- controls ----------
+  const playBtn = document.getElementById('play');
+  playBtn.addEventListener('click', () => {
+    state.running = !state.running;
+    playBtn.textContent = state.running ? 'Pause' : 'Play';
+    drawAll();
+  });
+  document.getElementById('step').addEventListener('click', () => { advance(100); drawAll(); });
+  document.getElementById('speed').addEventListener('change', (e) => { state.speed = parseInt(e.target.value, 10); });
+  document.getElementById('reset').addEventListener('click', () => {
+    for (const s of state.slots) { s.world = new World(s.params); s.picked = null; }
+    drawAll();
+  });
+  document.getElementById('add').addEventListener('click', () => {
+    const used = new Set(state.slots.map((s) => s.name));
+    const preset = PRESETS.find((p) => !used.has(p.name)) || { name: 'World ' + (state.slots.length + 1), params: { seed: state.slots.length + 1 } };
+    addWorld(preset);
+    drawAll();
+  });
+  window.addEventListener('resize', drawChart);
+
+  buildMetricChips();
+  addWorld(PRESETS[0]);
+  addWorld(PRESETS[1]);
+  addWorld(PRESETS[2]);
+  addWorld(PRESETS[3]);
+  drawAll();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
