@@ -117,14 +117,15 @@ footer code { font-family: var(--mono); }
       <p>Brains as living tissue: neurons and glia that grow, compete for resources, prune and repair.</p>
     </div>
     <div class="cards">
-      <div class="card">
-        <div class="ph">planned</div>
+      <a class="card" href="nervous-systems/tissue-lab/index.html">
+        <canvas id="tissue-preview" width="640" height="360" aria-label="Preview of the Tissue Lab"></canvas>
         <div class="body">
-          <div class="tags"><span class="tag">Next</span></div>
+          <div class="tags"><span class="tag live">Available</span><span class="tag">first version</span></div>
           <h3>Tissue Lab</h3>
-          <p>A closer look at one brain: homeostatic self-wiring, growth factor competition, astrocytes, microglia pruning, and recovery after you damage a region.</p>
+          <p>A slice of brain tissue where neurons are the organisms. They wire themselves, compete for growth factor and energy, get pruned by astrocytes and microglia, and are replaced from a stem-cell niche. Damage a region and watch it repair, then zoom into any single cell.</p>
+          <span class="open">Open the lab →</span>
         </div>
-      </div>
+      </a>
     </div>
   </section>
 
@@ -147,6 +148,8 @@ footer code { font-family: var(--mono); }
 
 <script src="lib/brain.js"></script>
 <script src="environments/forager-worlds/engine.js"></script>
+<script src="nervous-systems/tissue-lab/engine.js"></script>
+<script src="nervous-systems/tissue-lab/draw.js"></script>
 <script>
 (function () {
   'use strict';
@@ -178,6 +181,31 @@ footer code { font-family: var(--mono); }
   }
   function loop() {
     if (!document.hidden) { world.step(); world.step(); draw(); }
+    requestAnimationFrame(loop);
+  }
+  draw();
+  if (!reduce) requestAnimationFrame(loop);
+})();
+
+// Tissue Lab preview: a middle band of a tissue that has wired itself.
+(function () {
+  'use strict';
+  const cv = document.getElementById('tissue-preview');
+  if (!cv || !window.TissueSim || !window.TissueDraw) return;
+  const tissue = new window.TissueSim.Tissue({ seed: 3 });
+  for (let i = 0; i < 6000; i++) tissue.step();
+  const ctx = cv.getContext('2d');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const s = getComputedStyle(document.documentElement);
+  const v = (n) => s.getPropertyValue(n).trim();
+  const col = {
+    dish: v('--dish'), exc: '#d9eadc', inh: '#e0705a', newborn: '#5cc46d', astro: '#d4ad45', micro: '#8aa2e6',
+    vessel: '#c0392b', tag: '#f0a050', debris: '#7d8a84', syn: '#9fb8b0', focus: '#ffffff',
+  };
+  const view = { x0: 0, y0: 0.2, size: 1 };
+  function draw() { window.TissueDraw.drawTissue(ctx, tissue, cv.width, cv.width, col, { view }); }
+  function loop() {
+    if (!document.hidden) { tissue.step(); tissue.step(); draw(); }
     requestAnimationFrame(loop);
   }
   draw();
