@@ -57,6 +57,14 @@ Click a creature, then "Zoom into this creature" (or double-click it). The world
 
 The code is in `explorer.js`.
 
+### Zooming into a plant
+In living worlds, click near a plant and choose "Zoom into this plant" (or double-click it). Esc steps back out.
+- **Plant:** its patch of ground (drifting soil, the shade of neighbours, lines to its parent and sprouted offspring, passing creatures), a side view of the plant, its life so far (size, light, soil, seeds dropped), and facts such as what it is worth to an eater. When it dies the page says how: eaten (and by which creature), starved, or old.
+- **Tissues:** leaves, xylem (water rising), phloem (sugar moving), growing tip, root hairs, seeds and, for poisonous plants, defence cells. Each glows with how busy it is.
+- **Cell:** one kind of plant cell with a plain-language introduction, what it is doing in this plant now, and its activity over time.
+
+The model works on the whole plant (light, soil, growth, seeds). Tissues and cells show where those numbers happen in a real plant; they are not simulated one by one, and the page says so. The code is in `plant-explorer.js`.
+
 ## Results so far
 "Picky eating" is how much more often creatures bite food than poison when it is at the mouth (0.5 = no preference, 1 = only food). About 4 generations pass per 1,000 steps.
 

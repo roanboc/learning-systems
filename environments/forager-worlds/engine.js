@@ -203,11 +203,14 @@
     }
 
     // Living plants: an organism with a size, an age and a heritable toxin.
-    addPlant(x, y, poison) {
+    addPlant(x, y, poison, parent) {
       const plant = {
         x: this.wrap(x), y: this.wrap(y), poison, patch: null, dead: false,
         size: 0.1, age: 0, seeds: 0, lifespan: this.p.plantLifespan * (0.5 + this.rng()),
         id: this.nextPlantId = (this.nextPlantId || 0) + 1,
+        parent: parent ? parent.id : null, gen: parent ? parent.gen + 1 : 0,
+        // Last step's inner state, for the plant explorer.
+        fert: 0, light: 1, growth: 0, seeded: false, death: null,
       };
       this.plants.push(plant);
       return plant;
@@ -246,15 +249,19 @@
         const grow = p.plantGrow * (plant.poison ? p.toxinCost : 1);
         // On poor or shaded ground a plant starves and shrinks, so plants
         // compete for space and fast growers can crowd out slow ones.
+        const before = plant.size;
         plant.size = Math.min(1, plant.size + grow * (fert * light - 0.15));
-        if (plant.size <= 0 || plant.age > plant.lifespan) { plant.dead = true; continue; }
+        plant.fert = fert; plant.light = light; plant.growth = plant.size - before; plant.seeded = false;
+        if (plant.size <= 0) { plant.dead = true; plant.death = 'starved'; continue; }
+        if (plant.age > plant.lifespan) { plant.dead = true; plant.death = 'old'; continue; }
         if (plant.size > 0.5 && this.rng() < (plant.poison ? p.toxinCost : 1) / p.seedEvery) {
           const a = this.rng() * TAU, r = p.seedRange * Math.abs(gauss(this.rng));
           // Toxicity is inherited with probability toxinHeredity, otherwise
           // set by the soil chemistry (poisonFraction).
           const poison = this.rng() < p.toxinHeredity ? plant.poison : this.rng() < p.poisonFraction;
-          seeds.push([plant.x + r * Math.cos(a), plant.y + r * Math.sin(a), poison]);
+          seeds.push([plant.x + r * Math.cos(a), plant.y + r * Math.sin(a), poison, plant]);
           plant.seeds++;
+          plant.seeded = true;
         }
       }
       // Rare seeds from outside keep both kinds of plant in play.
@@ -262,12 +269,15 @@
         seeds.push([this.rng() * p.size, this.rng() * p.size, this.rng() < p.poisonFraction]);
       }
       // A seed only sprouts on fertile ground that is not already shaded.
-      for (const [x, y, poison] of seeds) {
+      for (const [x, y, poison, parent] of seeds) {
         if (this.plants.length >= p.maxPlants) break;
         if (this.rng() > this.fertility(x, y)) continue;
         let shaded = false;
         this.forPlantsNear(this.wrap(x), this.wrap(y), p.crowdRadius * 0.8, () => { shaded = true; }, -1);
-        if (!shaded) this.addPlant(x, y, poison);
+        if (!shaded) {
+          this.addPlant(x, y, poison, parent);
+          if (parent) parent.sprouted = (parent.sprouted || 0) + 1;
+        }
       }
     }
 
@@ -467,6 +477,8 @@
         }
         if (meal) {
           meal.dead = true;
+          meal.death = 'eaten';
+          meal.eatenBy = c.id;
           if (meal.patch) meal.patch.n--;
           // A living plant gives (or harms) in proportion to how grown it is.
           const amount = meal.size === undefined ? 1 : meal.size;

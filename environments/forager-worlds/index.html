@@ -194,7 +194,7 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
   <div class="key">
     <span><i class="dot" style="background:var(--green)"></i> green plant</span>
     <span><i class="dot" style="background:var(--violet)"></i> violet plant</span>
-    <span>Creature colour shows which plant colour it prefers: its instincts, or what its brain has learned to bite. Click a creature to inspect it, then zoom in (or double-click) to explore its senses, brain and cells. In living worlds, click near a plant to see its life, and each species has its own body shape.</span>
+    <span>Creature colour shows which plant colour it prefers: its instincts, or what its brain has learned to bite. Click a creature to inspect it, then zoom in (or double-click) to explore its senses, brain and cells. In living worlds, click near a plant to see its life and zoom into it (or double-click it), and each species has its own body shape.</span>
   </div>
 
   <div class="worlds" id="worlds"></div>
@@ -203,6 +203,7 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
 <script src="../../lib/brain.js"></script>
 <script src="engine.js"></script>
 <script src="explorer.js"></script>
+<script src="plant-explorer.js"></script>
 <script>
 (function () {
   'use strict';
@@ -403,9 +404,11 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
     el.canvas.addEventListener('dblclick', (e) => {
       const c = pick(e);
       if (c) explorer.open(entry, c.id, { x: e.clientX, y: e.clientY });
+      else if (entry.pickedPlant) plantExplorer.open(entry, entry.pickedPlant, { x: e.clientX, y: e.clientY });
     });
     el.zoom.addEventListener('click', (e) => {
       if (entry.picked) explorer.open(entry, entry.picked, { x: e.clientX, y: e.clientY });
+      else if (entry.pickedPlant) plantExplorer.open(entry, entry.pickedPlant, { x: e.clientX, y: e.clientY });
     });
     return el;
   }
@@ -536,6 +539,7 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
       ctx.stroke();
       ctx.globalAlpha = 1;
       el.zoom.hidden = false;
+      el.zoom.textContent = 'Zoom into this creature →';
       const base = `#${picked.id} gen ${picked.gen} · age ${picked.age} · energy ${picked.energy.toFixed(0)} · ate ${picked.eaten} food, ${picked.poisoned} poison · `;
       if (picked.brain) {
         const [bg, bv] = biteWeights(picked);
@@ -555,6 +559,8 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
         const kind = plant.poison ? 'poisonous' : 'edible';
         const colour = world.plantColour(plant) === GREEN ? 'green' : 'violet';
         const stage = plant.size < world.p.biteSize ? 'seedling, too small to eat' : plant.size > 0.5 ? 'grown, making seeds' : 'growing';
+        el.zoom.hidden = false;
+        el.zoom.textContent = 'Zoom into this plant →';
         el.inspect.textContent = `Plant · ${colour}, ${kind} · ${stage} · size ${plant.size.toFixed(2)} · age ${plant.age} of about ${plant.lifespan.toFixed(0)} · ${plant.seeds} seeds dropped · soil fertility here ${world.fertility(plant.x, plant.y).toFixed(2)}`;
       } else {
         el.inspect.textContent = entry.picked ? 'That creature has died.' : entry.pickedPlant ? 'That plant is gone: eaten, starved or old.' : '';
@@ -758,9 +764,11 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
   function advance(n) {
     for (const s of state.slots) {
       const watched = explorer.active && explorer.entry === s;
+      const watchedPlant = plantExplorer.active && plantExplorer.entry === s;
       for (let i = 0; i < n && s.world.extinctAt === null; i++) {
         s.world.step();
         if (watched) explorer.record();
+        if (watchedPlant) plantExplorer.record();
       }
       // An extinct world keeps its clock running so the charts stay aligned.
       if (s.world.extinctAt !== null) { s.world.t += n; if (s.world.t % s.world.p.statsEvery < n) s.world.recordStats(); }
@@ -775,9 +783,19 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
   explorer.isPaused = () => !state.running;
   explorer.pauseBtn.addEventListener('click', () => { playBtn.click(); explorer.draw(); });
 
+  const plantExplorer = new window.PlantExplorer({
+    colours: () => colours,
+    onClose: () => drawAll(),
+  });
+  plantExplorer.isPaused = () => !state.running;
+  plantExplorer.pauseBtn.addEventListener('click', () => { playBtn.click(); plantExplorer.draw(); });
+
   let frame = 0;
   function loop() {
-    if (explorer.active) {
+    if (plantExplorer.active) {
+      if (state.running) advance(plantExplorer.speed);
+      plantExplorer.draw();
+    } else if (explorer.active) {
       // While zoomed in, every world runs at the explorer's slow pace so spikes are visible.
       if (state.running) advance(explorer.speed);
       explorer.draw();
