@@ -20,6 +20,14 @@ Open `index.html` in a browser. No build step. `engine.js` has no DOM code and a
   - Learning is reward-modulated STDP: food releases a dopamine-like signal, poison a negative one and a pain signal.
   - Children are born with a fresh brain; nothing learned is inherited.
 
+## Zoom-in explorer
+Click a creature, then "Zoom into this creature" (or double-click it). The world keeps running at one step per frame while you explore. Esc steps back out.
+- **Organism:** the world as the creature sees it (heading up, one slice per eye ray, lit by what the ray reports), its senses → brain → actions, and a spike timeline of senses and muscles with meals marked.
+- **Brain:** the tissue with every neuron and synapse, spikes travelling, and a timeline of every cell plus dopamine.
+- **Cell:** one neuron's membrane voltage against its threshold, its firing rate against its homeostatic target, its connection points, and its strongest inputs and outputs, with a plain-language introduction to that kind of cell.
+
+The code is in `explorer.js`.
+
 ## Results so far (headless runs, 15,000 steps, seeds 1 and 2)
 "Picky eating" is how much more often creatures bite food than poison when it is at the mouth (0.5 = no preference, 1 = only food).
 

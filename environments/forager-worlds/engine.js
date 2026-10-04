@@ -183,13 +183,14 @@
         pain: 0,
       };
       if (this.p.mind === 'brain') {
-        // Sensors: one per ray and colour, left rays at the top of the tissue,
+        // On screen (y points down) a positive angle is clockwise, i.e. the
+        // creature's right. Sensors: one per ray and colour, right rays at the top,
         // then mouth contact per colour, hunger and pain.
-        // Motors: turn left (top), turn right (bottom), eat (middle).
+        // Motors: turn right (top), turn left (bottom), eat (middle).
         const rows = [];
         const R = this.p.rays;
         for (let r = 0; r < R; r++) {
-          const y = (r + 0.5) / R;  // r = 0 is the leftmost ray
+          const y = (r + 0.5) / R;  // r = 0 is the rightmost ray
           rows.push(y, y);           // green, violet
         }
         rows.push(0.5, 0.5);   // mouth: touching green, touching violet
@@ -280,7 +281,7 @@
         const half = g.fov / 2;
         this.forPlantsNear(c.x, c.y, g.senseRange, (plant, dx, dy, d2) => {
           const fwd = dx * cosH + dy * sinH;
-          const side = -dx * sinH + dy * cosH;   // positive = left of heading
+          const side = -dx * sinH + dy * cosH;   // positive = clockwise, the creature's right on screen
           const ang = Math.atan2(side, fwd);
           if (Math.abs(ang) > half) return;
           const w = 1 / (1 + Math.sqrt(d2) / 20);
@@ -362,10 +363,10 @@
       const half = g.fov / 2, range = g.senseRange;
       this.forPlantsNear(c.x, c.y, range, (plant, dx, dy, d2) => {
         const fwd = dx * cosH + dy * sinH;
-        const side = -dx * sinH + dy * cosH;   // positive = left of heading
+        const side = -dx * sinH + dy * cosH;   // positive = clockwise, the creature's right on screen
         const ang = Math.atan2(side, fwd);
         if (Math.abs(ang) > half) return;
-        const ray = Math.min(R - 1, Math.floor((half - ang) / g.fov * R)); // 0 = leftmost
+        const ray = Math.min(R - 1, Math.floor((half - ang) / g.fov * R)); // 0 = rightmost
         const strength = 1 - Math.sqrt(d2) / range;
         const idx = ray * 2 + this.plantColour(plant);
         if (strength > drive[idx]) drive[idx] = strength;
