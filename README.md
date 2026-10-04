@@ -8,7 +8,7 @@ Open `index.html` for the catalogue.
 
 | Shelf | Product | Status |
 |---|---|---|
-| Environments | [Forager Worlds](environments/forager-worlds/) | Available (W2) |
+| Environments | [Forager Worlds](environments/forager-worlds/) | Available (W3) |
 | Nervous systems | Tissue Lab | Planned |
 
 ## Layout

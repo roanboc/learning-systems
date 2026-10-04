@@ -1,6 +1,8 @@
 // Forager Worlds engine: plants, creatures, asexual reproduction with mutation.
 // Creatures steer either with inherited Braitenberg-style reflexes (W1) or with
 // a spiking brain that wires itself and learns during life (W2, lib/brain.js).
+// Several species with different minds can share a world, and plants can be
+// living organisms on drifting soil.
 // No DOM here, so it runs in the browser and in Node.
 // Each World instance owns its own random generator, plants and gene pool, so
 // several worlds can run side by side without sharing anything.
@@ -55,6 +57,7 @@
     senseCost: 0.0004,      // times sense range
     maxAge: 8000,
     mutation: 0.08,         // mutation size as a share of each gene's range
+    brainMutation: 0.02,    // the same for brain genes (slower, so instincts are not rewritten every season)
     statsEvery: 25,
     mind: 'reflex',         // 'reflex' (inherited instincts) or 'brain' (learns during life)
     rays: 7,                // brain mode: eye resolution
@@ -63,8 +66,27 @@
     poisonPunish: 3,        // brain mode: negative dopamine on eating poison
     eatNoise: 0.05,         // brain mode: spontaneous drive to the eat neuron
     eatTarget: 0.02,        // brain mode: set point of the eat neuron (bites are rare acts)
-    innateOrient: 0.3,      // brain mode: inborn weight, eye -> same-side turn
-    innateBite: 0.5,        // brain mode: inborn weight, mouth -> eat
+    neuronCost: 0.0003,     // brain mode: energy per interneuron per step
+    learnCost: 0.2,         // brain mode: energy per step per unit of learning rate
+    geneInit: null,         // optional starting ranges per gene, e.g. { learnRate: [0, 0.002] }
+    fixed: null,            // optional genes held constant, e.g. { learnRate: 0 }
+    // Several species in one world. Each entry: { name, mind, count, geneInit, fixed }.
+    // null means one species built from mind and startCreatures.
+    species: null,
+    // Plants: 'patches' (fixed patches that regrow, W1 to W3) or 'living'
+    // (plants grow on fertile soil, shade each other, make seeds, age and die).
+    plantMode: 'patches',
+    soilSpots: 8,           // living: fertile soil spots
+    soilRadius: 60,         // living: width of a fertile spot
+    soilDrift: 0.08,        // living: how fast fertile spots move, per step
+    plantGrow: 0.03,        // living: growth per step on the best soil
+    toxinCost: 0.5,         // living: growth and seed multiplier for poisonous plants (defence costs)
+    toxinHeredity: 0,       // living: chance a seed inherits its parent's toxicity (1 = plants evolve defences)
+    seedEvery: 30,          // living: mean steps between seeds of a full-grown plant
+    seedRange: 25,          // living: typical seed distance
+    crowdRadius: 12,        // living: plants closer than this compete for light
+    maxPlants: 1200,
+    biteSize: 0.3,          // living: plants smaller than this are too small to see or bite
     mouth: 6,               // reach of the mouth
     brain: null,            // brain mode: overrides for lib/brain.js defaults
   };
@@ -80,7 +102,21 @@
     wander:      { min: 0,   max: 0.5, init: [0.05, 0.25] },
     reproEnergy: { min: 60,  max: 300, init: [100, 160] },
   };
+
+  // Brain genes (brain mode only). Evolution sets how the brain is built and how
+  // fast it learns, never individual synapses. The four inborn weights are the
+  // brain's instincts: how strongly each colour seen on one side turns the body
+  // that way, and how strongly each colour at the mouth triggers a bite.
+  const BRAIN_GENES = {
+    learnRate:    { min: 0, max: 0.06, init: [0.015, 0.025] }, // plasticity
+    hidden:       { min: 4, max: 48,   init: [20, 28] },       // interneurons
+    orientGreen:  { min: 0, max: 0.8,  init: [0.25, 0.35] },
+    orientViolet: { min: 0, max: 0.8,  init: [0.25, 0.35] },
+    biteGreen:    { min: 0, max: 1.2,  init: [0.45, 0.55] },
+    biteViolet:   { min: 0, max: 1.2,  init: [0.45, 0.55] },
+  };
   const GENE_NAMES = Object.keys(GENES);
+  const BRAIN_GENE_NAMES = Object.keys(BRAIN_GENES);
 
   const CELL = 40; // spatial grid cell size
 
@@ -106,13 +142,32 @@
       this.grid = new Array(this.gridN * this.gridN);
 
       this.patchList = [];
-      for (let i = 0; i < this.p.patches; i++) {
-        this.patchList.push({ x: this.rng() * this.p.size, y: this.rng() * this.p.size, n: 0 });
+      this.soil = [];
+      if (this.p.plantMode === 'living') {
+        // Fertile soil spots that drift, so the vegetation never stays put.
+        for (let i = 0; i < this.p.soilSpots; i++) {
+          this.soil.push({ x: this.rng() * this.p.size, y: this.rng() * this.p.size, dir: this.rng() * TAU });
+        }
+        for (const spot of this.soil) {
+          for (let i = 0; i < this.p.plantCapacity * 0.5; i++) {
+            const r = this.p.soilRadius * 0.6 * Math.sqrt(this.rng()), a = this.rng() * TAU;
+            const pl = this.addPlant(spot.x + r * Math.cos(a), spot.y + r * Math.sin(a), this.rng() < this.p.poisonFraction);
+            pl.size = 0.3 + 0.7 * this.rng();
+          }
+        }
+      } else {
+        for (let i = 0; i < this.p.patches; i++) {
+          this.patchList.push({ x: this.rng() * this.p.size, y: this.rng() * this.p.size, n: 0 });
+        }
+        for (const patch of this.patchList) {
+          for (let i = 0; i < this.p.plantCapacity * 0.5; i++) this.spawnPlant(patch);
+        }
       }
-      for (const patch of this.patchList) {
-        for (let i = 0; i < this.p.plantCapacity * 0.5; i++) this.spawnPlant(patch);
-      }
-      for (let i = 0; i < this.p.startCreatures; i++) this.spawnCreature();
+      this.speciesList = (this.p.species || [{ name: this.p.mind === 'brain' ? 'Brains' : 'Instincts', mind: this.p.mind, count: this.p.startCreatures }])
+        .map((sp) => Object.assign({ geneInit: null, fixed: null }, sp));
+      this.speciesList.forEach((sp, i) => {
+        for (let k = 0; k < sp.count; k++) this.spawnCreature(undefined, undefined, undefined, undefined, 0, i);
+      });
       this.recordStats();
     }
 
@@ -147,25 +202,117 @@
       return plant.poison ? 1 - this.foodColour : this.foodColour;
     }
 
-    randomGenome() {
+    // Living plants: an organism with a size, an age and a heritable toxin.
+    addPlant(x, y, poison, parent) {
+      const plant = {
+        x: this.wrap(x), y: this.wrap(y), poison, patch: null, dead: false,
+        size: 0.1, age: 0, seeds: 0, lifespan: this.p.plantLifespan * (0.5 + this.rng()),
+        id: this.nextPlantId = (this.nextPlantId || 0) + 1,
+        parent: parent ? parent.id : null, gen: parent ? parent.gen + 1 : 0,
+        // Last step's inner state, for the plant explorer.
+        fert: 0, light: 1, growth: 0, seeded: false, death: null,
+      };
+      this.plants.push(plant);
+      return plant;
+    }
+
+    // Soil fertility at a point, 0 to 1: the strongest nearby fertile spot.
+    fertility(x, y) {
+      let f = 0;
+      const r2 = 2 * this.p.soilRadius * this.p.soilRadius;
+      for (const s of this.soil) {
+        const dx = this.delta(x, s.x), dy = this.delta(y, s.y);
+        const v = Math.exp(-(dx * dx + dy * dy) / r2);
+        if (v > f) f = v;
+      }
+      return f;
+    }
+
+    // Living plants grow with soil and light, make seeds when grown, age and die.
+    stepLivingPlants() {
+      const p = this.p;
+      for (const s of this.soil) {
+        s.dir += 0.02 * gauss(this.rng);
+        s.x = this.wrap(s.x + Math.cos(s.dir) * p.soilDrift);
+        s.y = this.wrap(s.y + Math.sin(s.dir) * p.soilDrift);
+      }
+      const seeds = [];
+      const crowd2 = p.crowdRadius * p.crowdRadius;
+      for (const plant of this.plants) {
+        if (plant.dead) continue;
+        plant.age++;
+        const fert = this.fertility(plant.x, plant.y);
+        // Shade: close neighbours take light.
+        let shade = 0;
+        this.forPlantsNear(plant.x, plant.y, p.crowdRadius, (o, dx, dy, d2) => { if (o !== plant) shade += o.size * (1 - d2 / crowd2); }, -1);
+        const light = 1 / (1 + shade);
+        const grow = p.plantGrow * (plant.poison ? p.toxinCost : 1);
+        // On poor or shaded ground a plant starves and shrinks, so plants
+        // compete for space and fast growers can crowd out slow ones.
+        const before = plant.size;
+        plant.size = Math.min(1, plant.size + grow * (fert * light - 0.15));
+        plant.fert = fert; plant.light = light; plant.growth = plant.size - before; plant.seeded = false;
+        if (plant.size <= 0) { plant.dead = true; plant.death = 'starved'; continue; }
+        if (plant.age > plant.lifespan) { plant.dead = true; plant.death = 'old'; continue; }
+        if (plant.size > 0.5 && this.rng() < (plant.poison ? p.toxinCost : 1) / p.seedEvery) {
+          const a = this.rng() * TAU, r = p.seedRange * Math.abs(gauss(this.rng));
+          // Toxicity is inherited with probability toxinHeredity, otherwise
+          // set by the soil chemistry (poisonFraction).
+          const poison = this.rng() < p.toxinHeredity ? plant.poison : this.rng() < p.poisonFraction;
+          seeds.push([plant.x + r * Math.cos(a), plant.y + r * Math.sin(a), poison, plant]);
+          plant.seeds++;
+          plant.seeded = true;
+        }
+      }
+      // Rare seeds from outside keep both kinds of plant in play.
+      if (this.rng() < p.plantSeeding) {
+        seeds.push([this.rng() * p.size, this.rng() * p.size, this.rng() < p.poisonFraction]);
+      }
+      // A seed only sprouts on fertile ground that is not already shaded.
+      for (const [x, y, poison, parent] of seeds) {
+        if (this.plants.length >= p.maxPlants) break;
+        if (this.rng() > this.fertility(x, y)) continue;
+        let shaded = false;
+        this.forPlantsNear(this.wrap(x), this.wrap(y), p.crowdRadius * 0.8, () => { shaded = true; }, -1);
+        if (!shaded) {
+          this.addPlant(x, y, poison, parent);
+          if (parent) parent.sprouted = (parent.sprouted || 0) + 1;
+        }
+      }
+    }
+
+    geneSpec(k) {
+      return GENES[k] || BRAIN_GENES[k];
+    }
+
+    geneNames(mind) {
+      return mind === 'brain' ? GENE_NAMES.concat(BRAIN_GENE_NAMES) : GENE_NAMES;
+    }
+
+    randomGenome(sp) {
+      const init = Object.assign({}, this.p.geneInit, sp.geneInit);
+      const fixed = Object.assign({}, this.p.fixed, sp.fixed);
       const g = {};
-      for (const k of GENE_NAMES) {
-        const [lo, hi] = GENES[k].init;
-        g[k] = lo + (hi - lo) * this.rng();
+      for (const k of this.geneNames(sp.mind)) {
+        const [lo, hi] = init[k] || this.geneSpec(k).init;
+        g[k] = k in fixed ? fixed[k] : lo + (hi - lo) * this.rng();
       }
       return g;
     }
 
-    mutate(parent) {
-      const g = {};
-      for (const k of GENE_NAMES) {
-        const spec = GENES[k];
-        g[k] = clamp(parent[k] + gauss(this.rng) * this.p.mutation * (spec.max - spec.min), spec.min, spec.max);
+    mutate(parent, sp) {
+      const g = {}, fixed = Object.assign({}, this.p.fixed, sp.fixed);
+      for (const k of this.geneNames(sp.mind)) {
+        const spec = GENES[k] || BRAIN_GENES[k];
+        const size = GENES[k] ? this.p.mutation : this.p.brainMutation;
+        g[k] = k in fixed ? fixed[k]
+          : clamp(parent[k] + gauss(this.rng) * size * (spec.max - spec.min), spec.min, spec.max);
       }
       return g;
     }
 
-    spawnCreature(genome, x, y, energy, gen) {
+    spawnCreature(genome, x, y, energy, gen, species) {
+      const spIndex = species || 0, sp = this.speciesList[spIndex];
       const c = {
         id: this.nextId++,
         x: x === undefined ? this.rng() * this.p.size : x,
@@ -174,15 +321,17 @@
         energy: energy === undefined ? this.p.startEnergy : energy,
         age: 0,
         gen: gen || 0,
-        g: genome || this.randomGenome(),
+        g: genome || this.randomGenome(sp),
+        sp: spIndex,
         eaten: 0,
         poisoned: 0,
         brain: null,
         motorL: 0,
         motorR: 0,
         pain: 0,
+        brainCost: 0,
       };
-      if (this.p.mind === 'brain') {
+      if (sp.mind === 'brain') {
         // On screen (y points down) a positive angle is clockwise, i.e. the
         // creature's right. Sensors: one per ray and colour, right rays at the top,
         // then mouth contact per colour, hunger and pain.
@@ -195,21 +344,26 @@
         }
         rows.push(0.5, 0.5);   // mouth: touching green, touching violet
         rows.push(0.5, 0.5);   // hunger, pain
-        // Inborn reflexes, the same for both colours: orient toward anything seen
-        // on one side, and bite whatever touches the mouth. Learning has to
-        // find out which colour is worth it.
-        const innate = [];
+        // Inborn reflexes, with strengths from the genome: orient toward a colour
+        // seen on one side, and bite a colour that touches the mouth. They start
+        // equal for both colours; evolution can bias them, learning can retune them.
+        const g = c.g, innate = [];
         for (let r = 0; r < R; r++) {
           const side = r < (R - 1) / 2 ? 0 : r > (R - 1) / 2 ? 1 : -1;
           if (side < 0) continue;
-          innate.push([r * 2, side, this.p.innateOrient], [r * 2 + 1, side, this.p.innateOrient]);
+          innate.push([r * 2, side, g.orientGreen], [r * 2 + 1, side, g.orientViolet]);
         }
-        innate.push([R * 2, 2, this.p.innateBite], [R * 2 + 1, 2, this.p.innateBite]);
+        innate.push([R * 2, 2, g.biteGreen], [R * 2 + 1, 2, g.biteViolet]);
         const bp = Object.assign({
           motorNoiseOverride: [0.35, 0.35, this.p.eatNoise],
           motorTargetOverride: [0.12, 0.12, this.p.eatTarget],
-        }, this.p.brain);
+        }, this.p.brain, {
+          hidden: Math.round(g.hidden),
+          learningRate: g.learnRate,
+        });
         c.brain = new BrainSim.Brain(this.rng, rows, [0.25, 0.75, 0.5], bp, innate);
+        // Neurons and plasticity are not free: tissue and synapse turnover cost energy.
+        c.brainCost = this.p.neuronCost * bp.hidden + this.p.learnCost * bp.learningRate;
         c.drive = new Float32Array(rows.length);
       }
       this.creatures.push(c);
@@ -227,7 +381,9 @@
     }
 
     // Visits plants within radius r of (x, y), passing the torus offsets.
-    forPlantsNear(x, y, r, fn) {
+    // minSize hides seedlings from creatures in living mode.
+    forPlantsNear(x, y, r, fn, minSize) {
+      if (minSize === undefined) minSize = this.p.plantMode === 'living' ? this.p.biteSize : -1;
       const n = this.gridN;
       const cx = Math.floor(x / CELL), cy = Math.floor(y / CELL);
       const span = Math.ceil(r / CELL);
@@ -237,7 +393,7 @@
           const cell = this.grid[((cy + dy) % n + n) % n * n + ((cx + dx) % n + n) % n];
           if (!cell) continue;
           for (const plant of cell) {
-            if (plant.dead) continue;
+            if (plant.dead || plant.size < minSize) continue;
             const ddx = this.delta(x, plant.x), ddy = this.delta(y, plant.y);
             const d2 = ddx * ddx + ddy * ddy;
             if (d2 <= r2) fn(plant, ddx, ddy, d2);
@@ -254,17 +410,22 @@
         this.foodColour = 1 - this.foodColour;
       }
 
-      // Plants wither at random, then regrow logistically per patch,
-      // plus rare seeds from outside.
-      const wither = 1 / p.plantLifespan;
-      for (const plant of this.plants) {
-        if (this.rng() < wither) { plant.dead = true; plant.patch.n--; }
-      }
-      for (const patch of this.patchList) {
-        const expected = p.plantGrowth * patch.n * (1 - patch.n / p.plantCapacity);
-        let births = Math.floor(expected) + (this.rng() < expected % 1 ? 1 : 0);
-        if (this.rng() < p.plantSeeding) births++;
-        for (let i = 0; i < births && patch.n < p.plantCapacity; i++) this.spawnPlant(patch);
+      if (p.plantMode === 'living') {
+        this.buildGrid();
+        this.stepLivingPlants();
+      } else {
+        // Plants wither at random, then regrow logistically per patch,
+        // plus rare seeds from outside.
+        const wither = 1 / p.plantLifespan;
+        for (const plant of this.plants) {
+          if (this.rng() < wither) { plant.dead = true; plant.patch.n--; }
+        }
+        for (const patch of this.patchList) {
+          const expected = p.plantGrowth * patch.n * (1 - patch.n / p.plantCapacity);
+          let births = Math.floor(expected) + (this.rng() < expected % 1 ? 1 : 0);
+          if (this.rng() < p.plantSeeding) births++;
+          for (let i = 0; i < births && patch.n < p.plantCapacity; i++) this.spawnPlant(patch);
+        }
       }
 
       this.buildGrid();
@@ -316,23 +477,27 @@
         }
         if (meal) {
           meal.dead = true;
-          meal.patch.n--;
+          meal.death = 'eaten';
+          meal.eatenBy = c.id;
+          if (meal.patch) meal.patch.n--;
+          // A living plant gives (or harms) in proportion to how grown it is.
+          const amount = meal.size === undefined ? 1 : meal.size;
           if (meal.poison) {
-            c.energy -= p.poisonDamage; c.poisoned++; this.intervalPoisonMeals++;
-            if (c.brain) { c.brain.reward(-p.poisonPunish); c.pain = 15; }
+            c.energy -= p.poisonDamage * amount; c.poisoned++; this.intervalPoisonMeals++;
+            if (c.brain) { c.brain.reward(-p.poisonPunish * amount); c.pain = 15; }
           } else {
-            c.energy += p.foodEnergy; c.eaten++; this.intervalFoodMeals++;
-            if (c.brain) c.brain.reward(p.foodReward);
+            c.energy += p.foodEnergy * amount; c.eaten++; this.intervalFoodMeals++;
+            if (c.brain) c.brain.reward(p.foodReward * amount);
           }
         }
 
-        c.energy -= p.basalCost + p.moveCost * g.speed * g.speed + p.senseCost * g.senseRange;
+        c.energy -= p.basalCost + p.moveCost * g.speed * g.speed + p.senseCost * g.senseRange + c.brainCost;
         c.age++;
 
         if (c.energy > g.reproEnergy && this.creatures.length + newborns.length < p.maxCreatures) {
           const share = c.energy / 2;
           c.energy -= share;
-          newborns.push([this.mutate(g), c.x, c.y, share - 5, c.gen + 1]);
+          newborns.push([this.mutate(g, this.speciesList[c.sp]), c.x, c.y, share - 5, c.gen + 1, c.sp]);
         }
       }
 
@@ -395,16 +560,29 @@
 
     recordStats() {
       const n = this.creatures.length;
-      const mean = {};
-      for (const k of GENE_NAMES) mean[k] = 0;
-      let energy = 0, maxGen = 0, synapses = 0, brains = 0;
+      // Gene means over the creatures that carry each gene (brain genes only
+      // exist in brain species).
+      const mean = {}, count = {}, names = this.geneNames('brain');
+      for (const k of names) { mean[k] = 0; count[k] = 0; }
+      const perSpecies = this.speciesList.map(() => 0);
+      let energy = 0, maxGen = 0, synapses = 0, brains = 0, reflexes = 0;
       for (const c of this.creatures) {
-        if (c.brain) { synapses += c.brain.synapseCount(); brains++; }
-        for (const k of GENE_NAMES) mean[k] += c.g[k];
+        if (c.brain) { synapses += c.brain.synapseCount(); brains++; } else reflexes++;
+        perSpecies[c.sp]++;
+        for (const k in c.g) { mean[k] += c.g[k]; count[k]++; }
         energy += c.energy;
         if (c.gen > maxGen) maxGen = c.gen;
       }
-      if (n) { for (const k of GENE_NAMES) mean[k] /= n; energy /= n; }
+      for (const k of names) mean[k] = count[k] ? mean[k] / count[k] : null;
+      if (n) energy /= n;
+      const brainMode = brains > 0;
+      let toxic = 0, sized = 0;
+      for (const pl of this.plants) { if (pl.poison) toxic++; if (pl.size !== undefined) sized += pl.size; }
+      // Inborn bias toward the colour that is food right now: how much stronger
+      // the instincts for that colour are than for the poison colour.
+      const g = this.foodColour === GREEN ? 1 : -1;
+      const instinct = brainMode
+        ? g * (mean.biteGreen - mean.biteViolet + mean.orientGreen - mean.orientViolet) : null;
       let food = 0, poison = 0;
       for (const pl of this.plants) { if (pl.poison) poison++; else food++; }
       // Preference for whichever colour is currently food, minus the poison colour.
@@ -416,7 +594,7 @@
         poison,
         energy,
         maxGen,
-        foodPref: n && this.p.mind !== 'brain' ? foodPref : null,
+        foodPref: reflexes ? foodPref : null,
         wGreen: n ? mean.wGreen : null,
         wViolet: n ? mean.wViolet : null,
         speed: n ? mean.speed : null,
@@ -429,6 +607,12 @@
           ? this.intervalFoodMeals / (this.intervalFoodMeals + this.intervalPoisonMeals) : null,
         synapses: brains ? synapses / brains : null,
         picky: this.pickiness(),
+        learnRate: brainMode ? mean.learnRate : null,
+        hidden: brainMode ? mean.hidden : null,
+        instinct,
+        species: perSpecies,
+        toxicShare: this.plants.length ? toxic / this.plants.length : null,
+        biomass: this.p.plantMode === 'living' ? sized : null,
       });
       this.intervalBirths = 0;
       this.intervalDeaths = 0;
@@ -442,7 +626,7 @@
     }
   }
 
-  const api = { World, DEFAULTS, GENES, GENE_NAMES, GREEN, VIOLET };
+  const api = { World, DEFAULTS, GENES, GENE_NAMES, BRAIN_GENES, BRAIN_GENE_NAMES, GREEN, VIOLET };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.WorldSim = api;
 })(typeof self !== 'undefined' ? self : this);
