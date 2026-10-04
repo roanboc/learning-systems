@@ -42,9 +42,9 @@ Set with `plantMode: 'living'` and `species`.
 - Small brains: starting with 4 to 8 interneurons.
 - Large brains: starting with 28 to 36 interneurons.
 
-### First results (headless, seeds 1 to 3)
+### First results (headless, few seeds, so treat as early signs)
 - Brains alone live well on living plants (about 100 to 160 creatures over 10,000 steps).
-- **Small vs large brains, stable world:** small brains win, and large brains are gone by about step 15,000. They cost more and give nothing extra when nothing changes.
+- **Small vs large brains, stable world (seed 1):** small brains win, and large brains are gone by about step 15,000. They cost more and give nothing extra when nothing changes.
 - **Small vs large brains, seasons every 3000 steps:** the two coexist for about 25,000 steps, and which one leads keeps switching (seed 1). On seed 2, large brains took over and the world died out at step 16,000.
 - **Grazers with brains:** grazers drive the edible plants down and the brain species die out within 2,000 steps (3 of 3 seeds). With seasons, the grazers then starve at the first swap.
 - **Heritable toxins** (`toxinHeredity: 0.9`): eaters remove the edible plants, so poisonous plants take over (about 95%) and few eaters remain.
