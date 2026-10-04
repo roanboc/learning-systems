@@ -391,8 +391,11 @@
         const dx = world.delta(c.x, pl.x), dy = world.delta(c.y, pl.y);
         if (Math.abs(dx) > view * 1.5 || Math.abs(dy) > view * 1.5) continue;
         ctx.fillStyle = world.plantColour(pl) === 0 ? col.green : col.violet;
-        ctx.beginPath(); ctx.arc(dx * k, dy * k, Math.max(2.5, Math.min(8, 2.5 * k)), 0, Math.PI * 2); ctx.fill();
+        const grown = pl.size === undefined ? 1 : 0.3 + 0.7 * pl.size;
+        ctx.globalAlpha = pl.size !== undefined && pl.size < world.p.biteSize ? 0.4 : 1;
+        ctx.beginPath(); ctx.arc(dx * k, dy * k, Math.max(2, Math.min(8, 2.5 * k) * grown), 0, Math.PI * 2); ctx.fill();
       }
+      ctx.globalAlpha = 1;
       for (const o of world.creatures) {
         if (o === c) continue;
         const dx = world.delta(c.x, o.x), dy = world.delta(c.y, o.y);
@@ -661,6 +664,7 @@
     renderFacts() {
       const c = this.creature, g = c.g, b = c.brain;
       const facts = [
+        ['Species', this.entry.world.speciesList[c.sp].name],
         ['Age', `${c.age} steps`], ['Generation', c.gen], ['Energy', c.energy.toFixed(0)],
         ['Meals', `${c.eaten} food, ${c.poisoned} poison`],
         ['Speed', g.speed.toFixed(2)], ['Splits at energy', g.reproEnergy.toFixed(0)],
