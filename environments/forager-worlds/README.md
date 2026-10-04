@@ -49,6 +49,16 @@ Set with `plantMode: 'living'` and `species`.
 - **Grazers with brains:** grazers drive the edible plants down and the brain species die out within 2,000 steps (3 of 3 seeds). With seasons, the grazers then starve at the first swap.
 - **Heritable toxins** (`toxinHeredity: 0.9`): eaters remove the edible plants, so poisonous plants take over (about 95%) and few eaters remain.
 
+## Hunters, prey and gardeners (W5)
+**Hunters.** A species with `diet: 'meat'` eats other creatures instead of plants. When a world has hunters, every eye gains one animal cell per ray. It sees animals of the other diet: prey for a hunter, hunters for a plant eater. There is also a mouth cell that fires when prey is within reach. A hunter bites when its eat neuron fires (brains) or whenever prey is in reach (instincts). Each bite takes `attackDamage` energy from the prey, gives the hunter `meatEfficiency` of it, and gives the prey pain and negative dopamine. Inborn reflexes are genes: chase (`orientAnimal`), flee (`fleeAnimal`) and bite (`biteAnimal`). Instinct minds get one attraction weight, `wAnimal`. Hunters are drawn in red, and the explorer shows animal cells in a third eye column.
+
+**Gardeners.** With `dung` above 0, digested plants return to the soil as droppings where creatures walk, and every death leaves a carcass. Both add fertility that fades over time (`dungDecay`), so plants grow back best along the creatures' paths. The dish shows droppings as darker soil.
+
+### First results (30,000 steps)
+- **Brain hunters and prey** coexisted for the whole run in 2 of 3 seeds. Numbers cycled, with hunters peaking after prey, then prey falling. In both, the prey's inborn flee reflex evolved from about 0.13 to about 0.3. On seed 3 the hunters died out by step 9,000.
+- **Instinct hunters** over-hunted and died out within about 6,000 steps in 3 of 3 seeds. The prey then lived on alone.
+- **Gardeners** (`dung: 0.005`) averaged about 159 creatures against 145 to 156 without droppings (2 seeds each), with higher peaks. The effect is real but modest.
+
 ## Zoom-in explorer
 Click a creature, then "Zoom into this creature" (or double-click it). The world keeps running at one step per frame while you explore. Esc steps back out.
 - **Organism:** the world as the creature sees it (heading up, one slice per eye ray, lit by what the ray reports), its senses → brain → actions, and a spike timeline of senses and muscles with meals marked.

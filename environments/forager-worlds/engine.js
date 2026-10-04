@@ -87,6 +87,17 @@
     crowdRadius: 12,        // living: plants closer than this compete for light
     maxPlants: 1200,
     biteSize: 0.3,          // living: plants smaller than this are too small to see or bite
+    // Predators (W5): a species with diet 'meat' hunts the plant eaters.
+    animalSight: null,      // eyes also see animals of the other diet; null = on when predators exist
+    attackReach: 9,
+    attackDamage: 30,       // energy a bite takes from the prey
+    meatEfficiency: 0.7,    // share of that energy the predator gains
+    // Creatures change their world (W5): droppings and carcasses fertilise the soil.
+    dung: 0,                // 0 = off; fertility added per unit of eaten plant
+    dungRate: 0.02,         // share of the gut released per step
+    dungDecay: 0.998,       // per step, so old dung fades
+    dungCell: 20,
+    carcass: 0.2,           // fertility left where a creature dies (dung worlds only)
     mouth: 6,               // reach of the mouth
     brain: null,            // brain mode: overrides for lib/brain.js defaults
   };
@@ -114,6 +125,23 @@
     orientViolet: { min: 0, max: 0.8,  init: [0.25, 0.35] },
     biteGreen:    { min: 0, max: 1.2,  init: [0.45, 0.55] },
     biteViolet:   { min: 0, max: 1.2,  init: [0.45, 0.55] },
+  };
+
+  // Animal genes, only in worlds where predators and prey can see each other.
+  // Reflex minds get one attraction weight; brains get three inborn reflexes:
+  // turn toward an animal, turn away from it, bite it.
+  const REFLEX_ANIMAL_GENES = {
+    wAnimal: { min: -3, max: 3, init: [-0.5, 0.5] },
+  };
+  const BRAIN_ANIMAL_GENES = {
+    orientAnimal: { min: 0, max: 0.8, init: [0, 0.1] },
+    fleeAnimal:   { min: 0, max: 0.8, init: [0, 0.1] },
+    biteAnimal:   { min: 0, max: 1.2, init: [0, 0.1] },
+  };
+  // Starting instincts by diet: hunters chase and bite, prey keep away.
+  const DIET_INIT = {
+    meat: { wAnimal: [1, 2], orientAnimal: [0.3, 0.4], fleeAnimal: [0, 0.05], biteAnimal: [0.5, 0.6] },
+    plants: { wAnimal: [-1, 0], orientAnimal: [0, 0.05], fleeAnimal: [0.1, 0.2], biteAnimal: [0, 0.05] },
   };
   const GENE_NAMES = Object.keys(GENES);
   const BRAIN_GENE_NAMES = Object.keys(BRAIN_GENES);
@@ -164,7 +192,13 @@
         }
       }
       this.speciesList = (this.p.species || [{ name: this.p.mind === 'brain' ? 'Brains' : 'Instincts', mind: this.p.mind, count: this.p.startCreatures }])
-        .map((sp) => Object.assign({ geneInit: null, fixed: null }, sp));
+        .map((sp) => Object.assign({ geneInit: null, fixed: null, diet: 'plants' }, sp));
+      this.animalSight = this.p.animalSight === null
+        ? this.speciesList.some((sp) => sp.diet === 'meat') : !!this.p.animalSight;
+      this.deaths.killed = 0;
+      this.dungN = Math.ceil(this.p.size / this.p.dungCell);
+      this.dungGrid = this.p.dung > 0 ? new Float32Array(this.dungN * this.dungN) : null;
+      this.cgrid = new Array(this.gridN * this.gridN);
       this.speciesList.forEach((sp, i) => {
         for (let k = 0; k < sp.count; k++) this.spawnCreature(undefined, undefined, undefined, undefined, 0, i);
       });
@@ -225,7 +259,8 @@
         const v = Math.exp(-(dx * dx + dy * dy) / r2);
         if (v > f) f = v;
       }
-      return f;
+      if (this.dungGrid) f += this.dungAt(this.wrap(x), this.wrap(y));
+      return f > 1 ? 1 : f;
     }
 
     // Living plants grow with soil and light, make seeds when grown, age and die.
@@ -282,15 +317,17 @@
     }
 
     geneSpec(k) {
-      return GENES[k] || BRAIN_GENES[k];
+      return GENES[k] || BRAIN_GENES[k] || REFLEX_ANIMAL_GENES[k] || BRAIN_ANIMAL_GENES[k];
     }
 
     geneNames(mind) {
-      return mind === 'brain' ? GENE_NAMES.concat(BRAIN_GENE_NAMES) : GENE_NAMES;
+      const names = mind === 'brain' ? GENE_NAMES.concat(BRAIN_GENE_NAMES) : GENE_NAMES;
+      if (!this.animalSight) return names;
+      return names.concat(Object.keys(mind === 'brain' ? BRAIN_ANIMAL_GENES : REFLEX_ANIMAL_GENES));
     }
 
     randomGenome(sp) {
-      const init = Object.assign({}, this.p.geneInit, sp.geneInit);
+      const init = Object.assign({}, this.animalSight ? DIET_INIT[sp.diet] : null, this.p.geneInit, sp.geneInit);
       const fixed = Object.assign({}, this.p.fixed, sp.fixed);
       const g = {};
       for (const k of this.geneNames(sp.mind)) {
@@ -303,8 +340,8 @@
     mutate(parent, sp) {
       const g = {}, fixed = Object.assign({}, this.p.fixed, sp.fixed);
       for (const k of this.geneNames(sp.mind)) {
-        const spec = GENES[k] || BRAIN_GENES[k];
-        const size = GENES[k] ? this.p.mutation : this.p.brainMutation;
+        const spec = this.geneSpec(k);
+        const size = GENES[k] || REFLEX_ANIMAL_GENES[k] ? this.p.mutation : this.p.brainMutation;
         g[k] = k in fixed ? fixed[k]
           : clamp(parent[k] + gauss(this.rng) * size * (spec.max - spec.min), spec.min, spec.max);
       }
@@ -330,6 +367,10 @@
         motorR: 0,
         pain: 0,
         brainCost: 0,
+        meat: sp.diet === 'meat',
+        gut: 0,
+        bitten: 0,
+        killedBy: null,
       };
       if (sp.mind === 'brain') {
         // On screen (y points down) a positive angle is clockwise, i.e. the
@@ -344,6 +385,12 @@
         }
         rows.push(0.5, 0.5);   // mouth: touching green, touching violet
         rows.push(0.5, 0.5);   // hunger, pain
+        // Worlds with predators: one animal cell per ray (animals of the other
+        // diet), then a mouth cell for touching one.
+        if (this.animalSight) {
+          for (let r = 0; r < R; r++) rows.push((r + 0.5) / R);
+          rows.push(0.5);
+        }
         // Inborn reflexes, with strengths from the genome: orient toward a colour
         // seen on one side, and bite a colour that touches the mouth. They start
         // equal for both colours; evolution can bias them, learning can retune them.
@@ -354,6 +401,17 @@
           innate.push([r * 2, side, g.orientGreen], [r * 2 + 1, side, g.orientViolet]);
         }
         innate.push([R * 2, 2, g.biteGreen], [R * 2 + 1, 2, g.biteViolet]);
+        if (this.animalSight) {
+          // Turn toward an animal (hunting), away from it (fleeing), bite it.
+          const base = R * 2 + 4;
+          for (let r = 0; r < R; r++) {
+            const side = r < (R - 1) / 2 ? 0 : r > (R - 1) / 2 ? 1 : -1;
+            if (side < 0) continue;
+            if (g.orientAnimal > 0) innate.push([base + r, side, g.orientAnimal]);
+            if (g.fleeAnimal > 0) innate.push([base + r, 1 - side, g.fleeAnimal]);
+          }
+          if (g.biteAnimal > 0) innate.push([base + R, 2, g.biteAnimal]);
+        }
         const bp = Object.assign({
           motorNoiseOverride: [0.35, 0.35, this.p.eatNoise],
           motorTargetOverride: [0.12, 0.12, this.p.eatTarget],
@@ -362,6 +420,8 @@
           learningRate: g.learnRate,
         });
         c.brain = new BrainSim.Brain(this.rng, rows, [0.25, 0.75, 0.5], bp, innate);
+        // Where each kind of sensor sits, for the explorer and the page.
+        c.brain.layout = { R, animal: this.animalSight, animalBase: R * 2 + 4 };
         // Neurons and plasticity are not free: tissue and synapse turnover cost energy.
         c.brainCost = this.p.neuronCost * bp.hidden + this.p.learnCost * bp.learningRate;
         c.drive = new Float32Array(rows.length);
@@ -402,6 +462,39 @@
       }
     }
 
+    buildCreatureGrid() {
+      const grid = this.cgrid, n = this.gridN;
+      for (let i = 0; i < grid.length; i++) grid[i] = null;
+      for (const c of this.creatures) {
+        const idx = Math.floor(c.y / CELL) % n * n + Math.floor(c.x / CELL) % n;
+        (grid[idx] || (grid[idx] = [])).push(c);
+      }
+    }
+
+    // Visits living creatures of the other diet within radius r of creature c.
+    forPreyOrPredatorsNear(c, r, fn) {
+      const n = this.gridN;
+      const cx = Math.floor(c.x / CELL), cy = Math.floor(c.y / CELL);
+      const span = Math.ceil(r / CELL), r2 = r * r;
+      for (let dy = -span; dy <= span; dy++) {
+        for (let dx = -span; dx <= span; dx++) {
+          const cell = this.cgrid[((cy + dy) % n + n) % n * n + ((cx + dx) % n + n) % n];
+          if (!cell) continue;
+          for (const o of cell) {
+            if (o.meat === c.meat || o.energy <= 0) continue;
+            const ddx = this.delta(c.x, o.x), ddy = this.delta(c.y, o.y);
+            const d2 = ddx * ddx + ddy * ddy;
+            if (d2 <= r2) fn(o, ddx, ddy, d2);
+          }
+        }
+      }
+    }
+
+    dungAt(x, y) {
+      const n = this.dungN, k = this.p.dungCell;
+      return this.dungGrid[(Math.floor(y / k) % n) * n + (Math.floor(x / k) % n)];
+    }
+
     step() {
       const p = this.p;
       this.t++;
@@ -429,10 +522,16 @@
       }
 
       this.buildGrid();
+      if (this.animalSight) this.buildCreatureGrid();
+      if (this.dungGrid) {
+        const d = this.dungGrid, decay = p.dungDecay;
+        for (let i = 0; i < d.length; i++) d[i] *= decay;
+      }
 
       const newborns = [];
       for (const c of this.creatures) {
         const g = c.g;
+        if (c.energy <= 0) continue;   // killed earlier this step
         if (c.brain) this.think(c);
         else {
         // Two eyes: plants in the left or right half of the field of view,
@@ -451,7 +550,17 @@
         });
 
         // Reflex: turn toward colours with positive weight, away from negative.
-        const drive = g.wGreen * (lG - rG) + g.wViolet * (lV - rV);
+        let drive = c.meat ? 0 : g.wGreen * (lG - rG) + g.wViolet * (lV - rV);
+        if (this.animalSight) {
+          let lA = 0, rA = 0;
+          this.forPreyOrPredatorsNear(c, g.senseRange, (o, dx, dy, d2) => {
+            const ang = Math.atan2(-dx * sinH + dy * cosH, dx * cosH + dy * sinH);
+            if (Math.abs(ang) > half) return;
+            const w = 1 / (1 + Math.sqrt(d2) / 20);
+            if (ang > 0) lA += w; else rA += w;
+          });
+          drive += g.wAnimal * (lA - rA) * 2;
+        }
         c.heading += g.turnGain * Math.tanh(drive) + g.wander * gauss(this.rng);
         }
         c.x = this.wrap(c.x + Math.cos(c.heading) * g.speed);
@@ -460,7 +569,8 @@
         // Eating is a choice. Reflex creatures bite a touched plant if their
         // instinct likes its colour; brains bite when the eat neuron fires.
         let meal = null, lip = null, lipD = Infinity;
-        this.forPlantsNear(c.x, c.y, p.mouth, (plant, dx, dy, d2) => { if (d2 < lipD) { lipD = d2; lip = plant; } });
+        if (c.meat) this.hunt(c);
+        else this.forPlantsNear(c.x, c.y, p.mouth, (plant, dx, dy, d2) => { if (d2 < lipD) { lipD = d2; lip = plant; } });
         if (lip && (c.brain ? c.brain.motorSpiked(2) : true)) {
           let best = Infinity;
           this.forPlantsNear(c.x, c.y, p.mouth, (plant, dx, dy, d2) => {
@@ -482,6 +592,7 @@
           if (meal.patch) meal.patch.n--;
           // A living plant gives (or harms) in proportion to how grown it is.
           const amount = meal.size === undefined ? 1 : meal.size;
+          c.gut += amount;
           if (meal.poison) {
             c.energy -= p.poisonDamage * amount; c.poisoned++; this.intervalPoisonMeals++;
             if (c.brain) { c.brain.reward(-p.poisonPunish * amount); c.pain = 15; }
@@ -492,6 +603,13 @@
         }
 
         c.energy -= p.basalCost + p.moveCost * g.speed * g.speed + p.senseCost * g.senseRange + c.brainCost;
+        if (this.dungGrid && c.gut > 0) {
+          // Droppings: digested plants return to the soil where the creature walks.
+          const d = c.gut * p.dungRate;
+          c.gut -= d;
+          const n = this.dungN, k = p.dungCell;
+          this.dungGrid[(Math.floor(c.y / k) % n) * n + (Math.floor(c.x / k) % n)] += d * p.dung;
+        }
         c.age++;
 
         if (c.energy > g.reproEnergy && this.creatures.length + newborns.length < p.maxCreatures) {
@@ -504,6 +622,13 @@
       // Remove the dead.
       let w = 0;
       for (const c of this.creatures) {
+        if (c.energy <= 0 || c.age > p.maxAge) {
+          if (this.dungGrid) {
+            const n = this.dungN, k = p.dungCell;
+            this.dungGrid[(Math.floor(c.y / k) % n) * n + (Math.floor(c.x / k) % n)] += p.carcass;
+          }
+        }
+        if (c.energy <= 0 && c.killedBy !== null) { this.deaths.killed++; this.intervalDeaths++; continue; }
         if (c.energy <= 0) { this.deaths.starved++; this.intervalDeaths++; continue; }
         if (c.age > p.maxAge) { this.deaths.old++; this.intervalDeaths++; continue; }
         this.creatures[w++] = c;
@@ -517,6 +642,26 @@
 
       if (this.creatures.length === 0 && this.extinctAt === null) this.extinctAt = this.t;
       if (this.t % p.statsEvery === 0) this.recordStats();
+    }
+
+    // Predators: bite the closest prey in reach, if the mind decides to.
+    // Brains bite when the eat neuron fires; reflex hunters always try.
+    hunt(c) {
+      const p = this.p;
+      let prey = null, best = Infinity;
+      this.forPreyOrPredatorsNear(c, p.attackReach, (o, dx, dy, d2) => { if (d2 < best) { best = d2; prey = o; } });
+      if (!prey) return;
+      if (c.brain ? !c.brain.motorSpiked(2) : c.g.wAnimal <= 0) return;
+      const taken = Math.min(p.attackDamage, Math.max(0, prey.energy));
+      prey.energy -= p.attackDamage;
+      prey.bitten++;
+      prey.pain = 15;
+      if (prey.brain) prey.brain.reward(-p.poisonPunish);
+      if (prey.energy <= 0) prey.killedBy = c.id;
+      c.energy += taken * p.meatEfficiency;
+      c.eaten++;
+      this.intervalFoodMeals++;
+      if (c.brain) c.brain.reward(p.foodReward);
     }
 
     // Brain mode: the eye reports, per ray, the closest plant of each colour;
@@ -539,7 +684,24 @@
       // Mouth: the colour of the plant that a bite would take (the closest one).
       let lip = null, lipD = Infinity;
       this.forPlantsNear(c.x, c.y, p.mouth, (plant, dx, dy, d2) => { if (d2 < lipD) { lipD = d2; lip = plant; } });
-      if (lip) drive[R * 2 + this.plantColour(lip)] = 1;
+      if (lip && !c.meat) drive[R * 2 + this.plantColour(lip)] = 1;
+      if (this.animalSight) {
+        // Animal cells: the closest animal of the other diet per ray, and
+        // whether one is within biting reach.
+        const base = R * 2 + 4;
+        let reach = false;
+        const reach2 = p.attackReach * p.attackReach;
+        this.forPreyOrPredatorsNear(c, range, (o, dx, dy, d2) => {
+          if (d2 <= reach2) reach = true;
+          const fwd = dx * cosH + dy * sinH;
+          const ang = Math.atan2(-dx * sinH + dy * cosH, fwd);
+          if (Math.abs(ang) > half) return;
+          const ray = Math.min(R - 1, Math.floor((half - ang) / g.fov * R));
+          const strength = 1 - Math.sqrt(d2) / range;
+          if (strength > drive[base + ray]) drive[base + ray] = strength;
+        });
+        drive[base + R] = reach && c.meat ? 1 : 0;
+      }
       drive[R * 2 + 2] = clamp(1 - c.energy / g.reproEnergy, 0, 1) * 0.3;  // hunger
       drive[R * 2 + 3] = c.pain > 0 ? 1 : 0;                               // pain
       if (c.pain > 0) c.pain--;
@@ -565,10 +727,11 @@
       const mean = {}, count = {}, names = this.geneNames('brain');
       for (const k of names) { mean[k] = 0; count[k] = 0; }
       const perSpecies = this.speciesList.map(() => 0);
-      let energy = 0, maxGen = 0, synapses = 0, brains = 0, reflexes = 0;
+      let energy = 0, maxGen = 0, synapses = 0, brains = 0, reflexes = 0, predators = 0;
       for (const c of this.creatures) {
         if (c.brain) { synapses += c.brain.synapseCount(); brains++; } else reflexes++;
         perSpecies[c.sp]++;
+        if (c.meat) predators++;
         for (const k in c.g) { mean[k] += c.g[k]; count[k]++; }
         energy += c.energy;
         if (c.gen > maxGen) maxGen = c.gen;
@@ -611,6 +774,9 @@
         hidden: brainMode ? mean.hidden : null,
         instinct,
         species: perSpecies,
+        predators: this.animalSight ? predators : null,
+        prey: this.animalSight ? n - predators : null,
+        dung: this.dungGrid ? this.dungGrid.reduce((a, v) => a + v, 0) : null,
         toxicShare: this.plants.length ? toxic / this.plants.length : null,
         biomass: this.p.plantMode === 'living' ? sized : null,
       });

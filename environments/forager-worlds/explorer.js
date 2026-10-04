@@ -9,6 +9,7 @@
   'use strict';
 
   const HIST = 400; // steps of history kept for the timeline and traces
+  const ANIMAL = '#e39a8f'; // cells that see or touch animals
   const SENSOR = 0, EXC = 1, INH = 2, MOTOR = 3;
 
   const CELL_INTRO = {
@@ -20,6 +21,8 @@
     inh: 'An inhibitory interneuron, a brake. Each of its spikes pushes the cells it connects to away from firing. Punishment strengthens a brake that was active just before a bad outcome.',
     turnLeft: 'A motor neuron driving the left-turn muscle. The body turns by the difference between left and right motor firing.',
     turnRight: 'A motor neuron driving the right-turn muscle. The body turns by the difference between left and right motor firing.',
+    animalEye: 'A cell that sees animals of the other diet in one direction: hunters for a plant eater, prey for a hunter. It fires faster the closer the animal is. Whether to approach or flee is up to the wiring behind it.',
+    animalMouth: 'A contact cell for hunters: it fires while prey is within biting reach.',
     eat: 'The bite motor neuron. A bite happens only if it fires while a plant is at the mouth, so whether to eat is a decision.',
   };
   const HOMEOSTASIS = 'Every cell tries to fire near its own target rate. When it is too quiet it grows new connection points (spines and boutons) and gets wired to neighbours; when it is too busy it retracts them.';
@@ -148,7 +151,7 @@
       const w = this.entry.world, c = this.creature;
       let best = null, bd = Infinity;
       for (const o of w.creatures) {
-        if (!!o.brain !== !!c.brain) continue;
+        if (o.sp !== c.sp) continue;
         const d = w.delta(c.x, o.x) ** 2 + w.delta(c.y, o.y) ** 2;
         if (d < bd) { bd = d; best = o; }
       }
@@ -236,7 +239,10 @@
 
     // ---------- naming ----------
 
-    rays() { return (this.creature.brain.nS - 4) / 2; }
+    rays() { const b = this.creature.brain; return b.layout ? b.layout.R : (b.nS - 4) / 2; }
+
+    // Worlds with predators add animal cells after the pain cell.
+    animalBase() { const l = this.creature.brain.layout; return l && l.animal ? l.animalBase : Infinity; }
 
     cellKind(i) {
       const b = this.creature.brain, R = this.rays();
@@ -244,6 +250,7 @@
       if (i < R * 2 + 2) return 'mouth';
       if (i === R * 2 + 2) return 'hunger';
       if (i === R * 2 + 3) return 'pain';
+      if (i >= this.animalBase() && i < b.nS) return i < this.animalBase() + R ? 'animalEye' : 'animalMouth';
       if (b.type[i] === EXC) return 'exc';
       if (b.type[i] === INH) return 'inh';
       return ['turnRight', 'turnLeft', 'eat'][i - b.firstMotor];
@@ -259,6 +266,12 @@
           return `Eye cell, ray ${where}, ${colour(i)}`;
         }
         case 'mouth': return `Mouth cell, ${colour(i - R * 2)}`;
+        case 'animalEye': {
+          const r = i - this.animalBase(), mid = (R - 1) / 2;
+          const where = r === mid ? 'centre' : r < mid ? `${mid - r} right` : `${r - mid} left`;
+          return `Animal-eye cell, ray ${where}`;
+        }
+        case 'animalMouth': return 'Mouth cell, touching prey';
         case 'hunger': return 'Hunger cell';
         case 'pain': return 'Pain cell';
         case 'exc': return `Excitatory interneuron ${i - b.nS + 1}`;
@@ -400,7 +413,7 @@
         if (o === c) continue;
         const dx = world.delta(c.x, o.x), dy = world.delta(c.y, o.y);
         if (Math.abs(dx) > view * 1.5 || Math.abs(dy) > view * 1.5) continue;
-        this.triangle(ctx, dx * k, dy * k, o.heading, 6, '#8a9a93');
+        this.triangle(ctx, dx * k, dy * k, o.heading, 6, o.meat !== c.meat ? ANIMAL : '#8a9a93');
       }
       // Mouth reach and the body itself.
       ctx.strokeStyle = '#e8efe9';
@@ -468,6 +481,11 @@
       }
       const bodyTop = top + eyeH + 14;
       for (let k = 0; k < 4; k++) pos[R * 2 + k] = [colX[0] + (k < 2 ? -10 + k * 20 : -10 + (k - 2) * 20), bodyTop + (k < 2 ? 0 : 26) + 10];
+      // Animal cells: a third eye column, and the prey-touch cell beside the mouth.
+      for (let i = R * 2 + 4; i < b.nS; i++) {
+        const r = i - this.animalBase();
+        pos[i] = r < R ? [colX[0] + 30, top + (r + 0.5) * eyeH / R] : [colX[0] + 30, bodyTop + 10];
+      }
       for (let k = 0; k < 3; k++) pos[b.firstMotor + k] = [colX[2], top + (k + 0.5) * (bottom - top) / 3];
 
       // Brain blob with live interneuron dots.
@@ -513,6 +531,7 @@
         const kind = this.cellKind(i);
         let fill = '#d8c690';
         if (kind === 'eye' || kind === 'mouth') fill = (i - (kind === 'mouth' ? R * 2 : 0)) % 2 === 0 ? col.green : col.violet;
+        else if (kind === 'animalEye' || kind === 'animalMouth') fill = ANIMAL;
         this.cellDot(ctx, pos[i][0], pos[i][1], 6, fill, b.spiked[i], c.drive[i]);
         this.hits.push({ canvas: '.ex-pipeline', x: pos[i][0], y: pos[i][1], r: 7, cell: i });
       }
@@ -520,7 +539,8 @@
       ctx.textAlign = 'center';
       ctx.fillText('eye', colX[0], top - 8 + 0);
       ctx.textAlign = 'left';
-      ctx.fillText('mouth', colX[0] + 20, bodyTop + 10);
+      ctx.fillText('mouth', colX[0] + 20 + (b.nS > R * 2 + 4 ? 20 : 0), bodyTop + 10);
+      if (b.nS > R * 2 + 4) { ctx.textAlign = 'center'; ctx.fillStyle = ANIMAL; ctx.fillText('animals', colX[0] + 30, top - 8 + 12); ctx.fillStyle = '#b7c4be'; ctx.textAlign = 'left'; }
       ctx.fillText('hunger, pain', colX[0] + 20, bodyTop + 36);
       const labels = ['turn right', 'turn left', 'eat'];
       const motorTrace = [c.motorL, c.motorR, null];
@@ -594,7 +614,7 @@
 
       // Group bands and labels.
       const groups = [];
-      const groupOf = (i) => i < R * 2 ? 'eye' : i < b.nS ? 'body' : i < b.firstMotor ? 'interneurons' : 'muscles';
+      const groupOf = (i) => i < R * 2 ? 'eye' : i >= this.animalBase() && i < b.nS ? 'animals' : i < b.nS ? 'body' : i < b.firstMotor ? 'interneurons' : 'muscles';
       rows.forEach((i, r) => {
         const gname = groupOf(i);
         if (!groups.length || groups[groups.length - 1].name !== gname) groups.push({ name: gname, from: r, to: r });
@@ -627,6 +647,7 @@
         let fill = '#cfe0d6';
         if (kind === 'eye') fill = i % 2 === 0 ? col.green : col.violet;
         else if (kind === 'mouth') fill = (i - R * 2) === 0 ? col.green : col.violet;
+        else if (kind === 'animalEye' || kind === 'animalMouth') fill = ANIMAL;
         else if (kind === 'inh') fill = col.danger;
         else if (kind === 'hunger' || kind === 'pain') fill = '#d8c690';
         if (i === this.cell && this.level !== 'organism') { ctx.fillStyle = '#ffffff'; ctx.globalAlpha = 0.08; ctx.fillRect(labelW, y, plotW, rowH); ctx.globalAlpha = 1; }
@@ -665,22 +686,31 @@
       const c = this.creature, g = c.g, b = c.brain;
       const facts = [
         ['Species', this.entry.world.speciesList[c.sp].name],
+        ['Diet', c.meat ? 'hunter (eats prey)' : 'plants'],
         ['Age', `${c.age} steps`], ['Generation', c.gen], ['Energy', c.energy.toFixed(0)],
-        ['Meals', `${c.eaten} food, ${c.poisoned} poison`],
+        c.meat ? ['Bites of prey', c.eaten] : ['Meals', `${c.eaten} food, ${c.poisoned} poison`],
         ['Speed', g.speed.toFixed(2)], ['Splits at energy', g.reproEnergy.toFixed(0)],
       ];
+      if (c.bitten) facts.push(['Bitten by hunters', c.bitten]);
       if (b) {
-        let gw = 0, vw = 0;
-        const R = this.rays(), eat = b.firstMotor + 2;
-        for (const s of b.inList[eat]) { if (b.pre[s] === R * 2) gw += b.w[s]; else if (b.pre[s] === R * 2 + 1) vw += b.w[s]; }
-        facts.push(['Bite drive now', `green ${gw.toFixed(2)} · violet ${vw.toFixed(2)}`]);
+        let gw = 0, vw = 0, aw = 0;
+        const R = this.rays(), eat = b.firstMotor + 2, preyTouch = this.animalBase() + R;
+        for (const s of b.inList[eat]) {
+          if (b.pre[s] === R * 2) gw += b.w[s];
+          else if (b.pre[s] === R * 2 + 1) vw += b.w[s];
+          else if (b.pre[s] === preyTouch) aw += b.w[s];
+        }
+        if (c.meat) facts.push(['Bite drive now', `prey ${aw.toFixed(2)}`]);
+        else facts.push(['Bite drive now', `green ${gw.toFixed(2)} · violet ${vw.toFixed(2)}`]);
         if (g.biteGreen !== undefined) {
           // Genes: what it was born with, so learned change is visible.
-          facts.push(['Born with bite drive', `green ${g.biteGreen.toFixed(2)} · violet ${g.biteViolet.toFixed(2)}`]);
+          if (c.meat) facts.push(['Born with', `bite prey ${g.biteAnimal.toFixed(2)} · chase ${g.orientAnimal.toFixed(2)}`]);
+          else facts.push(['Born with bite drive', `green ${g.biteGreen.toFixed(2)} · violet ${g.biteViolet.toFixed(2)}`]);
+          if (!c.meat && g.fleeAnimal !== undefined) facts.push(['Born with flee reflex', g.fleeAnimal.toFixed(2)]);
           facts.push(['Learning rate (gene)', g.learnRate.toFixed(3)]);
           facts.push(['Interneurons (gene)', Math.round(g.hidden)]);
         }
-        facts.push(['Food is now', this.entry.world.foodColour === 0 ? 'green' : 'violet']);
+        if (!c.meat) facts.push(['Food is now', this.entry.world.foodColour === 0 ? 'green' : 'violet']);
       }
       this.q('.ex-facts').innerHTML = facts.map(([k, v]) => `<div><small>${k}</small><b>${v}</b></div>`).join('');
     }
@@ -695,8 +725,9 @@
       const padX = Math.min(130, w * 0.18), padY = 26;
       const X = (i) => padX + b.x[i] * (w - padX * 2);
       const Y = (i) => padY + b.y[i] * (h - padY * 2);
-      const body = (i) => i >= R * 2 && i < b.nS;
-      const sx = (i) => body(i) ? X(i) - 50 : i < b.nS ? X(i) - (i % 2) * 16 : X(i);
+      const body = (i) => i >= R * 2 && i < R * 2 + 4;
+      const animal = (i) => i >= this.animalBase() && i < b.nS;
+      const sx = (i) => animal(i) ? X(i) + 16 : body(i) ? X(i) - 50 : i < b.nS ? X(i) - (i % 2) * 16 : X(i);
       const sy = (i) => body(i) ? padY + (h - padY * 2) * (0.3 + 0.13 * (i - R * 2)) : Y(i);
       const sel = this.cell;
       for (let s = 0; s < b.w.length; s++) {
@@ -719,6 +750,7 @@
         let fill = '#7f918a';
         if (kind === 'eye') fill = i % 2 === 0 ? col.green : col.violet;
         else if (kind === 'mouth') fill = i - R * 2 === 0 ? col.green : col.violet;
+        else if (kind === 'animalEye' || kind === 'animalMouth') fill = ANIMAL;
         else if (kind === 'hunger' || kind === 'pain') fill = '#d8c690';
         else if (kind === 'inh') fill = col.danger;
         else if (b.type[i] === MOTOR) fill = '#e8efe9';
