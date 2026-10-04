@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Learning Systems</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,500;1,400&display=swap">
+<style>
+/* Layout: a catalogue. A short statement, then one shelf per kind of system, each holding product cards. */
+:root {
+  --bg: #f1f3f0;
+  --surface: #fbfcfa;
+  --ink: #1b2420;
+  --muted: #5b6862;
+  --line: #d3dad5;
+  --accent: #2a6f73;
+  --dish: #0f1613;
+  --green: #5cc46d;
+  --violet: #a97ff2;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --serif: "IBM Plex Serif", Georgia, "Times New Roman", serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111614; --surface: #19201d; --ink: #e2e9e4; --muted: #95a39c; --line: #2b3531;
+    --accent: #6db6b8; --dish: #0b100e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111614; --surface: #19201d; --ink: #e2e9e4; --muted: #95a39c; --line: #2b3531;
+  --accent: #6db6b8; --dish: #0b100e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.6 var(--sans); padding-inline: 16px; padding-block: 40px 64px; }
+.wrap { max-width: 1040px; margin: 0 auto; display: grid; gap: 44px; }
+.eyebrow { font: 500 11px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+header { display: grid; gap: 14px; max-width: 68ch; }
+h1 { margin: 0; font: 500 clamp(34px, 6vw, 52px)/1.05 var(--serif); letter-spacing: -0.02em; text-wrap: balance; }
+h1 em { font-style: italic; font-weight: 400; color: var(--accent); }
+.lede { margin: 0; color: var(--muted); font-size: 17px; }
+.principles { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 4px 0 0; list-style: none; }
+.principles li { font: 12px var(--mono); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; color: var(--muted); }
+
+.shelf { display: grid; gap: 16px; }
+.shelf-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; border-top: 1px solid var(--line); padding-top: 16px; }
+.shelf-head h2 { margin: 0; font: 500 22px var(--serif); }
+.shelf-head p { margin: 0; color: var(--muted); font-size: 14px; flex: 1 1 30ch; }
+.cards { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; display: grid; grid-template-rows: auto 1fr; color: inherit; text-decoration: none; min-width: 0; }
+a.card:hover { border-color: var(--accent); }
+a.card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.card canvas { width: 100%; aspect-ratio: 16 / 9; display: block; background: var(--dish); }
+.card .ph { aspect-ratio: 16 / 9; background: repeating-linear-gradient(135deg, transparent 0 10px, color-mix(in srgb, var(--line) 60%, transparent) 10px 11px), var(--bg); display: grid; place-items: center; color: var(--muted); font: 12px var(--mono); }
+.card .body { padding: 14px 16px 16px; display: grid; gap: 8px; align-content: start; }
+.card h3 { margin: 0; font-size: 17px; font-weight: 600; }
+.card p { margin: 0; color: var(--muted); font-size: 14px; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { font: 500 11px var(--mono); border-radius: 999px; padding: 2px 8px; border: 1px solid var(--line); color: var(--muted); }
+.tag.live { color: var(--accent); border-color: var(--accent); }
+.open { font-weight: 600; color: var(--accent); font-size: 14px; }
+
+.roadmap { display: grid; gap: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
+.step { display: grid; grid-template-columns: 52px 1fr auto; gap: 12px; align-items: baseline; padding: 10px 16px; border-top: 1px solid var(--line); }
+.step:first-child { border-top: 0; }
+.step b { font: 500 13px var(--mono); color: var(--muted); }
+.step span { min-width: 0; }
+.step small { font: 11px var(--mono); color: var(--muted); white-space: nowrap; }
+.step.done small { color: var(--accent); }
+footer { color: var(--muted); font-size: 13px; }
+footer code { font-family: var(--mono); }
+@media (max-width: 480px) { .step { grid-template-columns: 40px 1fr; } .step small { grid-column: 2; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Learning Systems</span>
+    <h1>Small worlds where behaviour <em>emerges</em> from local rules</h1>
+    <p class="lede">A collection of simulations for learning how living systems organise themselves: environments that select, nervous systems that wire and repair themselves, and populations that evolve. Each one runs in the browser and can be compared side by side.</p>
+    <ul class="principles">
+      <li>no global controller</li>
+      <li>only local rules</li>
+      <li>grounded in biology</li>
+      <li>compare, don't assume</li>
+    </ul>
+  </header>
+
+  <section class="shelf" aria-labelledby="env-h">
+    <div class="shelf-head">
+      <h2 id="env-h">Environments</h2>
+      <p>Worlds with resources, hazards and change. The environment is the problem a living system has to solve.</p>
+    </div>
+    <div class="cards">
+      <a class="card" href="environments/forager-worlds/index.html">
+        <canvas id="forager-preview" width="640" height="360" aria-label="Preview of Forager Worlds"></canvas>
+        <div class="body">
+          <div class="tags"><span class="tag live">Available</span><span class="tag">W2</span></div>
+          <h3>Forager Worlds</h3>
+          <p>Green and violet plants are food or poison, and the meaning can swap with the seasons. Compare worlds of creatures with inherited instincts against creatures whose brains learn during life.</p>
+          <span class="open">Open the worlds →</span>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <section class="shelf" aria-labelledby="ns-h">
+    <div class="shelf-head">
+      <h2 id="ns-h">Nervous systems</h2>
+      <p>Brains as living tissue: neurons and glia that grow, compete for resources, prune and repair.</p>
+    </div>
+    <div class="cards">
+      <div class="card">
+        <div class="ph">planned</div>
+        <div class="body">
+          <div class="tags"><span class="tag">Next</span></div>
+          <h3>Tissue Lab</h3>
+          <p>A closer look at one brain: homeostatic self-wiring, growth factor competition, astrocytes, microglia pruning, and recovery after you damage a region.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="shelf" aria-labelledby="road-h">
+    <div class="shelf-head">
+      <h2 id="road-h">Roadmap</h2>
+      <p>The brain-in-a-world track, from plain instincts to ecosystems.</p>
+    </div>
+    <div class="roadmap">
+      <div class="step done"><b>W1</b><span>Worlds with plants and creatures driven by inherited reflexes</span><small>done</small></div>
+      <div class="step done"><b>W2</b><span>Spiking brains that wire themselves and learn food from poison</span><small>done</small></div>
+      <div class="step"><b>W3</b><span>Evolution tunes how brains grow, not what they know</span><small>next</small></div>
+      <div class="step"><b>W4</b><span>Glia, competition and newborn neurons in changing worlds</span><small>planned</small></div>
+      <div class="step"><b>W5</b><span>Predators and creatures that change their world</span><small>planned</small></div>
+    </div>
+  </section>
+
+  <footer>Shared code lives in <code>lib/</code>; each product is a self-contained folder that opens straight in the browser.</footer>
+</div>
+
+<script src="lib/brain.js"></script>
+<script src="environments/forager-worlds/engine.js"></script>
+<script>
+(function () {
+  'use strict';
+  const cv = document.getElementById('forager-preview');
+  if (!cv || !window.WorldSim) return;
+  const world = new window.WorldSim.World({ seed: 7, seasonLength: 0, startCreatures: 30 });
+  for (let i = 0; i < 1200; i++) world.step();
+  const ctx = cv.getContext('2d');
+  const css = getComputedStyle(document.documentElement);
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function draw() {
+    const W = cv.width, H = cv.height, k = W / world.p.size;
+    ctx.fillStyle = css.getPropertyValue('--dish').trim();
+    ctx.fillRect(0, 0, W, H);
+    const green = css.getPropertyValue('--green').trim(), violet = css.getPropertyValue('--violet').trim();
+    const offY = (world.p.size - H / k) / 2;
+    for (const pl of world.plants) {
+      ctx.fillStyle = world.plantColour(pl) === 0 ? green : violet;
+      ctx.beginPath(); ctx.arc(pl.x * k, (pl.y - offY) * k, 2.4, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = '#d9eadc';
+    for (const c of world.creatures) {
+      ctx.save();
+      ctx.translate(c.x * k, (c.y - offY) * k);
+      ctx.rotate(c.heading);
+      ctx.beginPath(); ctx.moveTo(8, 0); ctx.lineTo(-5, 5); ctx.lineTo(-2.5, 0); ctx.lineTo(-5, -5); ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+  }
+  function loop() {
+    if (!document.hidden) { world.step(); world.step(); draw(); }
+    requestAnimationFrame(loop);
+  }
+  draw();
+  if (!reduce) requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

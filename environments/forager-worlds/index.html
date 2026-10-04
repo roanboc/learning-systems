@@ -40,6 +40,7 @@
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { margin: 0; }
 body {
   background: var(--bg); color: var(--ink); font: 14px/1.5 var(--sans);
@@ -51,6 +52,8 @@ h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
 .sub { color: var(--muted); max-width: 70ch; margin: 0; }
 .eyebrow { font: 500 11px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
 
+.back { font-size: 13px; color: var(--accent); text-decoration: none; justify-self: start; margin-bottom: -10px; }
+.back:hover { text-decoration: underline; }
 .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 button, select, input {
   font: inherit; color: var(--ink); background: var(--surface);
@@ -73,7 +76,7 @@ button.primary { background: var(--accent); color: var(--surface); border-color:
 #chart { width: 100%; height: 220px; display: block; }
 .chart-note { font-size: 12px; color: var(--muted); margin: 0; }
 
-.worlds { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); }
+.worlds { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); }
 .world { display: grid; gap: 10px; align-content: start; grid-template-columns: minmax(0, 1fr); }
 .world-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .world-name { flex: 1 1 8ch; }
@@ -81,6 +84,7 @@ button.primary { background: var(--accent); color: var(--surface); border-color:
 .world-name { font-weight: 600; border: 1px solid transparent; background: transparent; padding: 2px 4px; flex: 1; min-width: 0; }
 .world-name:hover, .world-name:focus { border-color: var(--line); }
 .icon-btn { padding: 2px 8px; font-size: 12px; color: var(--muted); }
+canvas.brainview { width: 100%; max-width: 100%; display: block; border-radius: 6px; background: var(--dish); }
 canvas.dish { width: 100%; aspect-ratio: 1; max-width: 100%; display: block; background: var(--dish); border-radius: 6px; cursor: crosshair; }
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .stat { display: grid; gap: 2px; }
@@ -93,6 +97,7 @@ canvas.dish { width: 100%; aspect-ratio: 1; max-width: 100%; display: block; bac
 .inspect { font: 12px/1.5 var(--mono); color: var(--muted); min-height: 1.5em; overflow-wrap: anywhere; }
 details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
 .params { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 10px; margin-top: 10px; }
+.params select { width: 100%; padding: 4px 6px; }
 .params label { display: grid; gap: 3px; font-size: 12px; color: var(--muted); }
 .params input { width: 100%; padding: 4px 6px; font: 13px var(--mono); }
 .params .row { grid-column: 1 / -1; display: flex; gap: 8px; }
@@ -103,10 +108,11 @@ details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
 </head>
 <body>
 <div class="wrap">
+  <a class="back" href="../../index.html">← Learning Systems</a>
   <header>
     <h1>Forager Worlds</h1>
-    <span class="eyebrow">W1 · instincts only, no brains yet</span>
-    <p class="sub">Each dish is a separate world with its own plants and its own gene pool. Creatures steer by colour with inherited reflexes and reproduce with mutation. Green and violet plants are food or poison; in seasonal worlds the meaning swaps.</p>
+    <span class="eyebrow">Environments · W2 · instincts vs learning brains</span>
+    <p class="sub">Each dish is a separate world with its own plants and its own gene pool. Green and violet plants are food or poison, and in seasonal worlds the meaning swaps. Creatures either follow inherited instincts, or carry a small spiking brain that wires itself and learns from what it eats.</p>
   </header>
 
   <div class="toolbar">
@@ -116,7 +122,8 @@ details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
     <select id="speed">
       <option value="1">1 step/frame</option>
       <option value="5">5 steps/frame</option>
-      <option value="20" selected>20 steps/frame</option>
+      <option value="10" selected>10 steps/frame</option>
+      <option value="20">20 steps/frame</option>
       <option value="60">60 steps/frame</option>
     </select>
     <button id="reset" type="button">Restart all</button>
@@ -136,12 +143,13 @@ details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
   <div class="key">
     <span><i class="dot" style="background:var(--green)"></i> green plant</span>
     <span><i class="dot" style="background:var(--violet)"></i> violet plant</span>
-    <span>Creature colour shows which plant colour its instincts prefer. Click a creature to read its genes.</span>
+    <span>Creature colour shows which plant colour it prefers: its instincts, or what its brain has learned to bite. Click a creature to inspect it; brains are drawn live.</span>
   </div>
 
   <div class="worlds" id="worlds"></div>
 </div>
 
+<script src="../../lib/brain.js"></script>
 <script src="engine.js"></script>
 <script>
 (function () {
@@ -150,13 +158,16 @@ details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
 
   const METRICS = [
     { key: 'population', label: 'Population', fmt: (v) => v.toFixed(0) },
+    { key: 'picky', label: 'Picky eating', fmt: (v) => v.toFixed(2),
+      note: 'How much more often creatures bite food than poison when it is at their mouth. 0.5 bites both alike, 1 bites only food, 0 only poison.' },
     { key: 'foodPref', label: 'Prefers food colour', fmt: (v) => v.toFixed(2),
-      note: 'Mean attraction to the colour that is food right now, minus attraction to the poison colour. Above 0 means instincts point the right way.' },
+      note: 'Instinct worlds only. Mean attraction to the colour that is food right now, minus attraction to the poison colour. Above 0 means instincts point the right way.' },
     { key: 'food', label: 'Food plants', fmt: (v) => v.toFixed(0) },
     { key: 'poison', label: 'Poison plants', fmt: (v) => v.toFixed(0) },
     { key: 'maxGen', label: 'Generations', fmt: (v) => v.toFixed(0) },
     { key: 'speed', label: 'Mean speed', fmt: (v) => v.toFixed(2) },
     { key: 'senseRange', label: 'Mean sight range', fmt: (v) => v.toFixed(0) },
+    { key: 'synapses', label: 'Synapses per brain', fmt: (v) => v.toFixed(0), note: 'Brain worlds only. Mean number of synapses, which grow and get pruned during each life.' },
   ];
 
   const PARAMS = [
@@ -173,10 +184,12 @@ details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
   ];
 
   const PRESETS = [
-    { name: 'Stable', params: { seed: 1, seasonLength: 0 } },
-    { name: 'Fast seasons', params: { seed: 1, seasonLength: 1000 } },
-    { name: 'Slow seasons', params: { seed: 1, seasonLength: 3000 } },
-    { name: 'Rich soil', params: { seed: 1, seasonLength: 0, foodEnergy: 50 } },
+    { name: 'Instincts, stable', params: { seed: 1, seasonLength: 0 } },
+    { name: 'Instincts, slow seasons', params: { seed: 1, seasonLength: 3000 } },
+    { name: 'Brains, slow seasons', params: { seed: 1, seasonLength: 3000, mind: 'brain' } },
+    { name: 'Brains, no learning', params: { seed: 1, seasonLength: 3000, mind: 'brain', brain: { learningRate: 0 } } },
+    { name: 'Brains, stable', params: { seed: 1, seasonLength: 0, mind: 'brain' } },
+    { name: 'Instincts, fast seasons', params: { seed: 1, seasonLength: 1000 } },
   ];
   const MAX_WORLDS = 4;
 
@@ -197,7 +210,7 @@ details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { readColours(); drawAll(); });
   new MutationObserver(() => { readColours(); drawAll(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
-  const state = { running: true, speed: 20, metric: 'population', slots: [] };
+  const state = { running: true, speed: 10, metric: 'population', slots: [] };
   const worldsEl = document.getElementById('worlds');
 
   function freeSlot() {
@@ -233,12 +246,15 @@ details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
         <div class="stat"><b data-k="pop">0</b><small>creatures</small></div>
         <div class="stat"><b data-k="gen">0</b><small>generations</small></div>
         <div class="stat"><b data-k="plants">0</b><small>food / poison</small></div>
-        <div class="stat"><b data-k="pref">0</b><small>prefers food</small></div>
+        <div class="stat"><b data-k="pref">0</b><small>picky eating</small></div>
       </div>
       <div class="inspect"></div>
+      <canvas class="brainview" width="640" height="300" aria-label="Brain of the selected creature" hidden></canvas>
       <details>
         <summary>World settings</summary>
         <form class="params">
+          <label for="${id}-mind">Mind<select id="${id}-mind" name="mind"><option value="reflex">Instincts</option><option value="brain">Brain</option></select></label>
+          <label for="${id}-learning">Brain learning<select id="${id}-learning" name="learning"><option value="on">On</option><option value="off">Off</option></select></label>
           ${PARAMS.map(([k, label, step]) => `<label for="${id}-${k}">${label}<input id="${id}-${k}" name="${k}" type="number" step="${step}"></label>`).join('')}
           <div class="row"><button type="submit">Restart with these settings</button></div>
         </form>
@@ -252,14 +268,19 @@ details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
       season: root.querySelector('.season'),
       stats: Object.fromEntries([...root.querySelectorAll('[data-k]')].map((b) => [b.dataset.k, b])),
       inspect: root.querySelector('.inspect'),
+      brainview: root.querySelector('.brainview'),
       form: root.querySelector('form'),
     };
     el.sw.style.background = `var(--s${entry.slot + 1})`;
     el.name.value = entry.name;
     el.name.addEventListener('input', () => { entry.name = el.name.value || 'World'; drawLegend(); });
     for (const [k] of PARAMS) el.form.elements[k].value = entry.params[k];
+    el.form.elements.mind.value = entry.params.mind;
+    el.form.elements.learning.value = entry.params.brain && entry.params.brain.learningRate === 0 ? 'off' : 'on';
     el.form.addEventListener('submit', (e) => {
       e.preventDefault();
+      entry.params.mind = el.form.elements.mind.value;
+      entry.params.brain = el.form.elements.learning.value === 'off' ? { learningRate: 0 } : null;
       for (const [k] of PARAMS) {
         const v = parseFloat(el.form.elements[k].value);
         if (Number.isFinite(v)) entry.params[k] = v;
@@ -298,9 +319,22 @@ details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
 
   // ---------- drawing ----------
 
+  // Brain creatures: total weight from the mouth's green and violet sensors to the eat neuron.
+  function biteWeights(c) {
+    const b = c.brain, R = (b.nS - 4) / 2, eat = b.firstMotor + 2;
+    let g = 0, v = 0;
+    for (const s of b.inList[eat]) {
+      if (b.pre[s] === R * 2) g += b.w[s];
+      else if (b.pre[s] === R * 2 + 1) v += b.w[s];
+    }
+    return [g, v];
+  }
+
   function prefColour(c) {
-    // Mix green to violet by which colour the reflexes favour.
-    const d = Math.tanh((c.g.wGreen - c.g.wViolet) / 2); // +1 green, -1 violet
+    // Mix green to violet by which colour the creature favours.
+    let d;
+    if (c.brain) { const [g, v] = biteWeights(c); d = Math.tanh((g - v) * 2); }
+    else d = Math.tanh((c.g.wGreen - c.g.wViolet) / 2); // +1 green, -1 violet
     return mix('#e8efe9', d >= 0 ? colours.green : colours.violet, Math.abs(d));
   }
   function hexToRgb(h) {
@@ -360,18 +394,30 @@ details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
       ctx.closePath();
       ctx.stroke();
       ctx.globalAlpha = 1;
-      el.inspect.textContent =
-        `#${picked.id} gen ${picked.gen} · energy ${picked.energy.toFixed(0)} · ate ${picked.eaten} food, ${picked.poisoned} poison · ` +
-        `likes green ${g.wGreen.toFixed(2)}, violet ${g.wViolet.toFixed(2)} · speed ${g.speed.toFixed(2)} · sight ${g.senseRange.toFixed(0)}`;
+      const base = `#${picked.id} gen ${picked.gen} · age ${picked.age} · energy ${picked.energy.toFixed(0)} · ate ${picked.eaten} food, ${picked.poisoned} poison · `;
+      if (picked.brain) {
+        const [bg, bv] = biteWeights(picked);
+        el.inspect.textContent = base + `${picked.brain.synapseCount()} synapses · bite drive green ${bg.toFixed(2)}, violet ${bv.toFixed(2)}`;
+        el.brainview.hidden = false;
+        drawBrain(el.brainview, picked);
+      } else {
+        el.inspect.textContent = base + `likes green ${g.wGreen.toFixed(2)}, violet ${g.wViolet.toFixed(2)} · speed ${g.speed.toFixed(2)} · sight ${g.senseRange.toFixed(0)}`;
+        el.brainview.hidden = true;
+      }
     } else {
       el.inspect.textContent = entry.picked ? 'That creature has died.' : '';
+      el.brainview.hidden = true;
     }
 
     const h = world.history[world.history.length - 1];
     el.stats.pop.textContent = world.creatures.length;
     el.stats.gen.textContent = h.maxGen;
     el.stats.plants.textContent = `${h.food} / ${h.poison}`;
-    el.stats.pref.textContent = h.foodPref === null ? '–' : h.foodPref.toFixed(2);
+    let recent = null;
+    for (let i = world.history.length - 1; i >= Math.max(0, world.history.length - 40); i--) {
+      if (world.history[i].picky !== null) { recent = world.history[i].picky; break; }
+    }
+    el.stats.pref.textContent = recent === null ? '–' : recent.toFixed(2);
 
     const foodIsGreen = world.foodColour === GREEN;
     const sl = world.p.seasonLength;
@@ -386,6 +432,55 @@ details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
       el.badge.textContent = `t ${world.t}`;
       el.badge.className = 'badge';
     }
+  }
+
+  // Tissue view of one brain: sensors on the left (eye rays by colour, mouth,
+  // hunger, pain), interneurons in the middle, motors on the right.
+  // Line width is synapse weight; neurons light up when they spike.
+  function drawBrain(cv, c) {
+    const b = c.brain, ctx = cv.getContext('2d');
+    const W = cv.width, H = cv.height, padX = 110, padY = 20;
+    const X = (i) => padX + b.x[i] * (W - padX * 2), Y = (i) => padY + b.y[i] * (H - padY * 2);
+    const R = (b.nS - 4) / 2;
+    // Sensors share rows in the tissue; spread pairs a little so both show.
+    // Drawing only: eye pairs side by side, body sensors in their own column.
+    const body = (i) => i >= R * 2 && i < b.nS;
+    const sx = (i) => body(i) ? X(i) - 46 : i < b.nS ? X(i) - (i % 2) * 14 : X(i);
+    const sy = (i) => body(i) ? padY + (H - padY * 2) * (0.3 + 0.13 * (i - R * 2)) : Y(i);
+    ctx.fillStyle = colours.dish;
+    ctx.fillRect(0, 0, W, H);
+    for (let s = 0; s < b.w.length; s++) {
+      const a = b.pre[s], d = b.post[s];
+      ctx.strokeStyle = b.type[a] === 2 ? colours.danger : '#9fb8b0';
+      ctx.globalAlpha = Math.min(0.9, 0.15 + b.w[s] / b.p.maxWeight);
+      ctx.lineWidth = 0.5 + 2.5 * b.w[s] / b.p.maxWeight;
+      ctx.beginPath(); ctx.moveTo(sx(a), sy(a)); ctx.lineTo(sx(d), sy(d)); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    for (let i = 0; i < b.n; i++) {
+      let fill = '#6f7f78';
+      if (i < R * 2) fill = i % 2 === 0 ? colours.green : colours.violet;
+      else if (i === R * 2) fill = colours.green;
+      else if (i === R * 2 + 1) fill = colours.violet;
+      else if (i < b.nS) fill = '#d8c690';
+      else if (b.type[i] === 2) fill = colours.danger;
+      else if (b.type[i] === 3) fill = '#e8efe9';
+      const r = b.type[i] === 3 ? 7 : 4.5;
+      ctx.globalAlpha = b.spiked[i] ? 1 : 0.55;
+      ctx.fillStyle = fill;
+      ctx.beginPath(); ctx.arc(sx(i), sy(i), b.spiked[i] ? r + 2 : r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#b7c4be';
+    ctx.font = '12px ' + tok('--mono');
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+    ['turn left', 'turn right', 'eat'].forEach((label, k) => ctx.fillText(label, X(b.firstMotor + k) + 12, Y(b.firstMotor + k)));
+    ctx.textAlign = 'right';
+    ctx.textAlign = 'center';
+    ctx.fillText('eye', X(0) - 7, padY - 9 < 6 ? 8 : padY - 9);
+    ctx.textAlign = 'right';
+    ['mouth', '', 'hunger', 'pain'].forEach((label, k) => label && ctx.fillText(label, sx(R * 2 + k) - 9, sy(R * 2 + k)));
   }
 
   const chart = document.getElementById('chart');
@@ -547,6 +642,7 @@ details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
   addWorld(PRESETS[0]);
   addWorld(PRESETS[1]);
   addWorld(PRESETS[2]);
+  addWorld(PRESETS[3]);
   drawAll();
   requestAnimationFrame(loop);
 })();
