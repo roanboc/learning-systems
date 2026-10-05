@@ -9,7 +9,7 @@ Open `index.html` for the catalogue.
 | Shelf | Product | Status |
 |---|---|---|
 | Environments | [Early Earth](environments/early-earth/) | Available (chapter 0, first version) |
-| Environments | [Forager Worlds](environments/forager-worlds/) | Available (W3) |
+| Environments | [Forager Worlds](environments/forager-worlds/) | Available (W5, tissue brains) |
 | Nervous systems | [Tissue Lab](nervous-systems/tissue-lab/) | Available (first version) |
 
 ## Layout

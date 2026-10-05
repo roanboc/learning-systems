@@ -123,6 +123,13 @@
     newbornSprout: 0.25,     // extra element growth per structural step during the window
 
     historyLimit: 4000,
+
+    // Optional reward learning (off by default), used when a tissue serves as
+    // a creature's brain: coincident pre-then-post spikes leave an eligibility
+    // trace on the synapse, and reward() turns it into a weight change
+    // (three-factor rule; Izhikevich 2007).
+    tauEligibility: 0,       // steps; 0 = off
+    rewardRate: 0.05,
   };
 
   let nextId = 1;
@@ -265,7 +272,7 @@
         let fired = 0;
         if (n.refr > 0) { n.refr--; n.v = 0; }
         else if (!n.migrating) {
-          let drive = n.input + p.noise * rng();
+          let drive = n.input + (n.noise === undefined ? p.noise : n.noise) * rng();  // n.noise: a creature's sensor or motor cell
           if (stim && (n.x - stim.x) ** 2 + (n.y - stim.y) ** 2 < stim.r * stim.r) drive += 0.35 * rng();
           n.v = n.v * this.decay + drive;
           const thr = n.newborn ? p.threshold * 0.9 : p.threshold;
@@ -284,6 +291,10 @@
               s.co++;
               n.bdnfOut++;
               if (s.w < p.maxWeight) s.w += p.hebb * (p.maxWeight - s.w) * (n.newborn ? 2 : 1);
+              if (p.tauEligibility > 0) {
+                s.elig = (s.elig || 0) * Math.exp(-(this.t - (s.eligT || 0)) / p.tauEligibility) + (n.newborn ? 2 : 1);
+                s.eligT = this.t;
+              }
             }
           }
         }
@@ -477,6 +488,7 @@
       for (const n of this.neurons) {
         n.age++;
         if (n.migrating) { n.migrating--; continue; }
+        if (n.fixed) continue;   // sensor and motor cells of a creature brain
         if (n.newborn && this.t - n.bornAt > p.newbornWindow * p.structuralEvery) n.newborn = false;
         n.lowEnergy = n.energy < 0.1 ? n.lowEnergy + 1 : 0;
         // Newborns are spared trophic death during their window; then they must have integrated.
@@ -490,7 +502,7 @@
 
       // Homeostatic structural plasticity.
       for (const n of this.neurons) {
-        if (n.migrating) continue;
+        if (n.migrating || n.fixed) continue;
         // Newborns keep sprouting during their window, whatever their activity.
         const dz = p.growth * (1 - n.rate / p.targetRate) + (n.newborn ? p.newbornSprout : 0);
         n.axEl = clamp(n.axEl + dz, 0, p.maxElements);
@@ -630,6 +642,21 @@
     rebuildLists() {
       for (const n of this.neurons) { n.out = []; n.in = []; }
       for (const s of this.synapses) { s.pre.out.push(s); s.post.in.push(s); }
+    }
+
+    // Reward or punishment (a dopamine-like signal): synapses with a recent
+    // eligibility trace strengthen after reward and weaken after punishment.
+    // Only with tauEligibility > 0.
+    reward(amount) {
+      const p = this.p;
+      if (!(p.tauEligibility > 0)) return;
+      const k = p.rewardRate * amount;
+      for (const s of this.synapses) {
+        if (!s.elig) continue;
+        const e = s.elig * Math.exp(-(this.t - s.eligT) / p.tauEligibility);
+        if (e < 0.01) { s.elig = 0; continue; }
+        s.w = clamp(s.w + k * e * (s.pre.type === INH ? -1 : 1), 0, p.maxWeight);
+      }
     }
 
     // ---------- interventions ----------

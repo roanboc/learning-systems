@@ -19,6 +19,11 @@ Open `index.html` in a browser. No build step. `engine.js` has no DOM code and a
   - Wiring grows and retracts to keep each neuron near its target firing rate (homeostatic structural plasticity).
   - Learning is reward-modulated STDP: food releases a dopamine-like signal, poison a negative one and a pain signal.
   - Children are born with a fresh brain; nothing learned is inherited.
+- **Tissue brain (W4):** the same senses and muscles wired into a small slice of living tissue from the [Tissue Lab](../../nervous-systems/tissue-lab/) (`tissue-brain.js`).
+  - Inside, the Tissue Lab's rules apply: blood vessels supply energy, astrocytes feed active neurons, neurons compete for growth factor and die without it, microglia eat unused synapses, and a stem-cell niche adds newborn neurons during life.
+  - Sense and muscle cells belong to the body: they never die, sensors only send and muscles only receive.
+  - Learning uses the tissue's optional reward rule: coincident spikes leave an eligibility trace, and food or poison turn it into a weight change.
+  - Gene `hidden` sets the starting neuron count, new gene `birthRate` sets newborn neurons per 100 steps (0 = no adult neurogenesis). Brain cost follows the neurons alive right now.
 
 ## Evolution of brains (W3)
 Brain genes set how the brain is built, never its synapses:
@@ -48,6 +53,33 @@ Set with `plantMode: 'living'` and `species`.
 - **Small vs large brains, seasons every 3000 steps:** the two coexist for about 25,000 steps, and which one leads keeps switching (seed 1). On seed 2, large brains took over and the world died out at step 16,000.
 - **Grazers with brains:** grazers drive the edible plants down and the brain species die out within 2,000 steps (3 of 3 seeds). With seasons, the grazers then starve at the first swap.
 - **Heritable toxins** (`toxinHeredity: 0.9`): eaters remove the edible plants, so poisonous plants take over (about 95%) and few eaters remain.
+
+## Hunters, prey and gardeners (W5)
+**Hunters.** A species with `diet: 'meat'` eats other creatures instead of plants. When a world has hunters, every eye gains one animal cell per ray. It sees animals of the other diet: prey for a hunter, hunters for a plant eater. There is also a mouth cell that fires when prey is within reach. A hunter bites when its eat neuron fires (brains) or whenever prey is in reach (instincts). Each bite takes `attackDamage` energy from the prey, gives the hunter `meatEfficiency` of it, and gives the prey pain and negative dopamine. Inborn reflexes are genes: chase (`orientAnimal`), flee (`fleeAnimal`) and bite (`biteAnimal`). Instinct minds get one attraction weight, `wAnimal`. Hunters are drawn in red, and the explorer shows animal cells in a third eye column.
+
+**Gardeners.** With `dung` above 0, digested plants return to the soil as droppings where creatures walk, and every death leaves a carcass. Both add fertility that fades over time (`dungDecay`), so plants grow back best along the creatures' paths. The dish shows droppings as darker soil.
+
+### First results (30,000 steps)
+- **Brain hunters and prey** coexisted for the whole run in 2 of 3 seeds. Numbers cycled, with hunters peaking after prey, then prey falling. In both, the prey's inborn flee reflex evolved from about 0.13 to about 0.3. On seed 3 the hunters died out by step 9,000.
+- **Instinct hunters** over-hunted and died out within about 6,000 steps in 3 of 3 seeds. The prey then lived on alone.
+- **Gardeners** (`dung: 0.005`) averaged about 159 creatures against 145 to 156 without droppings (2 seeds each), with higher peaks. The effect is real but modest.
+
+## Tissue brains and newborn neurons (W4)
+Question: does adult neurogenesis help in a changing world? Each test world holds two tissue-brain species that differ only in newborn neurons: "Newborn neurons" (`birthRate` starts at 0.5 to 1 and evolves) and "No new neurons" (`birthRate` fixed at 0). Seasons swap food and poison every 3,000 steps. 30,000 steps, seeds 1 to 7.
+
+| World | Newborn neurons win | No new neurons win | Both die | Survive to the end |
+|---|---|---|---|---|
+| Stable | 5 of 7 | 2 of 7 | 0 | 7 of 7 |
+| Seasons every 3000 steps | 4 of 7 | 2 of 7 | 1 of 7 | 4 of 7 |
+
+A second test started one tissue species with almost no neurogenesis (`birthRate` 0 to 0.1) to see if evolution adds it. In stable worlds it rose to about 0.16 to 0.28 and stayed (2 of 2 seeds). In seasonal worlds both seeds died out (steps 6,900 and 12,800), one after rising to 0.36.
+
+What this shows:
+- **Newborn neurons win more often, about 2 to 1 (9 of 14 worlds against 4).** One species always takes the whole world, so each world is one vote; this is a lean, not proof.
+- **The advantage is not specific to change.** It shows in stable worlds as much as in seasonal ones.
+- **Evolution keeps some neurogenesis even from a near-zero start,** but settles well below the costly high rates.
+- **Seasons are still hard for tissue brains.** 5 of 9 seasonal worlds lost every creature, as learning brains did in W3. Learning rate falls to about 0.003 in stable worlds and stays a little higher with seasons, as before.
+- In the explorer, tissue brains show vessels, astrocytes, microglia, the stem-cell niche and gold rings on newborn neurons.
 
 ## Zoom-in explorer
 Click a creature, then "Zoom into this creature" (or double-click it). The world keeps running at one step per frame while you explore. Esc steps back out.
@@ -88,7 +120,7 @@ What this shows:
 - **With seasons every 3000 steps (about 12 generations), evolution still wins.** It re-biases instincts within each season. Learning brains did no better: two of four learning worlds died out, all four non-learning worlds survived. Learning here is too slow and too costly to beat a fast-evolving instinct.
 - **With seasons every 1000 steps, evolution cannot keep up.** Instinct bias stays near zero and creatures become indiscriminate eaters; learning stays but does not make them picky.
 
-So far learning has not paid off once evolution can tune instincts. Ideas to test next: faster, one-trial learning (like taste aversion), seasons within a lifetime but longer than a learning episode, and the W4 additions (glia, competition, newborn neurons).
+So far learning has not paid off once evolution can tune instincts. Ideas to test next: faster, one-trial learning (like taste aversion), seasons within a lifetime but longer than a learning episode, and the W4 tissue brains (results above).
 
 ## Headless use
 ```js
