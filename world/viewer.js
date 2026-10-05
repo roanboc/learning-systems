@@ -234,6 +234,13 @@
     $('#c-text').textContent = ch.text;
     $('#c-lab').hidden = !ch.lab;
     if (ch.lab) $('#c-lab').href = ch.lab;
+    // The guided lab that lives on this chapter's page, if any.
+    const guided = ch.lab && (window.LabCatalogue || []).find((l) => '../' + l.page === ch.lab);
+    $('#c-guided').hidden = !guided;
+    if (guided) {
+      $('#c-guided').href = ch.lab + '#lab=' + guided.id;
+      $('#c-guided').textContent = 'Guided lab: ' + guided.title + ' →';
+    }
     const li = lensIndex(s);
     $('#lenses').innerHTML = (ch.lenses || ['Not built yet']).map((l, i) => `<div class="${i === li ? 'on' : ''}">${l}</div>`).join('');
     const row = $('#layer-row'), sel = $('#layer');

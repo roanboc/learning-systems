@@ -115,6 +115,9 @@ button.primary { background: var(--accent); color: var(--surface); border-color:
 .story p { margin: 0; font-size: 13.5px; }
 .story .look { color: var(--muted); font-size: 13px; }
 .story .look b { color: var(--accent); }
+.c-links { margin: 0; display: grid; gap: 6px; font-size: 14px; }
+.c-links a { color: var(--accent); }
+#c-guided { font-weight: 600; }
 .story .story-lab { margin: 0; font-size: 14px; font-weight: 600; }
 .story .story-lab a { color: var(--accent); }
 .story-nav { display: flex; justify-content: space-between; gap: 8px; margin-top: 4px; }
@@ -203,6 +206,7 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
 <div class="app">
   <div class="top">
     <a href="../index.html">← Learning Systems</a>
+    <a href="../labs/index.html">Guided labs</a>
     <h1>World Viewer</h1>
     <span class="eyebrow">One world, seen across the history of life</span>
     <button class="primary" id="story-btn">Tell me the story</button>
@@ -250,7 +254,7 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
         <span class="eyebrow" id="c-era"></span>
         <h2 id="c-title"></h2>
         <p id="c-text"></p>
-        <a id="c-lab" href="#">Open the full lab →</a>
+        <p class="c-links"><a id="c-guided" href="#" hidden></a><a id="c-lab" href="#">Open this chapter's page, to compare worlds →</a></p>
       </section>
       <section class="card">
         <h3>Levels</h3>
