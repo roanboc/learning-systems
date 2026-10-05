@@ -2,7 +2,7 @@
 
 Small simulated worlds for learning how living systems organise themselves: behaviour emerges from local rules, with no global controller. Everything runs in the browser with no build step.
 
-Open `index.html` for the catalogue.
+Open `index.html` for the catalogue, or visit the live site at https://roanboc.github.io/learning-systems/ (deployed from `main` by `.github/workflows/pages.yml`).
 
 ## Products
 
