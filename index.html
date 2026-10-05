@@ -99,6 +99,15 @@ footer code { font-family: var(--mono); }
       <p>Worlds with resources, hazards and change. The environment is the problem a living system has to solve.</p>
     </div>
     <div class="cards">
+      <a class="card" href="environments/early-earth/index.html">
+        <canvas id="earth-preview" width="640" height="360" aria-label="Preview of Early Earth"></canvas>
+        <div class="body">
+          <div class="tags"><span class="tag live">Available</span><span class="tag">Chapter 0</span></div>
+          <h3>Early Earth</h3>
+          <p>A young coast with no life yet: sun, tides, hot vents and currents drive a made-up chemistry. Chains form in drying tide pools, copiers arise and spread, and oily bubbles trap them and split. Fly over the map, zoom down to molecules, and keep a field journal of what emerges.</p>
+          <span class="open">Explore the coast →</span>
+        </div>
+      </a>
       <a class="card" href="environments/forager-worlds/index.html">
         <canvas id="forager-preview" width="640" height="360" aria-label="Preview of Forager Worlds"></canvas>
         <div class="body">
@@ -146,11 +155,36 @@ footer code { font-family: var(--mono); }
   <footer>Shared code lives in <code>lib/</code>; each product is a self-contained folder that opens straight in the browser.</footer>
 </div>
 
+<script src="lib/earth.js"></script>
+<script src="lib/chemistry.js"></script>
+<script src="environments/early-earth/draw.js"></script>
 <script src="lib/brain.js"></script>
 <script src="environments/forager-worlds/engine.js"></script>
 <script src="nervous-systems/tissue-lab/engine.js"></script>
 <script src="nervous-systems/tissue-lab/draw.js"></script>
 <script>
+// Early Earth preview: the coast with its currents, running live.
+(function () {
+  'use strict';
+  const cv = document.getElementById('earth-preview');
+  if (!cv || !window.ChemSim || !window.EarthDraw) return;
+  const world = window.ChemSim.makeWorld('full', 3);
+  for (let i = 0; i < 360; i++) world.step();
+  const painter = new window.EarthDraw.MapPainter(world);
+  const ctx = cv.getContext('2d');
+  const cam = { cx: 80, cy: 52, zoom: 1.6 };
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const dish = getComputedStyle(document.documentElement).getPropertyValue('--dish').trim();
+  function draw() { window.EarthDraw.drawWorld(ctx, painter, cv.width, cv.height, cam, { background: dish }); }
+  function loop() {
+    if (!document.hidden) { world.step(); painter.moveTracers(1, 300); draw(); }
+    requestAnimationFrame(loop);
+  }
+  painter.moveTracers(1, 300);
+  draw();
+  if (!reduce) requestAnimationFrame(loop);
+})();
+
 (function () {
   'use strict';
   const cv = document.getElementById('forager-preview');
