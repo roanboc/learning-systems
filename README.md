@@ -11,6 +11,7 @@ Open `index.html` for the catalogue.
 | Start here | [World Viewer](world/) | Timeline of life from chemistry to cells, colonies, bodies, nerve nets, brains and ecosystems; camera and levels; guided story |
 | Environments | [Early Earth](environments/early-earth/) | Available (chapter 0, first version) |
 | Environments | [First cells](environments/first-cells/) | Available (chapter 1: how cells came to move, with a guided lab) |
+| Environments | [Bodies: the first muscles](environments/first-bodies/) | Available (chapter 3: contracting cells that beat together, with a guided lab) |
 | Environments | [Forager Worlds](environments/forager-worlds/) | Available (W5, tissue brains) |
 | Nervous systems | [Tissue Lab](nervous-systems/tissue-lab/) | Available (first version) |
 

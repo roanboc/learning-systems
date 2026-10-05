@@ -33,12 +33,13 @@
     },
     {
       key: 'bodies', title: 'Bodies', era: 'about 1.5 billion to 600 million years ago', live: true, stage: 'bodies',
-      text: 'Cells in a clump take on roles: outer cells become movers that swim but never divide, inner cells become germ cells that divide but never swim. Movers grow old and die; germ cells release seed cells that start new bodies. Cells whose only job is to move the body are the road to muscle.',
+      text: 'Cells in a clump take on roles. Outer cells become contracting cells, the first muscle-like cells: each squeezes on its own rhythm, and the body only moves when they squeeze together. Inner cells become germ cells that divide but never move. Contracting cells grow old and die; germ cells release seed cells that start new bodies.',
+      lab: '../environments/first-bodies/index.html',
       lenses: ['Coast', 'Bodies up close', 'One body'],
     },
     {
       key: 'nerves', title: 'Nerve nets', era: 'about 600 million years ago', live: true, stage: 'nerves',
-      text: 'Some outer cells become nerve cells. A cell that tastes richer food fires, nerve cells pass the signal across the body, and movers on every side push the same way. A net with no centre, like Hydra, whose first muscle-like cells pull when nerves tell them to.',
+      text: 'Some outer cells become nerve cells. A cell that tastes richer food fires, nerve cells pass the signal across the body, and contracting cells it reaches squeeze together toward the food. A net with no centre, like Hydra, whose muscle-like cells pull when nerves tell them to.',
       lenses: ['Coast', 'Bodies up close', 'One body and its nerves'],
     },
     {
@@ -513,10 +514,11 @@
     for (const c of L.cells) counts[c.role]++;
     const rows = [[0, 'Single cell']];
     if (st !== 'cells') rows.push([1, st === 'colonies' ? 'Cell in a colony' : 'Cell in a body, no role yet']);
-    if (st === 'bodies' || st === 'nerves') rows.push([2, 'Mover: swims, never divides'], [3, 'Germ cell: divides, never swims']);
+    if (st === 'bodies' || st === 'nerves') rows.push([2, 'Contracting cell: squeezes, never divides'], [3, 'Germ cell: divides, never moves']);
     if (st === 'nerves') rows.push([4, 'Nerve cell: passes signals on']);
     let html = rows.map(([r, label]) => `<div><i style="background:${ROLE_RGB[r]}"></i>${label}<b>${counts[r]}</b></div>`).join('');
     if (st !== 'cells') html += `<div><i class="big" style="background:${PREDATOR_RGB}"></i>Predator: swallows small things<b>${L.predators.length}</b></div>`;
+    if (st === 'bodies' || st === 'nerves') html += `<div><i style="background:${window.LifeDraw.CONTRACT_RGB}"></i>Orange: squeezing right now</div>`;
     if (st === 'nerves') html += '<div><i style="background:#fff"></i>Flash: a cell firing</div>';
     if (st === 'cells') html += '<div><i style="background:#d0302a"></i>Eyespot (zoom in close)</div><div><i style="background:rgba(230,245,238,0.75)"></i>Tail: flagellum, the motor</div>';
     $('#legend-list').innerHTML = html;
@@ -525,12 +527,12 @@
   // Which genes matter in each chapter, and what they mean.
   const GENE_TEXT = {
     speed: 'motor', tumble: 'follows food', eyespot: 'eyespot', divideAt: 'divides at', stick: 'sticks', share: 'shares food',
-    specialise: 'takes a role', nerve: 'becomes nerve',
+    specialise: 'takes a role', nerve: 'becomes nerve', sync: 'beats in step',
   };
   const STAGE_GENES = {
     cells: ['speed', 'tumble', 'eyespot'],
     colonies: ['stick', 'share', 'tumble'],
-    bodies: ['specialise', 'stick', 'share'],
+    bodies: ['specialise', 'sync', 'stick'],
     nerves: ['nerve', 'specialise', 'speed'],
   };
 
@@ -544,7 +546,7 @@
       let group = '';
       if (members.length > 1) {
         const parts = [];
-        if (roles[2]) parts.push(roles[2] + ' movers');
+        if (roles[2]) parts.push(roles[2] + ' contracting');
         if (roles[3]) parts.push(roles[3] + ' germ');
         if (roles[4]) parts.push(roles[4] + ' nerve');
         if (roles[1]) parts.push(roles[1] + ' without a role');
@@ -561,7 +563,7 @@
     const first = L.history[0] || st;
     let line = `<b>${st.cells}</b> cells`;
     if (stage !== 'cells') line += ` · ${Math.round(st.inClumps * 100)}% in clumps · largest ${st.largest}`;
-    if (stage === 'bodies' || stage === 'nerves') line += ` · ${st.bodies} bodies with roles`;
+    if (stage === 'bodies' || stage === 'nerves') line += ` · ${st.bodies} bodies with roles · contracting cells in step ${fmt(st.inStep)}`;
     if (stage === 'nerves') line += ` · ${st.nerveBodies} with nerve cells`;
     box.innerHTML = line + '<br>Average genes (at the start → now):<br>' +
       genes.map((k) => `${GENE_TEXT[k]} ${fmt(first[k])} → <b>${fmt(st[k])}</b>`).join(' · ') +
@@ -702,10 +704,13 @@
       text: 'Cells in a colony stay bonded and can pass energy to hungry neighbours. They are still all the same: each one eats, swims and divides.',
       look: 'Lines between cells are bonds. Big clumps sometimes break apart, and each piece lives on.' },
     { ch: 3, focus: 'body', zoom: 9, title: 'Bodies: cells take on roles',
-      text: 'In a body, outer cells become movers (yellow) that swim fast but never divide. Inner cells become germ cells (pink) that feed and divide but never swim. A body can move and grow at once. Movers grow old and die: the first cells that live only for the body.',
+      text: 'In a body, inner cells become germ cells (pink) that feed and divide but never move. Outer cells become contracting cells (yellow) that never divide. Contracting cells grow old and die: the first cells that live only for the body.',
       look: 'A full body lets a germ cell go. That seed cell grows into a new body, the way plants and animals start from one cell.' },
+    { ch: 3, focus: 'body', zoom: 14, title: 'The first muscles: squeezing together',
+      text: 'Each contracting cell squeezes on its own rhythm, using the same kind of protein fibres (actin and myosin) that later fill our muscles. One cell squeezing alone just makes the water slosh. The body only moves when its contracting cells squeeze at the same moment. Cells linked through the body pull each other\'s rhythm into step, as the coupled skin cells of Hydra do.',
+      look: 'Orange means squeezing right now. Watch a body: do its contracting cells flash together, or one by one? "Looking at" shows how in step they are. The Bodies lab compares bodies with and without the link.' },
     { ch: 4, focus: 'nerve', zoom: 9, title: 'Nerve nets',
-      text: 'Some outer cells become nerve cells (violet). When a cell tastes richer food than the rest of its body, it fires. Nerve cells pass the signal across the body, and movers everywhere push toward the food. There is no centre: a net, like in Hydra and jellyfish.',
+      text: 'Some outer cells become nerve cells (violet). When a cell tastes richer food than the rest of its body, it fires. Nerve cells pass the signal across the body, and each contracting cell it reaches starts a squeeze toward the food, so they squeeze together. There is no centre: a net, like in Hydra and jellyfish.',
       look: 'White flashes are cells firing. Bodies with nerve cells turn toward food together; bodies without them drift.' },
     { ch: 5, focus: 'fit', title: 'Bodies with an eye and a brain',
       text: 'Hundreds of millions of years later, animals have bodies, eyes and brains. These creatures see green and violet plants. One colour is food, the other poison, and nobody tells them which.',
