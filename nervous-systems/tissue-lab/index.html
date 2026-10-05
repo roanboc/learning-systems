@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tissue Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a lab bench, like Forager Worlds. Controls and the comparison chart on top, one dish of tissue per condition below. */
+:root {
+  --bg: #f1f3f0;
+  --surface: #fbfcfa;
+  --ink: #1b2420;
+  --muted: #5b6862;
+  --line: #d3dad5;
+  --accent: #2a6f73;
+  --dish: #0f1613;
+  --danger: #b4412b;
+  --s1: #2a6f73; --s2: #c0532a; --s3: #a07a12; --s4: #3d5aa8;
+  /* Cells and chemistry inside the dish (always drawn on the dark dish). */
+  --exc: #d9eadc;
+  --inh: #e0705a;
+  --newborn: #5cc46d;
+  --astro: #d4ad45;
+  --micro: #8aa2e6;
+  --vessel: #c0392b;
+  --tag: #f0a050;
+  --debris: #7d8a84;
+  --syn: #9fb8b0;
+  --focus: #ffffff;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111614; --surface: #19201d; --ink: #e2e9e4; --muted: #95a39c; --line: #2b3531;
+    --accent: #6db6b8; --dish: #0b100e; --danger: #e07a62;
+    --s1: #6db6b8; --s2: #e8875c; --s3: #d4ad45; --s4: #8aa2e6;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111614; --surface: #19201d; --ink: #e2e9e4; --muted: #95a39c; --line: #2b3531;
+  --accent: #6db6b8; --dish: #0b100e; --danger: #e07a62;
+  --s1: #6db6b8; --s2: #e8875c; --s3: #d4ad45; --s4: #8aa2e6;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--ink); font: 14px/1.5 var(--sans);
+  padding-inline: 16px; padding-block: 20px 40px;
+}
+.wrap { max-width: 1400px; margin: 0 auto; display: grid; gap: 20px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+.sub { color: var(--muted); max-width: 75ch; margin: 0; }
+.eyebrow { font: 500 11px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.back { font-size: 13px; color: var(--accent); text-decoration: none; justify-self: start; margin-bottom: -10px; }
+.back:hover { text-decoration: underline; }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button, select, input {
+  font: inherit; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px;
+}
+button { cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button:disabled { opacity: 0.5; cursor: default; }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button.primary { background: var(--accent); color: var(--surface); border-color: var(--accent); font-weight: 600; min-width: 84px; }
+.clock { font: 500 13px var(--mono); color: var(--muted); margin-left: auto; font-variant-numeric: tabular-nums; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.chart-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 12px; padding: 4px 9px; border-radius: 999px; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 12px; height: 3px; border-radius: 2px; display: inline-block; }
+#chart { width: 100%; height: 220px; display: block; }
+.chart-note { font-size: 12px; color: var(--muted); margin: 0; max-width: 90ch; }
+
+.key { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 12px; color: var(--muted); align-items: center; }
+.key span { display: inline-flex; gap: 6px; align-items: center; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.key .dot { box-shadow: 0 0 0 1px var(--line); }
+
+.dishes { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); }
+.dish-card { display: grid; gap: 10px; align-content: start; grid-template-columns: minmax(0, 1fr); }
+.dish-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.dish-head .sw { width: 10px; height: 10px; border-radius: 50%; }
+.dish-name { font-weight: 600; border: 1px solid transparent; background: transparent; padding: 2px 4px; flex: 1 1 8ch; min-width: 0; }
+.dish-name:hover, .dish-name:focus { border-color: var(--line); }
+.icon-btn { padding: 2px 8px; font-size: 12px; color: var(--muted); }
+.badge { font: 500 11px var(--mono); padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+canvas.dish { width: 100%; aspect-ratio: 1; display: block; background: var(--dish); border-radius: 6px; cursor: zoom-in; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.stat { display: grid; gap: 2px; }
+.stat b { font: 500 16px var(--mono); font-variant-numeric: tabular-nums; }
+.stat small { font-size: 11px; color: var(--muted); }
+.zoom-btn { font-weight: 600; color: var(--accent); border-color: var(--accent); justify-self: start; }
+details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+.params { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 10px; margin-top: 10px; }
+.params label { display: grid; gap: 3px; font-size: 12px; color: var(--muted); }
+.params input, .params select { width: 100%; padding: 4px 6px; font: 13px var(--mono); }
+.params .row { grid-column: 1 / -1; display: flex; gap: 8px; }
+.findings { margin: 0; padding-left: 18px; color: var(--muted); font-size: 13px; display: grid; gap: 4px; max-width: 90ch; }
+.findings b { color: var(--ink); font-weight: 600; }
+@media (max-width: 480px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+
+/* Explorer: a full-screen layer for zooming into one tissue and one cell. */
+body.exploring { overflow: hidden; }
+.explorer {
+  position: fixed; inset: 0; z-index: 20; overflow: auto; background: var(--bg);
+  padding-inline: 16px; padding-block: calc(env(safe-area-inset-top, 0px) + 12px) calc(env(safe-area-inset-bottom, 0px) + 32px);
+  display: grid; gap: 16px; align-content: start;
+}
+.explorer > * { max-width: 1280px; width: 100%; margin-inline: auto; min-width: 0; }
+.explorer.ex-zoom { animation: ex-zoom 380ms cubic-bezier(.2,.7,.2,1); }
+@keyframes ex-zoom { from { transform: scale(0.08); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.ex-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--bg); padding-block: 6px; z-index: 1; }
+.ex-crumbs { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; min-width: 0; }
+.ex-crumbs button { border: 0; background: transparent; padding: 4px 6px; color: var(--accent); font-weight: 500; }
+.ex-crumbs button[aria-current] { color: var(--ink); font-weight: 600; }
+.ex-crumbs .sep { color: var(--muted); }
+.ex-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ex-level { display: grid; gap: 16px; }
+.ex-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); align-items: start; }
+.ex-grid-tissue { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
+@media (max-width: 860px) { .ex-grid-tissue { grid-template-columns: minmax(0, 1fr); } }
+.ex-side { display: grid; gap: 12px; align-content: start; min-width: 0; }
+.ex-row { display: grid; gap: 6px; }
+.ex-fig { margin: 0; display: grid; gap: 8px; min-width: 0; }
+.ex-fig figcaption { font-size: 13px; color: var(--muted); max-width: 75ch; }
+.ex-fig figcaption b { color: var(--ink); font-weight: 600; }
+.ex-tissue, .ex-near { width: 100%; aspect-ratio: 1; display: block; border-radius: 8px; background: var(--dish); cursor: crosshair; }
+.ex-mini { display: grid; gap: 10px; }
+.ex-chart { width: 100%; height: 110px; display: block; }
+.ex-trace { width: 100%; height: 130px; display: block; }
+.ex-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px 16px; }
+.ex-facts div { display: grid; gap: 2px; }
+.ex-facts small { font-size: 11px; color: var(--muted); }
+.ex-facts b { font: 500 14px var(--mono); font-variant-numeric: tabular-nums; }
+.ex-note, .ex-small { font-size: 13px; color: var(--muted); margin: 0; max-width: 75ch; }
+.ex-status { margin: 0; font-size: 13px; color: var(--danger); min-height: 1.5em; }
+.ex-cellinfo { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.ex-cellinfo h2 { margin: 0; font-size: 20px; font-weight: 600; }
+.ex-cellinfo p { margin: 0; max-width: 60ch; }
+.ex-dl { margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px 16px; }
+.ex-dl div { display: grid; gap: 2px; }
+.ex-dl dt { font-size: 11px; color: var(--muted); }
+.ex-dl dd { margin: 0; font: 500 14px var(--mono); }
+.ex-syn { display: grid; gap: 6px; align-content: start; min-width: 0; }
+.ex-syn h3 { margin: 0; font-size: 15px; }
+.ex-syn ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.ex-syn li { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(60px, 1fr) minmax(0, 1fr); gap: 10px; align-items: center; }
+.ex-syn li button { text-align: left; padding: 3px 8px; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ex-bar-w { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.ex-bar-w i { display: block; height: 100%; background: var(--accent); }
+@media (prefers-reduced-motion: reduce) { .explorer.ex-zoom { animation: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../../index.html">← Learning Systems</a>
+  <header>
+    <h1>Tissue Lab</h1>
+    <span class="eyebrow">Nervous systems · neurons as a living population</span>
+    <p class="sub">Each dish is a slice of brain tissue where neurons are the organisms. They wire themselves to keep a steady firing rate, compete for growth factor and energy, get pruned by glia, die, and are replaced from a stem-cell niche. Nothing is placed or removed from outside: every change is a cell reacting to what it senses nearby. Change one condition per dish and compare.</p>
+  </header>
+
+  <div class="toolbar">
+    <button id="play" class="primary" type="button">Pause</button>
+    <button id="step" type="button">Step 100</button>
+    <label for="speed" class="eyebrow">Speed</label>
+    <select id="speed">
+      <option value="2">2 steps/frame</option>
+      <option value="5">5 steps/frame</option>
+      <option value="10" selected>10 steps/frame</option>
+      <option value="25">25 steps/frame</option>
+      <option value="60">60 steps/frame</option>
+    </select>
+    <button id="reset" type="button">Restart all</button>
+    <button id="add" type="button">Add dish</button>
+    <button id="lesion-all" type="button">Same lesion in every dish</button>
+    <span class="clock" id="clock">t = 0</span>
+  </div>
+
+  <section class="panel" aria-label="Comparison chart">
+    <div class="chart-head">
+      <div class="chips" id="metrics"></div>
+      <div class="legend" id="legend"></div>
+    </div>
+    <canvas id="chart"></canvas>
+    <p class="chart-note" id="chart-note"></p>
+  </section>
+
+  <div class="key" aria-label="Key">
+    <span><i class="dot" style="background:var(--exc)"></i> excitatory neuron</span>
+    <span><i class="dot" style="background:var(--inh)"></i> inhibitory neuron</span>
+    <span><i class="dot" style="background:var(--newborn)"></i> newborn neuron</span>
+    <span><i class="dot" style="background:var(--astro)"></i> astrocyte and its territory</span>
+    <span><i class="dot" style="background:var(--micro)"></i> microglia</span>
+    <span><i class="sw" style="background:var(--vessel);height:5px;width:16px"></i> blood vessel</span>
+    <span><i class="sw" style="background:var(--tag)"></i> synapse tagged "eat me"</span>
+    <span><i class="dot" style="background:var(--debris)"></i> debris of a dead cell</span>
+    <span>Click a dish to open it; double-click a cell to zoom straight into it.</span>
+  </div>
+
+  <div class="dishes" id="dishes"></div>
+
+  <section class="panel" aria-labelledby="find-h">
+    <h2 id="find-h" class="eyebrow" style="margin:0">What to look for</h2>
+    <ul class="findings">
+      <li><b>Wiring itself, then pruning.</b> Unconnected cells fire too little, so they sprout. Synapses overshoot to three or four times their final number in the first few thousand steps, then fall as cells die, homeostasis trims and glia engulf the unused ones.</li>
+      <li><b>Death by competition.</b> More neurons start than the tissue can support, and a third to a half of them die, as in real development. How many survive depends on the growth factor supply, not on a fixed number: compare "Scarce growth factor" with "Full tissue".</li>
+      <li><b>Repair.</b> Use "Same lesion in every dish". Cells around the hole lose about a quarter of their inputs and usually rebuild them within a couple of hundred steps. Without microglia the debris stays, gets in the way of new contacts, and recovery is slower.</li>
+      <li><b>Turnover.</b> With neurogenesis the tissue keeps replacing what it loses, and newborns head for injuries along blood vessels. Without it the population slowly shrinks.</li>
+    </ul>
+  </section>
+</div>
+
+<script src="../../lib/brain.js"></script>
+<script src="engine.js"></script>
+<script src="draw.js"></script>
+<script src="explorer.js"></script>
+<script>
+(function () {
+  'use strict';
+  const { Tissue, DEFAULTS } = window.TissueSim;
+  const { drawTissue, drawChart } = window.TissueDraw;
+
+  const METRICS = [
+    { key: 'neurons', label: 'Neurons', fmt: (v) => v.toFixed(0), note: 'Living neurons, including newborns still migrating from the niche.' },
+    { key: 'synapses', label: 'Synapses', fmt: (v) => v.toFixed(0), note: 'All synapses. Expect an early overshoot, then pruning.' },
+    { key: 'perNeuron', label: 'Synapses per neuron', fmt: (v) => v.toFixed(1) },
+    { key: 'rate', label: 'Firing vs target', fmt: (v) => v.toFixed(1), note: 'Mean firing rate divided by the homeostatic target. 1 means cells fire at the rate they aim for.' },
+    { key: 'trophic', label: 'Growth factor', fmt: (v) => v.toFixed(1), note: 'Mean growth factor taken up, divided by what a neuron needs to survive.' },
+    { key: 'energy', label: 'Energy', fmt: (v) => v.toFixed(2), note: 'Mean energy of settled neurons, 0 to 1. Neurons that stay near 0 die.' },
+    { key: 'newborn', label: 'Newborn neurons', fmt: (v) => v.toFixed(0), note: 'Neurons migrating or still in their newborn window.' },
+    { key: 'died', label: 'Deaths', fmt: (v) => v.toFixed(0), note: 'Total deaths so far: energy, growth factor and lesions.' },
+    { key: 'eaten', label: 'Pruned by glia', fmt: (v) => v.toFixed(0), note: 'Total synapses engulfed by microglia and astrocytes.' },
+    { key: 'debris', label: 'Debris', fmt: (v) => v.toFixed(0), note: 'Dead cells not yet cleared by microglia.' },
+  ];
+
+  const PRESETS = [
+    { name: 'Full tissue', params: {} },
+    { name: 'No microglia', params: { microglia: false } },
+    { name: 'Scarce growth factor', params: { bdnfRelease: 0.4 } },
+    { name: 'No neurogenesis', params: { neurogenesis: false } },
+    { name: 'No astrocytes', params: { astrocytes: false } },
+    { name: 'Rich growth factor', params: { bdnfRelease: 2.5 } },
+    { name: 'Poor blood supply', params: { vesselSupply: 0.025 } },
+  ];
+  const NUM_PARAMS = [
+    ['seed', 'Seed', 1],
+    ['startNeurons', 'Starting neurons', 10],
+    ['bdnfRelease', 'Growth factor supply', 0.1],
+    ['vesselSupply', 'Blood supply', 0.005],
+    ['targetRate', 'Target firing rate', 0.005],
+    ['birthRate', 'Births per structural step', 0.05],
+  ];
+  const BOOL_PARAMS = [['microglia', 'Microglia'], ['astrocytes', 'Astrocytes'], ['neurogenesis', 'Neurogenesis']];
+  const MAX_DISHES = 4;
+
+  let colours = {};
+  function readColours() {
+    const s = getComputedStyle(document.documentElement);
+    const v = (n) => s.getPropertyValue(n).trim();
+    colours = {
+      ink: v('--ink'), muted: v('--muted'), line: v('--line'), dish: v('--dish'),
+      exc: v('--exc'), inh: v('--inh'), newborn: v('--newborn'), astro: v('--astro'), micro: v('--micro'),
+      vessel: v('--vessel'), tag: v('--tag'), debris: v('--debris'), syn: v('--syn'), focus: v('--focus'),
+      series: ['--s1', '--s2', '--s3', '--s4'].map(v),
+    };
+  }
+  readColours();
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { readColours(); drawAll(); });
+  new MutationObserver(() => { readColours(); drawAll(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  const monoFont = getComputedStyle(document.documentElement).getPropertyValue('--mono').trim();
+
+  const state = { running: true, speed: 10, metric: 'synapses', slots: [] };
+  const dishesEl = document.getElementById('dishes');
+
+  function freeSlot() {
+    for (let i = 0; i < MAX_DISHES; i++) if (!state.slots.some((s) => s.slot === i)) return i;
+    return -1;
+  }
+
+  function addDish(preset) {
+    const slot = freeSlot();
+    if (slot < 0) return;
+    const entry = { slot, name: preset.name, params: Object.assign({}, DEFAULTS, preset.params) };
+    entry.tissue = new Tissue(entry.params);
+    state.slots.push(entry);
+    entry.el = buildCard(entry);
+    dishesEl.appendChild(entry.el.root);
+    refreshControls();
+  }
+
+  function buildCard(entry) {
+    const root = document.createElement('section');
+    root.className = 'panel dish-card';
+    const id = 'd' + entry.slot;
+    root.innerHTML = `
+      <div class="dish-head">
+        <i class="sw"></i>
+        <input class="dish-name" id="${id}-name" aria-label="Dish name">
+        <span class="badge"></span>
+        <button class="icon-btn remove" type="button" aria-label="Remove dish">Remove</button>
+      </div>
+      <canvas class="dish" width="560" height="560" aria-label="Tissue slice"></canvas>
+      <div class="stats">
+        <div class="stat"><b data-k="neurons">0</b><small>neurons</small></div>
+        <div class="stat"><b data-k="synapses">0</b><small>synapses</small></div>
+        <div class="stat"><b data-k="newborn">0</b><small>newborn</small></div>
+        <div class="stat"><b data-k="rate">0</b><small>firing / target</small></div>
+      </div>
+      <button type="button" class="zoom-btn">Open this tissue →</button>
+      <details>
+        <summary>Dish settings</summary>
+        <form class="params">
+          ${BOOL_PARAMS.map(([k, label]) => `<label for="${id}-${k}">${label}<select id="${id}-${k}" name="${k}"><option value="1">On</option><option value="0">Off</option></select></label>`).join('')}
+          ${NUM_PARAMS.map(([k, label, step]) => `<label for="${id}-${k}">${label}<input id="${id}-${k}" name="${k}" type="number" step="${step}" min="0"></label>`).join('')}
+          <div class="row"><button type="submit">Restart with these settings</button></div>
+        </form>
+      </details>`;
+    const el = {
+      root,
+      name: root.querySelector('.dish-name'),
+      badge: root.querySelector('.badge'),
+      canvas: root.querySelector('canvas'),
+      stats: Object.fromEntries([...root.querySelectorAll('[data-k]')].map((b) => [b.dataset.k, b])),
+      form: root.querySelector('form'),
+    };
+    root.querySelector('.sw').style.background = `var(--s${entry.slot + 1})`;
+    el.name.value = entry.name;
+    el.name.addEventListener('input', () => { entry.name = el.name.value || 'Dish'; drawLegend(); });
+    for (const [k] of NUM_PARAMS) el.form.elements[k].value = entry.params[k];
+    for (const [k] of BOOL_PARAMS) el.form.elements[k].value = entry.params[k] ? '1' : '0';
+    el.form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      for (const [k] of BOOL_PARAMS) entry.params[k] = el.form.elements[k].value === '1';
+      for (const [k] of NUM_PARAMS) {
+        const v = parseFloat(el.form.elements[k].value);
+        if (Number.isFinite(v) && v >= 0) entry.params[k] = v;
+      }
+      entry.tissue = new Tissue(entry.params);
+      syncClock();
+      drawAll();
+    });
+    root.querySelector('.remove').addEventListener('click', () => {
+      state.slots = state.slots.filter((s) => s !== entry);
+      root.remove();
+      refreshControls();
+      drawAll();
+    });
+    // Single click opens the tissue; double click goes straight to the nearest cell.
+    let clickTimer = null;
+    el.canvas.addEventListener('click', (e) => {
+      clearTimeout(clickTimer);
+      const origin = { x: e.clientX, y: e.clientY };
+      clickTimer = setTimeout(() => explorer.open(entry, origin), 230);
+    });
+    el.canvas.addEventListener('dblclick', (e) => {
+      clearTimeout(clickTimer);
+      const r = el.canvas.getBoundingClientRect();
+      const hit = window.TissueExplorer.pickCell(entry.tissue, (e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height, 0.04);
+      explorer.open(entry, { x: e.clientX, y: e.clientY }, hit);
+    });
+    root.querySelector('.zoom-btn').addEventListener('click', (e) => explorer.open(entry, { x: e.clientX, y: e.clientY }));
+    return el;
+  }
+
+  function refreshControls() {
+    document.getElementById('add').disabled = state.slots.length >= MAX_DISHES;
+    for (const s of state.slots) s.el.root.querySelector('.remove').hidden = state.slots.length <= 1;
+    drawLegend();
+  }
+
+  // ---------- drawing ----------
+
+  function drawDish(entry) {
+    const { tissue, el } = entry;
+    drawTissue(el.canvas.getContext('2d'), tissue, el.canvas.width, el.canvas.height, colours, {});
+    const h = tissue.history[tissue.history.length - 1];
+    el.stats.neurons.textContent = tissue.neurons.length;
+    el.stats.synapses.textContent = tissue.synapses.length;
+    el.stats.newborn.textContent = h.newborn;
+    el.stats.rate.textContent = h.rate.toFixed(2);
+    el.badge.textContent = `t ${tissue.t.toLocaleString('en-US')}`;
+  }
+
+  const chart = document.getElementById('chart');
+  function drawMainChart() {
+    const m = METRICS.find((x) => x.key === state.metric);
+    const series = state.slots.map((s) => ({ colour: colours.series[s.slot], points: s.tissue.history.map((r) => [r.t, r[m.key]]) }));
+    const marks = [];
+    for (const s of state.slots) for (const e of s.tissue.events) marks.push({ t: e.t, colour: colours.series[s.slot] });
+    drawChart(chart, series, { colours, font: monoFont, fmt: m.fmt, marks, ref: m.key === 'rate' || m.key === 'trophic' ? 1 : undefined });
+    document.getElementById('chart-note').textContent = (m.note ? m.note + ' ' : '') + 'One line per dish; dotted lines mark lesions and stimulation.';
+  }
+
+  function drawLegend() {
+    document.getElementById('legend').innerHTML = state.slots
+      .map((s) => `<span><i class="sw" style="background:var(--s${s.slot + 1})"></i>${escapeHtml(s.name)}</span>`).join('');
+  }
+  function escapeHtml(s) {
+    return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  }
+
+  function buildMetricChips() {
+    const box = document.getElementById('metrics');
+    box.innerHTML = '';
+    for (const m of METRICS) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chip';
+      b.textContent = m.label;
+      b.setAttribute('aria-pressed', String(m.key === state.metric));
+      b.addEventListener('click', () => { state.metric = m.key; buildMetricChips(); drawMainChart(); });
+      box.appendChild(b);
+    }
+  }
+
+  function syncClock() {
+    const t = Math.max(0, ...state.slots.map((s) => s.tissue.t));
+    document.getElementById('clock').textContent = `t = ${t.toLocaleString('en-US')}`;
+  }
+
+  function drawAll() {
+    for (const s of state.slots) drawDish(s);
+    drawMainChart();
+    syncClock();
+  }
+
+  function advance(n) {
+    for (const s of state.slots) {
+      const watched = explorer.active && explorer.entry === s;
+      for (let i = 0; i < n; i++) {
+        s.tissue.step();
+        if (watched) explorer.record();
+      }
+    }
+  }
+
+  const explorer = new window.TissueExplorer({
+    colours: () => colours,
+    font: monoFont,
+    onClose: () => drawAll(),
+  });
+  explorer.isPaused = () => !state.running;
+  explorer.pauseBtn.addEventListener('click', () => { playBtn.click(); explorer.draw(); });
+
+  let frame = 0;
+  function loop() {
+    if (explorer.active) {
+      // While zoomed in, every dish runs at the explorer's pace so spikes are visible.
+      if (state.running) advance(explorer.speed);
+      explorer.draw();
+    } else if (state.running) {
+      advance(state.speed);
+      for (const s of state.slots) drawDish(s);
+      if (++frame % 6 === 0) drawMainChart();
+      syncClock();
+    }
+    requestAnimationFrame(loop);
+  }
+
+  // ---------- controls ----------
+  const playBtn = document.getElementById('play');
+  playBtn.addEventListener('click', () => {
+    state.running = !state.running;
+    playBtn.textContent = state.running ? 'Pause' : 'Play';
+    drawAll();
+  });
+  document.getElementById('step').addEventListener('click', () => { advance(100); drawAll(); });
+  document.getElementById('speed').addEventListener('change', (e) => { state.speed = parseInt(e.target.value, 10); });
+  document.getElementById('reset').addEventListener('click', () => {
+    for (const s of state.slots) s.tissue = new Tissue(s.params);
+    drawAll();
+  });
+  document.getElementById('add').addEventListener('click', () => {
+    const used = new Set(state.slots.map((s) => s.name));
+    const preset = PRESETS.find((p) => !used.has(p.name)) || { name: 'Dish ' + (state.slots.length + 1), params: { seed: state.slots.length + 1 } };
+    addDish(preset);
+    drawAll();
+  });
+  document.getElementById('lesion-all').addEventListener('click', () => {
+    for (const s of state.slots) s.tissue.lesion(0.5, 0.45, 0.12);
+    drawAll();
+  });
+  window.addEventListener('resize', drawMainChart);
+
+  buildMetricChips();
+  addDish(PRESETS[0]);
+  addDish(PRESETS[1]);
+  addDish(PRESETS[2]);
+  drawAll();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
