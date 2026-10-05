@@ -203,6 +203,7 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
 <script src="../../lib/brain.js"></script>
 <script src="../../nervous-systems/tissue-lab/engine.js"></script>
 <script src="tissue-brain.js"></script>
+<script src="../../lib/body.js"></script>
 <script src="engine.js"></script>
 <script src="explorer.js"></script>
 <script src="plant-explorer.js"></script>
@@ -240,6 +241,14 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
       note: 'Brain worlds only. Mean number of interneurons. Each one costs energy every step.' },
     { key: 'neurons', label: 'Live neurons (tissue)', fmt: (v) => v.toFixed(1),
       note: 'Tissue-brain worlds only. Mean number of interneurons alive right now. Neurons die without enough growth factor or energy, and newborns from the stem-cell niche replace some of them.' },
+    { key: 'cells', label: 'Cells per body', fmt: (v) => v.toFixed(1),
+      note: 'Body worlds only. Mean number of live cells in a creature (gut, muscle, eye, skin, germ). Every cell costs energy to keep, so bodies only grow if their cells pay.' },
+    { key: 'muscle', label: 'Working muscle', fmt: (v) => v.toFixed(2),
+      note: 'Body worlds only. Share of the planned muscle that is alive and fed. Speed comes from it, so hungry or injured creatures slow down.' },
+    { key: 'gut', label: 'Gut size (gene)', fmt: (v) => v.toFixed(1),
+      note: 'Body worlds only. Mean planned gut cells. A bigger gut digests meals faster but costs more to keep.' },
+    { key: 'skin', label: 'Skin (gene)', fmt: (v) => v.toFixed(1),
+      note: 'Body worlds only. Mean planned skin cells. Skin blunts bites from hunters; without hunters it is only a cost.' },
     { key: 'birthRate', label: 'Neurogenesis (gene)', fmt: (v) => v.toFixed(2),
       note: 'Tissue-brain worlds only. Mean inherited rate of new neurons (per 100 steps). Newborn neurons cost energy like any other, so this only rises if they pay.' },
   ];
@@ -270,6 +279,8 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
   const NEWBORN = { name: 'Newborn neurons', mind: 'tissue', count: 30, geneInit: { birthRate: [0.5, 1] } };
   const NO_NEWBORN = { name: 'No new neurons', mind: 'tissue', count: 30, fixed: { birthRate: 0 } };
   const PRESETS = [
+    { name: 'Bodies of cells: tissue brains', params: { seed: 1, seasonLength: 0, mind: 'tissue', body: 'cells' } },
+    { name: 'Bodies of cells: instincts', params: { seed: 1, seasonLength: 0, body: 'cells' } },
     { name: 'Tissue brains: newborn neurons vs none, seasons', params: { seed: 1, seasonLength: 3000, species: [NEWBORN, NO_NEWBORN] } },
     { name: 'Tissue brains: newborn neurons vs none, stable', params: { seed: 1, seasonLength: 0, species: [NEWBORN, NO_NEWBORN] } },
     { name: 'Hunters and prey, brains', params: { seed: 1, seasonLength: 0, plantMode: 'living', species: [PREY, HUNTERS] } },
@@ -917,8 +928,8 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
 
   buildMetricChips();
   addWorld(PRESETS[0]);
-  addWorld(PRESETS[1]);
   addWorld(PRESETS[2]);
+  addWorld(PRESETS[3]);
   addWorld(PRESETS[4]);
   drawAll();
   requestAnimationFrame(loop);

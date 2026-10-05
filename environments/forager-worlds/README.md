@@ -39,6 +39,23 @@ A brain is not free: each interneuron costs `neuronCost` energy per step, and le
 
 Charts: "Learning rate (gene)", "Inborn food bias" and "Brain size (gene)". The explorer shows each creature's inborn bite drive next to its current one, so you can see what it learned. "Fast-forward" in the speed menu runs without drawing every frame, for many generations.
 
+## Bodies of cells (`body: 'cells'`)
+Step N1 of the nested worlds plan: a creature is made of cells, not a point with an energy number. Off by default, so every other world runs exactly as before.
+
+- **Organs made of cells** (`lib/body.js`): gut, muscle, eye, skin and germ cells, all living in a **body fluid**, a small sea inside the creature. The gut moves food from the stomach into the fluid. Every cell burns a little energy to live and refills from the fluid.
+- **What the creature can do comes from its cells.** The `speed` and `senseRange` genes now say how much muscle and eye to build. Actual speed and sight are that gene times the share of those cells that are alive and fed. New genes: `gut` (gut cells), `skin` (armour against bites), `renew` (how fast lost cells regrow).
+- **Changes flow both ways.** Poison drains the fluid and kills cells, starting with the gut, so digestion slows. Bites kill skin first. Muscle wears out and must be rebuilt. When the fluid runs dry, the body breaks down its own cells (skin first, germ cells last) to feed the rest. A creature dies when fewer than 35% of its largest cell count is left.
+- **The brain drinks from the same fluid.** In tissue-brain worlds the slice's blood supply (`vesselSupply`) is set from the body fluid each step, so a long-starving body starves its neurons. The Tissue Lab's own defaults are unchanged.
+- **Energy is conserved.** Every unit is in the stomach, the fluid, or a cell (its flesh and its store), or is booked as eaten, burned, lost or given to a child. `body.check()` returns the gap, which stays below 1e-9 in test runs. A cell's flesh comes back to whoever eats it, so hunters eat flesh.
+- **Births:** the first creatures of a world arrive grown. Children get half the parent's fluid and one germ cell, spend half of that on their first cells, and grow the rest.
+- The creature panel shows the body fluid, stomach and each organ's cells. Charts: "Cells per body", "Working muscle", "Gut size (gene)", "Skin (gene)".
+
+### First results (headless, few seeds, so treat as early signs)
+- **Populations:** with instincts, worlds with bodies hold at least as many creatures as worlds without (132 to 334 vs 87 to 213 at step 6,000, 4 seeds). Tissue-brain worlds dip early, then recover in 4 of 4 seeds (104 to 151 at step 6,000, vs 184 to 214 without bodies).
+- **A cell-level change reaches the population and evolution:** doubling what each cell costs to keep (`cellUpkeep` 0.0016 to 0.0032) cut populations from 135 to 400 down to 61 to 75 (3 seeds, 15,000 steps), and bodies evolved larger, not smaller: 41 to 48 cells, faster and seeing farther, against 18 to 35 cells at normal cost.
+- **Starving body, starving brain:** with the blood supply cut to 5% or 0 for 4,000 steps, tissue neurons ran low on energy and some starved (0 supply: 10 to 13 neurons left vs 17 to 41 with normal supply, 3 seeds).
+- **Hunters do worse with bodies:** in "Hunters and prey" with bodies, hunters died out in 3 of 3 seeds by step 4,500 (without bodies they lasted 6,000 steps on 2 of 3). A bite now kills cells, prey crash early, and hunters then starve. Not tuned yet.
+
 ## Living ecosystem
 Set with `plantMode: 'living'` and `species`.
 

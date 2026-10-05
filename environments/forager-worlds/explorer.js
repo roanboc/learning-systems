@@ -700,6 +700,15 @@
         ['Speed', g.speed.toFixed(2)], ['Splits at energy', g.reproEnergy.toFixed(0)],
       ];
       if (c.bitten) facts.push(['Bitten by hunters', c.bitten]);
+      if (c.body) {
+        // The body's inner world: the fluid all cells drink from, and each organ's cells.
+        const bd = c.body;
+        facts.push(['Body fluid · stomach', `${bd.fluid.toFixed(1)} · ${bd.stomach.toFixed(1)}`]);
+        for (const o of bd.census()) {
+          facts.push([`${o.organ[0].toUpperCase() + o.organ.slice(1)} cells`, `${o.cells.toFixed(0)} of ${o.planned.toFixed(0)} · ${Math.round(o.working * 100)}% working`]);
+        }
+        facts.push(['Moves · sees at', `${Math.round(bd.speedFactor() * 100)}% · ${Math.round(bd.sightFactor() * 100)}% of its genes`]);
+      }
       if (b) {
         let gw = 0, vw = 0, aw = 0;
         const R = this.rays(), eat = b.firstMotor + 2, preyTouch = this.animalBase() + R;
