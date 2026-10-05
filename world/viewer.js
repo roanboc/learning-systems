@@ -664,7 +664,7 @@
     { ch: 0, focus: 'vent', layer: 'temp', zoom: 3, title: 'Heat from below',
       text: 'On the deep floor, hot vents leak heat and minerals from inside the planet. Many scientists think life may have started near vents like these, in the dark.',
       look: 'The vents are hot spots. Currents smear their heat into plumes.' },
-    { ch: 0, focus: 'pool', layer: 'nature', zoom: 4, title: 'Tides and tide pools',
+    { ch: 0, focus: 'pool', layer: 'nature', zoom: 4, title: 'Tides and tide pools', lab: 'tide-pools',
       text: 'The sea rises and falls. When it falls, water is trapped in hollows of rock and starts to dry in the sun. Whatever is dissolved gets more concentrated.',
       look: 'At low tide, look for small pools cut off from the sea along the shore. The next high tide floods them again.' },
     { ch: 0, focus: 'fit', layer: 'nature', title: 'Currents mix everything',
@@ -676,7 +676,7 @@
     { ch: 0, focus: 'fit', layer: 'blocks', title: 'Building blocks',
       text: 'Energy plus simple molecules make building blocks, a stand-in for amino acids and nucleotides. Warmth makes this faster.',
       look: 'Building blocks pile up where energy is made and the water is warm.' },
-    { ch: 0, focus: 'pool', layer: 'chains', zoom: 4, title: 'Chains in drying pools',
+    { ch: 0, focus: 'pool', layer: 'chains', zoom: 4, title: 'Chains in drying pools', lab: 'tide-pools',
       text: 'Blocks join into chains, but water breaks chains apart. So chains build up where there is little water: in drying tide pools. Wet and dry cycles are one leading idea for how the first long molecules formed.',
       look: 'Chains glow in pools at low tide and fade when the sea returns.' },
     { ch: 0, focus: 'copiers', layer: 'copiers', zoom: 3, title: 'Copiers: molecules that make more of themselves',
@@ -691,7 +691,7 @@
     { ch: 1, focus: 'fit', title: 'First cells',
       text: 'Protocells became true cells: a skin, copiers that carry instructions, and machinery to eat and divide. Here they live on the same coast. Each green dot eats building blocks and energy, divides when it has stored enough and dies when it runs out.',
       look: 'Within a day, cells crowd into the sunlit shallows and around the vents, where food is made. At night food runs short and many starve.' },
-    { ch: 1, focus: 'cell', zoom: 14, title: 'Motors: from drifting to swimming',
+    { ch: 1, focus: 'cell', zoom: 14, title: 'Motors: from drifting to swimming', lab: 'learning-to-move',
       text: 'The first cells were probably carried by the water. Bacteria later evolved the flagellum, a whip turned by a tiny protein motor. Here one gene sets how strong a cell\'s motor is. Swimming costs energy, but a cell that can leave a spot it has eaten bare reaches fresh food first.',
       look: 'Up close, the wavy tail is the flagellum, longer for a stronger motor. Watch the average "motor" gene rise from almost zero. The First cells lab shows that it settles at a best strength.' },
     { ch: 1, focus: 'cell', zoom: 8, title: 'Steering: following food, and light',
@@ -706,7 +706,7 @@
     { ch: 3, focus: 'body', zoom: 9, title: 'Bodies: cells take on roles',
       text: 'In a body, inner cells become germ cells (pink) that feed and divide but never move. Outer cells become contracting cells (yellow) that never divide. Contracting cells grow old and die: the first cells that live only for the body.',
       look: 'A full body lets a germ cell go. That seed cell grows into a new body, the way plants and animals start from one cell.' },
-    { ch: 3, focus: 'body', zoom: 14, title: 'The first muscles: squeezing together',
+    { ch: 3, focus: 'body', zoom: 14, title: 'The first muscles: squeezing together', lab: 'muscles-beat-together',
       text: 'Each contracting cell squeezes on its own rhythm, using the same kind of protein fibres (actin and myosin) that later fill our muscles. One cell squeezing alone just makes the water slosh. The body only moves when its contracting cells squeeze at the same moment. Cells linked through the body pull each other\'s rhythm into step, as the coupled skin cells of Hydra do.',
       look: 'Orange means squeezing right now. Watch a body: do its contracting cells flash together, or one by one? "Looking at" shows how in step they are. The Bodies lab compares bodies with and without the link.' },
     { ch: 4, focus: 'nerve', zoom: 9, title: 'Nerve nets',
@@ -715,10 +715,10 @@
     { ch: 5, focus: 'fit', title: 'Bodies with an eye and a brain',
       text: 'Hundreds of millions of years later, animals have bodies, eyes and brains. These creatures see green and violet plants. One colour is food, the other poison, and nobody tells them which.',
       look: 'Creatures are the arrows. Plants are green or violet dots on drifting fertile soil.' },
-    { ch: 5, focus: 'creature', zoom: 4, title: 'Follow one creature',
+    { ch: 5, focus: 'creature', zoom: 4, title: 'Follow one creature', lab: 'learning-colour',
       text: 'Each creature carries a small spiking brain that wires itself while it lives and learns from what it eats. Its genes set how the brain is built, never what it knows.',
       look: 'The fan in front of it is its eye. Watch whether it bites food and avoids poison.' },
-    { ch: 5, focus: 'enter', title: 'Inside the body, brain and cells',
+    { ch: 5, focus: 'enter', title: 'Inside the body, brain and cells', lab: 'who-cleans',
       text: 'Zoom into the creature. Senses feed the brain and the brain drives the muscles. Click the brain to see neurons fire, then click any neuron to meet a single cell.',
       look: 'Close the inside view to come back to the world.' },
     { ch: 6, focus: 'fit', title: 'Ecosystems',
@@ -778,6 +778,13 @@
     $('#story-title').textContent = st.title;
     $('#story-text').textContent = st.text;
     $('#story-look').textContent = st.look;
+    // A guided lab that takes this step's mechanism apart (lib/lab-catalogue.js).
+    const lab = st.lab && (window.LabCatalogue || []).find((l) => l.id === st.lab);
+    $('#story-lab').hidden = !lab;
+    if (lab) {
+      $('#story-lab a').href = '../' + lab.page + '#lab=' + lab.id;
+      $('#story-lab a').textContent = 'Try it yourself: ' + lab.title + ' →';
+    }
     $('#story-prev').disabled = story.i === 0;
     $('#story-next').textContent = story.i === STORY.length - 1 ? 'Finish' : 'Next →';
     if (explorer.active && st.focus !== 'enter') explorer.close();

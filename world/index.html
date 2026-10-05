@@ -115,6 +115,8 @@ button.primary { background: var(--accent); color: var(--surface); border-color:
 .story p { margin: 0; font-size: 13.5px; }
 .story .look { color: var(--muted); font-size: 13px; }
 .story .look b { color: var(--accent); }
+.story .story-lab { margin: 0; font-size: 14px; font-weight: 600; }
+.story .story-lab a { color: var(--accent); }
 .story-nav { display: flex; justify-content: space-between; gap: 8px; margin-top: 4px; }
 @media (max-width: 900px) { .story { position: static; width: auto; margin-top: 10px; box-shadow: none; } }
 body.exploring .story { position: fixed; z-index: 30; right: 16px; bottom: 16px; }
@@ -238,6 +240,7 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
         <h2 id="story-title"></h2>
         <p id="story-text"></p>
         <p class="look"><b>Look for:</b> <span id="story-look"></span></p>
+        <p class="story-lab" id="story-lab" hidden><a href="#"></a></p>
         <div class="story-nav"><button id="story-prev">← Back</button><button class="primary" id="story-next">Next →</button></div>
       </section>
     </div>
@@ -286,6 +289,7 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
 <script src="../environments/forager-worlds/tissue-brain.js"></script>
 <script src="../environments/forager-worlds/engine.js"></script>
 <script src="../environments/forager-worlds/explorer.js"></script>
+<script src="../lib/lab-catalogue.js"></script>
 <script src="viewer.js"></script>
 </body>
 </html>
