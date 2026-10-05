@@ -189,6 +189,11 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
 .ex-syn li button { text-align: left; padding: 3px 8px; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ex-bar-w { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
 .ex-bar-w i { display: block; height: 100%; background: var(--accent); }
+.legend { display: grid; gap: 6px; font-size: 13px; }
+.legend div { display: grid; grid-template-columns: 14px 1fr auto; gap: 8px; align-items: center; }
+.legend i { width: 10px; height: 10px; border-radius: 50%; justify-self: center; }
+.legend i.big { width: 14px; height: 14px; }
+.legend b { font: 500 13px var(--mono); color: var(--muted); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } .explorer.ex-zoom { animation: none; } }
 </style>
 </head>
@@ -254,6 +259,10 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
         <div class="inspect" id="inspect">Click something on the stage.</div>
         <div class="inspect" id="actions"></div>
       </section>
+      <section class="card" id="legend" hidden>
+        <h3>Who is who</h3>
+        <div class="legend" id="legend-list"></div>
+      </section>
       <section class="card" id="journal-card">
         <h3>Field journal</h3>
         <div class="journal" id="journal"></div>
@@ -269,6 +278,7 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
 
 <script src="../lib/earth.js"></script>
 <script src="../lib/chemistry.js"></script>
+<script src="../lib/life.js"></script>
 <script src="../environments/early-earth/draw.js"></script>
 <script src="../lib/brain.js"></script>
 <script src="../nervous-systems/tissue-lab/engine.js"></script>

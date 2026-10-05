@@ -21,20 +21,24 @@
       lenses: ['Coast', 'Water up close', 'Bubble'],
     },
     {
-      key: 'cells', title: 'First cells', era: 'about 3.8 billion years ago',
-      text: 'Bubbles that carry copiers become cells: they swim up food gradients, divide and compete. Next to build, in this same Earth.',
+      key: 'cells', title: 'First cells', era: 'about 3.8 billion years ago', live: true, stage: 'cells',
+      text: 'The same coast, now with cells. They eat building blocks and energy from the water, swim, divide when full and die when they run out. Daughters copy their genes with small mistakes. Watch evolution teach them to follow food.',
+      lenses: ['Coast', 'Cells up close', 'One cell'],
     },
     {
-      key: 'colonies', title: 'Colonies', era: 'about 3.5 billion years ago',
-      text: 'Cells that stay stuck together after dividing, share food and face cheaters. When does sticking together pay?',
+      key: 'colonies', title: 'Colonies', era: 'about 3.5 billion years ago', live: true, stage: 'colonies',
+      text: 'Predators arrive: big cells that swallow anything small. Daughters may stay stuck to their mother. A clump of four is too big to swallow, but clumps compete for the same food. Watch whether sticking together spreads.',
+      lenses: ['Coast', 'Colonies up close', 'One colony'],
     },
     {
-      key: 'bodies', title: 'Bodies', era: 'about 1.5 billion to 600 million years ago',
-      text: 'Colonies whose cells take on roles (feeding, moving, reproducing), so a whole body becomes one unit of selection.',
+      key: 'bodies', title: 'Bodies', era: 'about 1.5 billion to 600 million years ago', live: true, stage: 'bodies',
+      text: 'Cells in a clump take on roles: outer cells become movers that swim but never divide, inner cells become germ cells that divide but never swim. Movers grow old and die; germ cells release seed cells that start new bodies.',
+      lenses: ['Coast', 'Bodies up close', 'One body'],
     },
     {
-      key: 'nerves', title: 'Nerve nets', era: 'about 600 million years ago',
-      text: 'A soft body with a net of nerve cells that coordinates movement without a centre, like Hydra.',
+      key: 'nerves', title: 'Nerve nets', era: 'about 600 million years ago', live: true, stage: 'nerves',
+      text: 'Some outer cells become nerve cells. A cell that tastes richer food fires, nerve cells pass the signal across the body, and movers on every side push the same way. A net with no centre, like Hydra.',
+      lenses: ['Coast', 'Bodies up close', 'One body and its nerves'],
     },
     {
       key: 'brains', title: 'Brains', era: 'about 540 million years ago', live: true,
@@ -90,6 +94,10 @@
       const w = window.ChemSim.makeWorld('full', 3);
       const e = w.earth;
       s = { kind: 'earth', w, painter: new window.EarthDraw.MapPainter(w), size: [e.cols, e.rows], journalShown: 0 };
+    } else if (ch.stage) {
+      // Same coast and chemistry as Early Earth, with cells living in it.
+      const L = window.LifeSim.makeLife(ch.stage, 3);
+      s = { kind: 'life', w: L, painter: new window.EarthDraw.MapPainter(L.chem), size: [L.earth.cols, L.earth.rows], journalShown: 0 };
     } else {
       const { World, DEFAULTS } = window.WorldSim;
       const params = Object.assign({}, DEFAULTS, ch.world);
@@ -105,7 +113,7 @@
   // ---------- Camera ----------
   function viewSize() { const r = cv.getBoundingClientRect(); return [r.width, r.height]; }
   function baseScale(s) { const [w, h] = viewSize(); return Math.min(w / s.size[0], h / s.size[1]); }
-  function maxZoom(s) { return s.kind === 'earth' ? 14 : 8; }
+  function maxZoom(s) { return s.kind === 'forager' ? 8 : 14; }
   function clampCam(s) {
     const c = s.cam, [w, h] = viewSize(), k = baseScale(s) * c.zoom;
     const hw = w / 2 / k, hh = h / 2 / k;
@@ -145,6 +153,10 @@
       if (s.follow && s.selected) return 2;
       return baseScale(s) * s.cam.zoom > 22 ? 1 : 0;
     }
+    if (s.kind === 'life') {
+      if (s.follow && s.selected) return 2;
+      return s.cam.zoom > 2.5 ? 1 : 0;
+    }
     if (explorer.active) return 2;
     return s.selected ? 1 : 0;
   }
@@ -166,6 +178,10 @@
     if (s.kind === 'earth') {
       if (li >= 1 && !(s.follow && s.selected)) add('Water up close', true, null);
       if (s.follow && s.selected) add('Bubble #' + s.selected.id, true, null);
+    } else if (s.kind === 'life') {
+      const ch2 = CHAPTERS[state.chapter];
+      if (li === 1) add(ch2.lenses[1], true, null);
+      if (li === 2) add(s.selected.clumpSize > 1 ? (ch2.stage === 'colonies' ? 'Colony of ' : 'Body of ') + s.selected.clumpSize : 'Cell #' + s.selected.id, true, null);
     } else if (s.selected) {
       add('Creature #' + s.selected.id, true, null);
     }
@@ -203,7 +219,7 @@
     card.querySelector('p').textContent = ch.live ? (ch.lenses || []).join(' › ') : 'Not built yet';
     card.classList.remove('show'); void card.offsetWidth; if (!reduce) card.classList.add('show');
     $('#journal').innerHTML = '';
-    if (s && s.kind === 'earth') s.journalShown = 0;
+    if (s && s.kind !== 'forager') s.journalShown = 0;
     renderSide();
     draw();
   }
@@ -219,9 +235,13 @@
     const li = lensIndex(s);
     $('#lenses').innerHTML = (ch.lenses || ['Not built yet']).map((l, i) => `<div class="${i === li ? 'on' : ''}">${l}</div>`).join('');
     const row = $('#layer-row'), sel = $('#layer');
-    row.hidden = !(s && s.kind === 'earth');
-    if (s && s.kind === 'earth' && !sel.options.length) for (const l of window.EarthDraw.LAYERS) sel.add(new Option(l.label, l.key));
-    $('#journal-card').hidden = !(s && s.kind === 'earth');
+    const map = s && s.kind !== 'forager';
+    row.hidden = !map;
+    if (map && !sel.options.length) for (const l of window.EarthDraw.LAYERS) sel.add(new Option(l.label, l.key));
+    if (map) sel.value = s.layer || 'nature';
+    $('#legend').hidden = !(s && s.kind === 'life');
+    if (s && s.kind === 'life') renderLegend(s);
+    $('#journal-card').hidden = !map;
     renderHud();
     renderInspect();
   }
@@ -260,6 +280,7 @@
       } else { box.textContent = 'Click a spot of water or a bubble. Bubbles are the small rings; pink ones hold copiers.'; setActions('', []); }
       return;
     }
+    if (s.kind === 'life') { renderLifeInspect(s, box); return; }
     const c = s.selected;
     if (c && s.w.creatures.includes(c)) {
       const sp = s.w.speciesList ? s.w.speciesList[c.sp].name : '';
@@ -283,7 +304,7 @@
     renderSide();
   }
 
-  // ---------- Journal (Early Earth) ----------
+  // ---------- Journal (Early Earth and the cell chapters) ----------
   function renderJournal(s) {
     const j = s.w.journal, box = $('#journal');
     if (j.length === s.journalShown) return;
@@ -298,7 +319,8 @@
       if (it.x != null) b.onclick = () => {
         s.follow = false; s.selected = null;
         s.cam.cx = it.x; s.cam.cy = it.y; s.cam.zoom = Math.max(s.cam.zoom, 5); clampCam(s);
-        s.mark = { x: it.x, y: it.y }; s.inspectCell = s.w.earth.cellAt(it.x, it.y);
+        s.mark = { x: it.x, y: it.y };
+        if (s.kind === 'earth') s.inspectCell = s.w.earth.cellAt(it.x, it.y);
         renderSide();
       };
       box.prepend(b);
@@ -364,6 +386,10 @@
       const b = s.w.bubbleNear(p.x, p.y, Math.max(1.2, 10 / k));
       if (b) { s.selected = b; s.inspectCell = null; }
       else { s.selected = null; s.follow = false; s.inspectCell = s.w.earth.cellAt(p.x, p.y); }
+    } else if (s.kind === 'life') {
+      const c = s.w.cellNear(p.x, p.y, Math.max(0.8, 12 / k));
+      if (c) { s.selected = c; s.follow = true; if (s.cam.zoom < 6) s.cam.zoom = 6; }
+      else { s.selected = null; s.follow = false; }
     } else {
       let best = null, bd = (14 / k) ** 2;
       for (const c of s.w.creatures) { const d = (c.x - p.x) ** 2 + (c.y - p.y) ** 2; if (d < bd) { bd = d; best = c; } }
@@ -474,11 +500,139 @@
     ctx.restore();
   }
 
+  // ---------- Cells (chapters 1 to 4) ----------
+  const ROLE_RGB = ['#8fe3a8', '#6cc4ee', '#f2c14e', '#ee6fb0', '#b59cff'];
+  const PREDATOR_RGB = '#e8553f';
+
+  function drawLife(ctx, s, w, h) {
+    const L = s.w, k = baseScale(s) * s.cam.zoom, R = L.p.radius;
+    ctx.save();
+    ctx.translate(w / 2 - s.cam.cx * k, h / 2 - s.cam.cy * k);
+    ctx.scale(k, k);
+    // Only draw what is on screen.
+    const x0 = s.cam.cx - w / 2 / k - 1, x1 = s.cam.cx + w / 2 / k + 1, y0 = s.cam.cy - h / 2 / k - 1, y1 = s.cam.cy + h / 2 / k + 1;
+    const vis = L.cells.filter((c) => c.x > x0 && c.x < x1 && c.y > y0 && c.y < y1);
+    const r = Math.max(R, 2.6 / k);
+    // Bonds first, so cells sit on top of them.
+    if (k > 6) {
+      ctx.strokeStyle = 'rgba(240,250,245,0.5)'; ctx.lineWidth = Math.max(0.05, 1 / k);
+      ctx.beginPath();
+      for (const c of vis) for (const id of c.bonds) {
+        if (id < c.id) continue;
+        const n = L.byId.get(id); if (!n) continue;
+        ctx.moveTo(c.x, c.y); ctx.lineTo(n.x, n.y);
+      }
+      ctx.stroke();
+    }
+    // Cells, one colour per role (batched).
+    for (let role = 0; role < ROLE_RGB.length; role++) {
+      ctx.fillStyle = ROLE_RGB[role];
+      ctx.beginPath();
+      for (const c of vis) if (c.role === role) { ctx.moveTo(c.x + r, c.y); ctx.arc(c.x, c.y, r, 0, Math.PI * 2); }
+      ctx.fill();
+    }
+    // Nerve signals: a cell that just fired flashes.
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.beginPath();
+    for (const c of vis) if (c.refractory > 3) { ctx.moveTo(c.x + r * 0.6, c.y); ctx.arc(c.x, c.y, r * 0.6, 0, Math.PI * 2); }
+    ctx.fill();
+    // Predators: big engulfing cells.
+    const pr = Math.max(R * 2.6, 3.6 / k);
+    ctx.fillStyle = PREDATOR_RGB; ctx.strokeStyle = 'rgba(255,220,210,0.8)'; ctx.lineWidth = Math.max(0.05, 1 / k);
+    for (const hu of L.predators) {
+      ctx.globalAlpha = hu.digest > 0 ? 0.55 : 0.9;
+      ctx.beginPath(); ctx.arc(hu.x, hu.y, pr, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    // The followed cell and its clump.
+    const sel = s.selected;
+    if (sel && !sel.dead) {
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5 / k;
+      if (sel.clumpSize > 1) {
+        let mx = 0, my = 0, far = 0;
+        const members = L.clumpOf(sel);
+        for (const m of members) { mx += m.x; my += m.y; }
+        mx /= members.length; my /= members.length;
+        for (const m of members) far = Math.max(far, Math.hypot(m.x - mx, m.y - my));
+        ctx.setLineDash([4 / k, 3 / k]);
+        ctx.beginPath(); ctx.arc(mx, my, far + R * 3, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      ctx.beginPath(); ctx.arc(sel.x, sel.y, r * 1.8, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function renderLegend(s) {
+    const L = s.w, st = L.p.stage, counts = [0, 0, 0, 0, 0];
+    for (const c of L.cells) counts[c.role]++;
+    const rows = [[0, 'Single cell']];
+    if (st !== 'cells') rows.push([1, st === 'colonies' ? 'Cell in a colony' : 'Cell in a body, no role yet']);
+    if (st === 'bodies' || st === 'nerves') rows.push([2, 'Mover: swims, never divides'], [3, 'Germ cell: divides, never swims']);
+    if (st === 'nerves') rows.push([4, 'Nerve cell: passes signals on']);
+    let html = rows.map(([r, label]) => `<div><i style="background:${ROLE_RGB[r]}"></i>${label}<b>${counts[r]}</b></div>`).join('');
+    if (st !== 'cells') html += `<div><i class="big" style="background:${PREDATOR_RGB}"></i>Predator: swallows small things<b>${L.predators.length}</b></div>`;
+    if (st === 'nerves') html += '<div><i style="background:#fff"></i>Flash: a cell firing</div>';
+    $('#legend-list').innerHTML = html;
+  }
+
+  // Which genes matter in each chapter, and what they mean.
+  const GENE_TEXT = {
+    speed: 'speed', tumble: 'follows food', divideAt: 'divides at', stick: 'sticks', share: 'shares food',
+    specialise: 'takes a role', nerve: 'becomes nerve',
+  };
+  const STAGE_GENES = {
+    cells: ['speed', 'tumble', 'divideAt'],
+    colonies: ['stick', 'share', 'tumble'],
+    bodies: ['specialise', 'stick', 'share'],
+    nerves: ['nerve', 'specialise', 'speed'],
+  };
+
+  function renderLifeInspect(s, box) {
+    const L = s.w, stage = L.p.stage, genes = STAGE_GENES[stage], c = s.selected;
+    const gl = (g) => genes.map((k) => `${GENE_TEXT[k]} <b>${fmt(g[k])}</b>`).join(' · ');
+    if (c && !c.dead) {
+      const members = c.clumpSize > 1 ? L.clumpOf(c) : [c];
+      const roles = [0, 0, 0, 0, 0];
+      for (const m of members) roles[m.role]++;
+      let group = '';
+      if (members.length > 1) {
+        const parts = [];
+        if (roles[2]) parts.push(roles[2] + ' movers');
+        if (roles[3]) parts.push(roles[3] + ' germ');
+        if (roles[4]) parts.push(roles[4] + ' nerve');
+        if (roles[1]) parts.push(roles[1] + ' without a role');
+        group = `<br>${stage === 'colonies' ? 'Colony' : 'Body'} of <b>${members.length}</b> cells${parts.length ? ': ' + parts.join(', ') : ''}` +
+          (members.length >= L.p.predatorEats ? ' · too big to swallow' : '');
+      }
+      box.innerHTML = `<b>Cell #${c.id}</b> · ${window.LifeSim.ROLE_NAMES[c.role]}<br>generation ${c.gen} · age ${c.age} · energy ${fmt(c.energy)} · ${c.kids} daughters${group}<br>genes: ${gl(c.g)}`;
+      setActions('l' + c.id, [[s.follow ? 'Stop following' : 'Follow it', () => { s.follow = !s.follow; if (s.follow && s.cam.zoom < 6) s.cam.zoom = 6; renderSide(); }]]);
+      return;
+    }
+    if (c) { s.selected = null; s.follow = false; }
+    const st = L.stats;
+    if (!st.cells && st.cells !== 0) { box.textContent = 'Cells are settling in…'; setActions('', []); return; }
+    const first = L.history[0] || st;
+    let line = `<b>${st.cells}</b> cells`;
+    if (stage !== 'cells') line += ` · ${Math.round(st.inClumps * 100)}% in clumps · largest ${st.largest}`;
+    if (stage === 'bodies' || stage === 'nerves') line += ` · ${st.bodies} bodies with roles`;
+    if (stage === 'nerves') line += ` · ${st.nerveBodies} with nerve cells`;
+    box.innerHTML = line + '<br>Average genes (at the start → now):<br>' +
+      genes.map((k) => `${GENE_TEXT[k]} ${fmt(first[k])} → <b>${fmt(st[k])}</b>`).join(' · ') +
+      '<br><small>Click a cell to follow it and its clump.</small>';
+    setActions('', []);
+  }
+
   function draw() {
     const ctx = fitCanvas(), [w, h] = viewSize(), s = sim();
     if (!s) { drawLocked(ctx, w, h); return; }
     if (s.follow && s.selected) {
-      const alive = s.kind === 'earth' ? s.w.bubbles.includes(s.selected) : s.w.creatures.includes(s.selected);
+      if (s.kind === 'life' && s.selected.dead) {
+        // The cell died: keep following its clump if any of it is left.
+        const next = s.selected.bonds.map((id) => s.w.byId.get(id)).find(Boolean);
+        if (next) s.selected = next;
+      }
+      const alive = s.kind === 'earth' ? s.w.bubbles.includes(s.selected) : s.kind === 'life' ? !s.selected.dead : s.w.creatures.includes(s.selected);
       if (!alive) { s.follow = false; renderSide(); }
       else { s.cam.cx = s.selected.x; s.cam.cy = s.selected.y; clampCam(s); }
     }
@@ -486,6 +640,9 @@
       window.EarthDraw.drawWorld(ctx, s.painter, w, h, s.cam, {
         layer: s.layer || 'nature', selected: s.selected, mark: s.mark, background: tok('--dish'),
       });
+    } else if (s.kind === 'life') {
+      window.EarthDraw.drawWorld(ctx, s.painter, w, h, s.cam, { layer: s.layer || 'nature', mark: s.mark, background: tok('--dish') });
+      drawLife(ctx, s, w, h);
     } else drawForager(ctx, s, w, h);
   }
 
@@ -496,13 +653,18 @@
       const tide = e.seaLevel > e.p.tideRange * 0.8 ? 'high tide' : e.seaLevel < -e.p.tideRange * 0.8 ? 'low tide' : 'tide ' + (Math.cos(e.tidePhase * Math.PI * 2) > 0 ? 'rising' : 'falling');
       return `Day ${e.day} · ${String(Math.floor(hh)).padStart(2, '0')}:${String(m).padStart(2, '0')} · ${tide}`;
     }
+    if (s.kind === 'life') {
+      const e = s.w.earth, hh = e.dayPhase * 24, L = s.w;
+      const pred = L.p.stage === 'cells' ? '' : ` · ${L.predators.length} predators`;
+      return `Day ${e.day} · ${String(Math.floor(hh)).padStart(2, '0')}:00 · ${L.cells.length} cells${pred} · generation ${L.maxGen}`;
+    }
     const st = s.w;
     const gens = st.creatures.reduce((m, c) => Math.max(m, c.gen), 0);
     return `t ${st.t} · ${st.creatures.length} creatures · generation ${gens}`;
   }
 
   // Steps per frame for each kind of world at "Normal".
-  function stepsFor(s) { return s.kind === 'earth' ? 3 : 5; }
+  function stepsFor(s) { return s.kind === 'earth' ? 3 : s.kind === 'life' ? 2 : 5; }
 
   function advance(s, n) {
     for (let i = 0; i < n; i++) {
@@ -524,7 +686,7 @@
         carry += stepsFor(s) * +sp;
         const n = Math.floor(carry); carry -= n;
         advance(s, n);
-        if (s.kind === 'earth') s.painter.moveTracers(n, 700);
+        if (s.kind !== 'forager') s.painter.moveTracers(n, 700);
       }
     }
     state.frame++;
@@ -532,7 +694,8 @@
     else if (!(sp === 'ff' && state.running) || state.frame % 5 === 0) draw();
     if (state.frame % 15 === 0) {
       $('#clock').textContent = clockText(s);
-      if (s && s.kind === 'earth') renderJournal(s);
+      if (s && s.kind !== 'forager') renderJournal(s);
+      if (s && s.kind === 'life') renderLegend(s);
       if (s && !explorer.active) { renderInspect(); renderHud(); }
     }
     requestAnimationFrame(loop);
@@ -541,7 +704,8 @@
   // ---------- Story: a guided path through how this world was made ----------
   // Each step moves the camera, picks what to show and says what to look for.
   // The story follows the timeline: the planet first, then chemistry, then
-  // bubbles, then creatures with brains, then whole ecosystems.
+  // bubbles, cells, colonies, bodies and nerve nets, then creatures with
+  // brains, then whole ecosystems.
   const STORY = [
     { ch: 0, focus: 'fit', layer: 'nature', title: 'A young planet',
       text: 'Four billion years ago Earth had land, sea and sky, but nothing alive. This coast is our stand-in: rock on top, a shallow shore in the middle, deep sea below.',
@@ -576,9 +740,24 @@
     { ch: 0, focus: 'bubble', layer: 'nature', zoom: 7, title: 'Protocells: bubbles that pass things on',
       text: 'A bubble holding copiers pulls in oils faster, grows, and splits in two. Both halves share what was inside. Nothing tells bubbles to keep copiers, but those that do leave more daughters. That is heredity and selection, before life.',
       look: 'Pink bubbles carry copiers. Watch the one you are following grow and split.' },
-    { ch: 1, focus: 'fit', title: 'First cells (next to build)',
-      text: 'From protocells come the first true cells: they swim toward food, divide and compete. This chapter will run in the same Earth, so you can watch bubbles become cells.',
-      look: 'Not built yet. The story jumps ahead to animals with brains.' },
+    { ch: 1, focus: 'fit', title: 'First cells',
+      text: 'Protocells became true cells: a skin, copiers that carry instructions, and machinery to eat and divide. Here they live on the same coast. Each green dot eats building blocks and energy, divides when it has stored enough and dies when it runs out.',
+      look: 'Within a day, cells crowd into the sunlit shallows and around the vents, where food is made. At night food runs short and many starve.' },
+    { ch: 1, focus: 'cell', zoom: 8, title: 'Learning to follow food, by evolution',
+      text: 'Cells swim like bacteria: run straight while food gets richer, turn at random when it gets poorer. How strongly they do this is a gene. At the start most cells barely do it. Daughters copy genes with small mistakes, and cells that follow food eat more and leave more daughters.',
+      look: 'In "Looking at", watch the average "follows food" gene creep up. The journal notes when it has clearly risen.' },
+    { ch: 2, focus: 'fit', title: 'Predators, and safety in numbers',
+      text: 'Predators arrive: big red cells that swallow anything small. A daughter can stay stuck to its mother. A clump of four is too big to swallow, but clumped cells crowd each other for food. Experiments with real algae show predators can make single cells evolve clumps in a few hundred generations.',
+      look: 'Red cells hunting. Watch the share of cells in clumps, and the "sticks" gene, rise over a few days.' },
+    { ch: 2, focus: 'colony', zoom: 9, title: 'A colony',
+      text: 'Cells in a colony stay bonded and can pass energy to hungry neighbours. They are still all the same: each one eats, swims and divides.',
+      look: 'Lines between cells are bonds. Big clumps sometimes break apart, and each piece lives on.' },
+    { ch: 3, focus: 'body', zoom: 9, title: 'Bodies: cells take on roles',
+      text: 'In a body, outer cells become movers (yellow) that swim fast but never divide. Inner cells become germ cells (pink) that feed and divide but never swim. A body can move and grow at once. Movers grow old and die: the first cells that live only for the body.',
+      look: 'A full body lets a germ cell go. That seed cell grows into a new body, the way plants and animals start from one cell.' },
+    { ch: 4, focus: 'nerve', zoom: 9, title: 'Nerve nets',
+      text: 'Some outer cells become nerve cells (violet). When a cell tastes richer food than the rest of its body, it fires. Nerve cells pass the signal across the body, and movers everywhere push toward the food. There is no centre: a net, like in Hydra and jellyfish.',
+      look: 'White flashes are cells firing. Bodies with nerve cells turn toward food together; bodies without them drift.' },
     { ch: 5, focus: 'fit', title: 'Bodies with an eye and a brain',
       text: 'Hundreds of millions of years later, animals have bodies, eyes and brains. These creatures see green and violet plants. One colour is food, the other poison, and nobody tells them which.',
       look: 'Creatures are the arrows. Plants are green or violet dots on drifting fertile soil.' },
@@ -616,6 +795,21 @@
       }
       return null;
     }
+    if (s.kind === 'life') {
+      const L = s.w, M = window.LifeSim;
+      let pick = null;
+      if (focus === 'cell') pick = L.cells.find((c) => c.clumpSize === 1) || L.cells[0];
+      if (focus === 'colony') for (const c of L.cells) if (!pick || c.clumpSize > pick.clumpSize) pick = c;
+      if (focus === 'body') {
+        const ok = (c) => L.clumpOf(c).some((m) => m.role === M.MOVER) && L.clumpOf(c).some((m) => m.role === M.GERM);
+        pick = L.cells.find((c) => c.role === M.GERM && c.clumpSize >= 6 && ok(c)) || L.cells.find((c) => c.role === M.MOVER);
+      }
+      if (focus === 'nerve') {
+        let best = 0;
+        for (const c of L.cells) if (c.role === M.NERVE) { const n = L.clumpOf(c).filter((m) => m.role === M.NERVE).length; if (n > best) { best = n; pick = c; } }
+      }
+      return pick ? { cell: pick } : null;
+    }
     if (focus === 'creature' || focus === 'enter') {
       const c = s.w.creatures.find((x) => x.brain) || s.w.creatures[0];
       return c ? { creature: c } : null;
@@ -637,14 +831,17 @@
     const s = sim();
     if (!s) return;
     s.selected = null; s.follow = false; s.inspectCell = null; s.mark = null;
-    if (s.kind === 'earth') { s.layer = st.layer || 'nature'; $('#layer').value = s.layer; }
+    if (s.kind !== 'forager') { s.layer = st.layer || 'nature'; $('#layer').value = s.layer; }
+    // A cell chapter needs a moment of life before there is anything to follow.
+    if (s.kind === 'life' && s.w.t < 400 && st.focus !== 'fit') advance(s, 300);
     const z = st.zoom || 1;
     const t = findFocus(s, st.focus);
-    if (!t && (st.focus === 'bubble' || st.focus === 'copiers')) {
+    if (!t && ['bubble', 'copiers', 'cell', 'colony', 'body', 'nerve'].includes(st.focus)) {
       $('#story-look').textContent = st.look + ' Nothing like this has formed yet in this run: set the speed to Fast-forward for a while, then come back to this step.';
     }
     if (!t) { s.cam = { cx: s.size[0] / 2, cy: s.size[1] / 2, zoom: z }; }
     else if (t.bubble) { s.selected = t.bubble; s.follow = true; s.cam.zoom = z; }
+    else if (t.cell) { s.selected = t.cell; s.follow = true; s.cam.zoom = z; }
     else if (t.creature) { s.selected = t.creature; s.follow = true; s.cam.zoom = Math.max(z, 4); }
     else { s.cam = { cx: t.x, cy: t.y, zoom: z }; s.mark = { x: t.x, y: t.y }; }
     clampCam(s);
