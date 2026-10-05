@@ -74,6 +74,14 @@ a.card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .step span { min-width: 0; }
 .step small { font: 11px var(--mono); color: var(--muted); white-space: nowrap; }
 .step.done small { color: var(--accent); }
+.path { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); counter-reset: path; }
+.path a { display: grid; gap: 4px; height: 100%; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: inherit; text-decoration: none; }
+.path a:hover { border-color: var(--accent); }
+.path a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.path b { font-size: 16px; }
+.path b::before { counter-increment: path; content: counter(path) ". "; color: var(--accent); }
+.path span { color: var(--muted); font-size: 14px; }
+.path small { font: 12px var(--mono); color: var(--accent); }
 footer { color: var(--muted); font-size: 13px; }
 footer code { font-family: var(--mono); }
 @media (max-width: 480px) { .step { grid-template-columns: 40px 1fr; } .step small { grid-column: 2; } }
@@ -93,6 +101,14 @@ footer code { font-family: var(--mono); }
     </ul>
   </header>
 
+  <nav aria-label="How to learn here">
+    <ol class="path">
+      <li><a href="world/index.html#story"><b>Watch the story</b><span>A guided tour of one world, from the first chemistry to brains, one chapter at a time.</span></a></li>
+      <li><a href="labs/index.html"><b>Take a mechanism apart</b><span>Change one thing in a twin world and follow the effect across levels. Then make the call on new situations.</span><small id="path-labs"></small></a></li>
+      <li><a href="#env-h"><b>Explore and compare</b><span>Open any world below, change its settings and run it side by side with a twin.</span></a></li>
+    </ol>
+  </nav>
+
   <section class="shelf" aria-labelledby="world-h">
     <div class="shelf-head">
       <h2 id="world-h">Start here</h2>
@@ -106,6 +122,15 @@ footer code { font-family: var(--mono); }
           <h3>World Viewer</h3>
           <p>Travel the timeline of life on one stage. Drag and zoom from a whole coast down to molecules, follow a protocell, a colony or a creature, watch cells evolve clumps, bodies and nerve nets, and go inside its body, brain and cells. "Tell me the story" walks you through how this world was made, one component at a time.</p>
           <span class="open">Enter the world →</span>
+        </div>
+      </a>
+      <a class="card" href="labs/index.html">
+        <div class="ph">Guided labs · Take it apart › Make the call</div>
+        <div class="body">
+          <div class="tags"><span class="tag live">Available</span><span class="tag">5 labs</span></div>
+          <h3>Guided labs</h3>
+          <p>Take one mechanism apart across levels. Each lab builds a twin world with one thing changed, walks you from the world down to cells or molecules and back up, and waits until the world shows you the effect. Then make the call on situations you haven't seen.</p>
+          <span class="open">Start a lab →</span>
         </div>
       </a>
     </div>
@@ -191,6 +216,16 @@ footer code { font-family: var(--mono); }
   <footer>Shared code lives in <code>lib/</code>; each product is a self-contained folder that opens straight in the browser.</footer>
 </div>
 
+<script src="lib/lab-catalogue.js"></script>
+<script>
+// Labs done so far, kept in this browser only (lib/learn.js).
+(function () {
+  let p = {};
+  try { p = JSON.parse(localStorage.getItem('learning-systems.labs')) || {}; } catch (e) { /* not kept */ }
+  const labs = window.LabCatalogue || [], n = labs.filter((l) => p[l.id] && p[l.id].done).length;
+  if (n) document.getElementById('path-labs').textContent = n + ' of ' + labs.length + ' labs done';
+})();
+</script>
 <script src="lib/earth.js"></script>
 <script src="lib/chemistry.js"></script>
 <script src="environments/early-earth/draw.js"></script>

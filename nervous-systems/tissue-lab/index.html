@@ -500,6 +500,25 @@ body.exploring { overflow: hidden; }
   });
   window.addEventListener('resize', drawMainChart);
 
+  // ---------- For guided labs (lib/learn.js) ----------
+  window.TissueLabPage = {
+    get slots() { return state.slots; },
+    replaceDishes(presets) {
+      if (explorer.active) explorer.close();
+      for (const s of state.slots) s.el.root.remove();
+      state.slots = [];
+      presets.forEach(addDish);
+      drawAll();
+    },
+    setMetric(k) { state.metric = k; buildMetricChips(); drawMainChart(); },
+    setSpeed(v) { state.speed = v; document.getElementById('speed').value = String(v); },
+    play() { if (!state.running) playBtn.click(); },
+    openCell(entry, kind, id) { explorer.open(entry, null, { kind, id }); },
+    closeExplorer() { if (explorer.active) explorer.close(); },
+    reveal() { dishesEl.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); },
+    DEFAULTS,
+  };
+
   buildMetricChips();
   addDish(PRESETS[0]);
   addDish(PRESETS[1]);
@@ -508,5 +527,8 @@ body.exploring { overflow: hidden; }
   requestAnimationFrame(loop);
 })();
 </script>
+<script src="../../lib/learn.js"></script>
+<script src="labs.js"></script>
+<script src="../../lib/nav.js"></script>
 </body>
 </html>

@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guided labs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500&display=swap">
+<style>
+/* Layout: two steps on one page. Take it apart (every lab, with progress), then Make the call (situations to decide). */
+:root {
+  --bg: #f1f3f0; --surface: #fbfcfa; --ink: #1b2420; --muted: #5b6862; --line: #d3dad5;
+  --accent: #2a6f73; --danger: #b4412b;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --serif: "IBM Plex Serif", Georgia, "Times New Roman", serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111614; --surface: #19201d; --ink: #e2e9e4; --muted: #95a39c; --line: #2b3531;
+    --accent: #6db6b8; --danger: #e07a62; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111614; --surface: #19201d; --ink: #e2e9e4; --muted: #95a39c; --line: #2b3531;
+  --accent: #6db6b8; --danger: #e07a62; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.6 var(--sans); padding-inline: 16px; padding-block: 32px 64px; }
+.wrap { max-width: 860px; margin: 0 auto; display: grid; gap: 36px; }
+a { color: var(--accent); }
+.back { font-size: 14px; text-decoration: none; }
+.eyebrow { font: 500 11px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+header { display: grid; gap: 12px; max-width: 64ch; }
+h1 { margin: 0; font: 500 clamp(30px, 6vw, 44px)/1.1 var(--serif); }
+h2 { margin: 0; font: 500 22px var(--serif); }
+.lede, .note { margin: 0; color: var(--muted); }
+section { display: grid; gap: 14px; }
+.progress { font: 13px var(--mono); color: var(--muted); }
+.labs { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.lab { display: grid; gap: 4px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; color: inherit; text-decoration: none; }
+.lab:hover { border-color: var(--accent); }
+.lab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lab small { color: var(--muted); }
+.lab .ch { font: 500 11px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--accent); }
+.lab .done { color: var(--accent); font-weight: 600; }
+.sc { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 10px; }
+.sc h3 { margin: 0; font-size: 16px; line-height: 1.4; }
+.opts { display: grid; gap: 6px; }
+.opts button { font: inherit; color: inherit; text-align: left; background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; cursor: pointer; }
+.opts button:hover { border-color: var(--accent); }
+.opts button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.opts button.ok { border-color: var(--accent); }
+.opts button.no { border-color: var(--danger); }
+.why { margin: 0; font-size: 14px; }
+.why:empty { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../index.html">← Learning Systems</a>
+  <header>
+    <span class="eyebrow">Learn by doing</span>
+    <h1>Guided labs</h1>
+    <p class="lede">Each lab takes one mechanism apart across levels. It builds a twin world with one thing changed, walks you from the world down to cells or molecules and back up, and waits until the world shows you the effect. Then, below, make the call on situations you haven't seen.</p>
+  </header>
+
+  <section aria-labelledby="labs-h">
+    <h2 id="labs-h">Take it apart</h2>
+    <p class="progress" id="lab-progress"></p>
+    <ul class="labs" id="labs"></ul>
+  </section>
+
+  <section aria-labelledby="sc-h" id="make-the-call">
+    <h2 id="sc-h">Make the call</h2>
+    <p class="note">Situations, not definitions. Guessing before you try the lab is fine: a wrong answer explains itself, and the lab it comes from is linked.</p>
+    <p class="progress" id="sc-progress"></p>
+    <div id="scenarios" style="display:grid;gap:12px"></div>
+  </section>
+
+  <p class="note">Progress is kept in this browser only and is never sent anywhere.</p>
+</div>
+
+<script src="../lib/lab-catalogue.js"></script>
+<script src="../lib/nav.js"></script>
+<script>
+(function () {
+  'use strict';
+  const STORE = 'learning-systems.labs', SC_STORE = 'learning-systems.scenarios';
+  const load = (k) => { try { return JSON.parse(localStorage.getItem(k)) || {}; } catch (e) { return {}; } };
+  const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* not kept */ } };
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const LABS = window.LabCatalogue || [];
+  const byId = Object.fromEntries(LABS.map((l) => [l.id, l]));
+  const href = (id) => '../' + byId[id].page + '#lab=' + id;
+
+  // ---------- Take it apart ----------
+  const progress = load(STORE);
+  document.getElementById('labs').innerHTML = LABS.map((l) =>
+    `<li><a class="lab" href="${esc(href(l.id))}"><span class="ch">${esc(l.chapter)}</span><b>${esc(l.title)}</b>` +
+    `<span>${esc(l.question)}</span><small>${esc(l.levels.join(' → '))}` +
+    `${progress[l.id] && progress[l.id].done ? ' · <span class="done">done</span>' : ''}</small></a></li>`).join('');
+  const nDone = LABS.filter((l) => progress[l.id] && progress[l.id].done).length;
+  document.getElementById('lab-progress').textContent = `${nDone} of ${LABS.length} labs done`;
+
+  // ---------- Make the call ----------
+  // Each situation draws on one lab's finding, and every option says why.
+  const SCENARIOS = [
+    { id: 'pools', lab: 'tide-pools',
+      q: 'Two coasts get the same sunlight and the same hot vents. One has long chains in its rock pools; the other has almost none. What is the most likely difference?',
+      opts: [
+        { t: 'The second coast has fewer vents.', why: 'Both have the same vents. Heat makes energy and building blocks, but it also speeds up the water breaking chains apart.' },
+        { t: 'Only the first coast has pools that dry out between tides.', ok: true, why: 'Blocks join into chains when little water is around, and water breaks them again. Drying pools are where joining wins.' },
+        { t: 'The second coast has stronger currents.', why: 'Currents carry chains around; they do not make or break them. Without drying, there is little to carry.' },
+      ] },
+    { id: 'motors', lab: 'learning-to-move',
+      q: 'Cells that start with strong motors end up, many generations later, with weaker ones. Nobody changed the coast. Why?',
+      opts: [
+        { t: 'Motors wear out as cells age.', why: 'Each daughter gets a copy of its parent\'s genes, not a worn motor. The change is across generations.' },
+        { t: 'It is chance: weaker motors just happened to be copied more.', why: 'Chance moves genes too, but runs that start weak climb and runs that start strong fall to the same value. A direction like that is selection.' },
+        { t: 'Swimming costs more energy than a strong motor wins in food, so cells with weaker motors leave more daughters.', ok: true, why: 'The cost rises fast with speed. Cells near the best strength for this coast out-reproduce the rest, from either side.' },
+      ] },
+    { id: 'beat', lab: 'muscles-beat-together',
+      q: 'Every contracting cell in a body pushes hard, yet the body barely moves. What do you check first?',
+      opts: [
+        { t: 'Whether the cells squeeze at the same moment.', ok: true, why: 'Pushes add up only when they happen together. Out of step, one cell squeezes while another relaxes and they partly cancel.' },
+        { t: 'How hard each cell pushes.', why: 'Each cell already pushes hard; a stronger push out of step mostly makes a stronger wobble.' },
+        { t: 'Whether the body has enough cells.', why: 'More cells out of step add more cancelling pushes, not more speed.' },
+      ] },
+    { id: 'poison', lab: 'learning-colour',
+      q: 'A creature keeps biting poison. Its mouth cells fire for each colour, and food still gives it energy. Where is the problem most likely?',
+      opts: [
+        { t: 'In its eyes and mouth: it cannot tell the colours apart.', why: 'Its sensory cells fire for each colour separately, so the information is there.' },
+        { t: 'At the bite synapses: no reward signal is reaching them, so they never change.', ok: true, why: 'Learning needs a signal after the bite. Without dopamine, the trace a bite leaves on the synapse never turns into a lasting change.' },
+        { t: 'In the population: its species has not evolved yet.', why: 'Learning happens within one life. Evolution can help across generations, but a creature that learns does not have to wait for it.' },
+      ] },
+    { id: 'microglia', lab: 'who-cleans',
+      q: 'In a slice of brain tissue with no microglia, the number of synapses rises and falls just as it normally does. Does that mean microglia do nothing?',
+      opts: [
+        { t: 'Yes: the tissue works the same without them.', why: 'Look at the dead cells: without microglia they pile up as debris, because nothing else clears them.' },
+        { t: 'No: microglia make the new synapses.', why: 'Synapses grow from neurons\' own connection points. Microglia only remove things.' },
+        { t: 'No: most pruning comes from neurons themselves, and microglia clear away dead cells.', ok: true, why: 'A neuron that fires too much retracts its own synapses. Microglia take a share of the weak ones, but cleaning up after cell death is what only they do here.' },
+      ] },
+  ];
+  const answers = load(SC_STORE);
+  const box = document.getElementById('scenarios');
+  function count() {
+    const n = SCENARIOS.filter((s) => answers[s.id]).length;
+    document.getElementById('sc-progress').textContent = `${n} of ${SCENARIOS.length} answered right`;
+  }
+  for (const s of SCENARIOS) {
+    const el = document.createElement('article');
+    el.className = 'sc';
+    el.innerHTML = `<h3>${esc(s.q)}</h3><div class="opts">` +
+      s.opts.map((o, k) => `<button type="button" data-k="${k}">${esc(o.t)}</button>`).join('') +
+      `</div><p class="why" role="status" aria-live="polite"></p>` +
+      (byId[s.lab] ? `<a href="${esc(href(s.lab))}">Try it in the lab: ${esc(byId[s.lab].title)} →</a>` : '');
+    const why = el.querySelector('.why');
+    el.querySelectorAll('[data-k]').forEach((b) => {
+      b.onclick = () => {
+        const o = s.opts[+b.dataset.k];
+        el.querySelectorAll('[data-k]').forEach((x) => x.classList.remove('ok', 'no'));
+        b.classList.add(o.ok ? 'ok' : 'no');
+        why.innerHTML = `<b>${o.ok ? 'Right.' : 'Not quite.'}</b> ${esc(o.why)}`;
+        if (o.ok) { answers[s.id] = true; save(SC_STORE, answers); count(); }
+      };
+    });
+    box.appendChild(el);
+  }
+  count();
+})();
+</script>
+</body>
+</html>

@@ -77,3 +77,7 @@ t.lesion(0.5, 0.45, 0.12);
 for (let i = 0; i < 5000; i++) t.step();
 console.log(t.history.at(-1));
 ```
+
+## Guided lab
+
+**Guided labs** in the toolbar (or `#lab=who-cleans`) opens *Who prunes, and who cleans up?*: a full dish against one with no microglia. Synapses overshoot (about 2,000 at step 2,500) and fall back to about 450 to 650 in both dishes, so neurons do most of the pruning themselves; glia engulf about a quarter of the synapses removed. What changes is debris: without microglia, dead neurons pile up (about 90 to 225 by step 6,000, against 7 to 19 with them; seeds 1 to 3). Lab data in `labs.js`, engine in `lib/learn.js`.
