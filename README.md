@@ -8,6 +8,7 @@ Open `index.html` for the catalogue.
 
 | Shelf | Product | Status |
 |---|---|---|
+| Environments | [Early Earth](environments/early-earth/) | Available (chapter 0, first version) |
 | Environments | [Forager Worlds](environments/forager-worlds/) | Available (W5, tissue brains) |
 | Nervous systems | [Tissue Lab](nervous-systems/tissue-lab/) | Available (first version) |
 
@@ -16,6 +17,6 @@ Open `index.html` for the catalogue.
 - `index.html`: catalogue page linking every product.
 - `environments/`: worlds that pose the problem (resources, hazards, change).
 - `nervous-systems/`: brains as living tissue.
-- `lib/`: code shared across products, e.g. `lib/brain.js`, the self-wiring spiking brain.
+- `lib/`: code shared across products: `lib/brain.js`, the self-wiring spiking brain; `lib/earth.js`, the shared Earth (land, sea, tides, sun, heat, currents) that every chapter of the timeline of life is meant to live in; `lib/chemistry.js`, the early Earth chemistry.
 
 Each product folder is self-contained except for `lib/`, and its engine has no DOM code, so it also runs headless in Node.

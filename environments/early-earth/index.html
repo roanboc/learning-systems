@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Early Earth</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a map you can fly over. Toolbar and comparison chart on top, one map per world below, each with its own journal. */
+:root {
+  --bg: #f1f3f0;
+  --surface: #fbfcfa;
+  --ink: #1b2420;
+  --muted: #5b6862;
+  --line: #d3dad5;
+  --accent: #2a6f73;
+  --dish: #0f1613;
+  --danger: #b4412b;
+  --s1: #2a6f73; --s2: #c0532a; --s3: #a07a12;
+  --energy: #b8901a; --blocks: #2f9c78; --chains: #c0662a; --copiers: #c0368a; --oils: #8a7d55;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111614; --surface: #19201d; --ink: #e2e9e4; --muted: #95a39c; --line: #2b3531;
+    --accent: #6db6b8; --dish: #0b100e; --danger: #e07a62;
+    --s1: #6db6b8; --s2: #e8875c; --s3: #d4ad45;
+    --energy: #ecc846; --blocks: #50d2a0; --chains: #f08c50; --copiers: #eb50aa; --oils: #f5ebc8;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111614; --surface: #19201d; --ink: #e2e9e4; --muted: #95a39c; --line: #2b3531;
+  --accent: #6db6b8; --dish: #0b100e; --danger: #e07a62;
+  --s1: #6db6b8; --s2: #e8875c; --s3: #d4ad45;
+  --energy: #ecc846; --blocks: #50d2a0; --chains: #f08c50; --copiers: #eb50aa; --oils: #f5ebc8;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--sans); padding-inline: 16px; padding-block: 20px 40px; }
+.wrap { max-width: 1400px; margin: 0 auto; display: grid; gap: 18px; }
+header { display: grid; gap: 6px; }
+h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+.sub { color: var(--muted); max-width: 78ch; margin: 0; }
+.eyebrow { font: 500 11px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.back { font-size: 13px; color: var(--accent); text-decoration: none; justify-self: start; }
+.back:hover { text-decoration: underline; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button, select { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; }
+button { cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button.primary { background: var(--accent); color: var(--surface); border-color: var(--accent); font-weight: 600; min-width: 84px; }
+.clock { font: 500 13px var(--mono); color: var(--muted); margin-left: auto; font-variant-numeric: tabular-nums; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.chart-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 12px; padding: 4px 9px; border-radius: 999px; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 12px; height: 3px; border-radius: 2px; display: inline-block; }
+#chart { width: 100%; height: 180px; display: block; }
+.chart-note { font-size: 12px; color: var(--muted); margin: 0; }
+
+.worlds { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(560px, 100%), 1fr)); }
+.world { display: grid; gap: 10px; align-content: start; grid-template-columns: minmax(0, 1fr); }
+.world-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.world-head .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.world-head b { flex: 1 1 10ch; }
+.icon-btn { padding: 2px 8px; font-size: 12px; color: var(--muted); }
+.mapbox { position: relative; }
+canvas.map { width: 100%; aspect-ratio: 16 / 10; display: block; background: var(--dish); border-radius: 6px; cursor: grab; touch-action: none; }
+canvas.map.dragging { cursor: grabbing; }
+canvas.map.tool { cursor: crosshair; }
+.zoom { position: absolute; right: 8px; top: 8px; display: flex; flex-direction: column; gap: 4px; }
+.zoom button { width: 30px; height: 30px; padding: 0; background: color-mix(in srgb, var(--surface) 85%, transparent); font-weight: 600; }
+.hud { position: absolute; left: 8px; bottom: 8px; font: 500 11px var(--mono); color: #e6efe9; background: rgba(10,16,14,0.6); border-radius: 4px; padding: 3px 7px; pointer-events: none; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 12px; color: var(--muted); }
+.controls label { display: inline-flex; gap: 6px; align-items: center; }
+.controls select { padding: 4px 6px; font-size: 13px; }
+.stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.stat { display: grid; gap: 2px; }
+.stat b { font: 500 15px var(--mono); font-variant-numeric: tabular-nums; }
+.stat small { font-size: 11px; color: var(--muted); }
+.inspect { font: 12px/1.6 var(--mono); color: var(--muted); min-height: 1.6em; overflow-wrap: anywhere; }
+.inspect b { color: var(--ink); font-weight: 500; }
+.inspect .follow { font: 12px var(--sans); padding: 2px 8px; margin-left: 6px; }
+.journal { display: grid; gap: 0; max-height: 260px; overflow: auto; border-top: 1px solid var(--line); }
+.journal:empty::before { content: "Nothing noted yet. Watch the tide pools and the vents."; color: var(--muted); font-size: 13px; padding: 8px 0; }
+.entry { display: grid; gap: 2px; padding: 8px 0; border-bottom: 1px solid var(--line); text-align: left; background: none; border-radius: 0; border-inline: 0; border-top: 0; width: 100%; }
+.entry:hover { border-color: var(--line); background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.entry small { font: 11px var(--mono); color: var(--muted); }
+.entry b { font-weight: 600; font-size: 13px; }
+.entry span { font-size: 13px; color: var(--muted); }
+.key { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--muted); }
+.key i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; vertical-align: -1px; margin-right: 5px; }
+details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+.explain { display: grid; gap: 8px; font-size: 13px; color: var(--muted); max-width: 90ch; }
+.explain p { margin: 0; }
+.explain b { color: var(--ink); }
+@media (max-width: 520px) { .stats { grid-template-columns: repeat(3, 1fr); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../../index.html">← Learning Systems</a>
+  <header>
+    <span class="eyebrow">Timeline of life · Chapter 0</span>
+    <h1>Early Earth</h1>
+    <p class="sub">A stretch of young coast with no life yet. Sunlight, hot vents, tides and currents drive a made-up chemistry. Watch building blocks join into chains in drying tide pools, copiers appear and spread, and oily bubbles trap them and split. Scroll or pinch to zoom, drag to move, click anything to look closer.</p>
+  </header>
+
+  <div class="toolbar">
+    <button class="primary" id="play">Pause</button>
+    <label class="controls">Speed
+      <select id="speed">
+        <option value="1">Slow</option>
+        <option value="3" selected>Normal</option>
+        <option value="8">Fast</option>
+        <option value="ff">Fast-forward</option>
+      </select>
+    </label>
+    <label class="controls">Add a world
+      <select id="add">
+        <option value="">Choose…</option>
+      </select>
+    </label>
+    <span class="clock" id="clock">Day 0 · 00:00</span>
+  </div>
+
+  <section class="panel" aria-labelledby="chart-h">
+    <div class="chart-head">
+      <b id="chart-h">Compare worlds</b>
+      <div class="chips" id="metrics" role="group" aria-label="What to chart"></div>
+    </div>
+    <canvas id="chart" aria-label="Chart comparing worlds over time"></canvas>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <section class="worlds" id="worlds" aria-label="Worlds"></section>
+
+  <details class="panel">
+    <summary>How this world works</summary>
+    <div class="explain">
+      <p><b>Not real chemistry.</b> Six made-up kinds of molecule with simple local rules. Real atoms would be far too slow to simulate, and nobody knows the exact chemistry that started life. The rules echo leading ideas instead.</p>
+      <p><b>Energy</b> comes from sunlight in shallow water and from heat at the vents. Energy plus raw molecules make <b>building blocks</b>, faster where it is warm. Blocks join into <b>chains</b> only with little water around, so chains pile up in drying tide pools (wet and dry cycles, as Deamer and Damer propose). Water and strong sunlight break chains again.</p>
+      <p>Very rarely two chains make a <b>copier</b>: a chain that helps make more of itself from blocks. Too few copiers and they die out; enough together and they spread as self-copying patches (Gray-Scott-like kinetics).</p>
+      <p>Hot vents make <b>oils</b>. Where oils crowd, they curl into <b>bubbles</b> with a skin. A bubble traps the chains and copiers around it and lets blocks and energy in. Bubbles full of chains and copiers pull in oils faster (Chen, Roberts and Szostak, 2004), so they grow and split faster. Nothing tells a bubble to keep copiers: those that do simply leave more daughters. That is the bridge to the first cells.</p>
+      <p><b>The Earth itself</b> (land, sea, tides, sun, heat, currents) lives in <code>lib/earth.js</code> so later chapters, with cells, plants and animals, can live in the same world.</p>
+    </div>
+  </details>
+</div>
+
+<template id="world-tpl">
+  <article class="world panel">
+    <div class="world-head">
+      <span class="dot"></span>
+      <b class="name"></b>
+      <span class="badge"></span>
+      <button class="icon-btn reseed" title="Same rules, new random coast">New seed</button>
+      <button class="icon-btn remove" title="Remove this world">Remove</button>
+    </div>
+    <div class="mapbox">
+      <canvas class="map"></canvas>
+      <div class="zoom">
+        <button class="zin" aria-label="Zoom in">+</button>
+        <button class="zout" aria-label="Zoom out">−</button>
+        <button class="zfit" aria-label="Show whole map">⤢</button>
+      </div>
+      <div class="hud"></div>
+    </div>
+    <div class="controls">
+      <label>Show <select class="layer"></select></label>
+      <label>Click to <select class="tool">
+        <option value="look">Look</option>
+        <option value="blocks">Pour building blocks</option>
+        <option value="oils">Pour oils</option>
+        <option value="copiers">Seed copiers</option>
+        <option value="vent">Add a vent</option>
+      </select></label>
+    </div>
+    <div class="key">
+      <span><i style="background:var(--energy)"></i>energy</span>
+      <span><i style="background:var(--blocks)"></i>blocks</span>
+      <span><i style="background:var(--chains)"></i>chains</span>
+      <span><i style="background:var(--copiers)"></i>copiers</span>
+      <span><i style="background:var(--oils)"></i>oils</span>
+      <span>○ bubble · <i style="background:var(--copiers)"></i>bubble with copiers</span>
+    </div>
+    <div class="stats"></div>
+    <div class="inspect">Click the map to look at a spot or a bubble.</div>
+    <div>
+      <b>Field journal</b>
+      <div class="journal"></div>
+    </div>
+  </article>
+</template>
+
+<script src="../../lib/earth.js"></script>
+<script src="../../lib/chemistry.js"></script>
+<script src="draw.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
