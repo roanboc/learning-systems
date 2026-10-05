@@ -161,8 +161,8 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
   <a class="back" href="../../index.html">← Learning Systems</a>
   <header>
     <h1>Forager Worlds</h1>
-    <span class="eyebrow">Environments · W5 · hunters, prey and gardeners</span>
-    <p class="sub">Each dish is a separate world with its own plants and its own gene pool. Green and violet plants are food or poison, and in seasonal worlds the meaning swaps. Creatures either follow inherited instincts, or carry a small spiking brain that wires itself and learns from what it eats. Brain genes set how big the brain is, how fast it learns and which inborn reflexes it starts with; evolution tunes them over generations, never the synapses themselves. In living worlds, species with different brain sizes compete, plants grow and seed on fertile soil, and that soil keeps drifting. Hunters (red) chase and bite plant eaters, which can see them and learn to flee, and in gardener worlds droppings fertilise the soil where creatures walk.</p>
+    <span class="eyebrow">Environments · W5 · tissue brains, hunters and gardeners</span>
+    <p class="sub">Each dish is a separate world with its own plants and its own gene pool. Green and violet plants are food or poison, and in seasonal worlds the meaning swaps. Creatures either follow inherited instincts, or carry a small spiking brain that wires itself and learns from what it eats. Brain genes set how big the brain is, how fast it learns and which inborn reflexes it starts with; evolution tunes them over generations, never the synapses themselves. In living worlds, species with different brain sizes compete, plants grow and seed on fertile soil, and that soil keeps drifting. Hunters (red) chase and bite plant eaters, which can see them and learn to flee, and in gardener worlds droppings fertilise the soil where creatures walk. In tissue-brain worlds each brain is a small slice of living tissue from the Tissue Lab, with blood vessels, glia and a stem-cell niche that can add newborn neurons during life.</p>
   </header>
 
   <div class="toolbar">
@@ -201,6 +201,8 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
 </div>
 
 <script src="../../lib/brain.js"></script>
+<script src="../../nervous-systems/tissue-lab/engine.js"></script>
+<script src="tissue-brain.js"></script>
 <script src="engine.js"></script>
 <script src="explorer.js"></script>
 <script src="plant-explorer.js"></script>
@@ -236,6 +238,10 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
       note: 'Living plants only. Total size of all plants: how much the vegetation has grown back.' },
     { key: 'hidden', label: 'Brain size (gene)', fmt: (v) => v.toFixed(1),
       note: 'Brain worlds only. Mean number of interneurons. Each one costs energy every step.' },
+    { key: 'neurons', label: 'Live neurons (tissue)', fmt: (v) => v.toFixed(1),
+      note: 'Tissue-brain worlds only. Mean number of interneurons alive right now. Neurons die without enough growth factor or energy, and newborns from the stem-cell niche replace some of them.' },
+    { key: 'birthRate', label: 'Neurogenesis (gene)', fmt: (v) => v.toFixed(2),
+      note: 'Tissue-brain worlds only. Mean inherited rate of new neurons (per 100 steps). Newborn neurons cost energy like any other, so this only rises if they pay.' },
   ];
 
   const PARAMS = [
@@ -260,7 +266,12 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
   // W5: hunters (diet 'meat') and their prey.
   const PREY = { name: 'Prey', mind: 'brain', count: 50 };
   const HUNTERS = { name: 'Hunters', mind: 'brain', count: 10, diet: 'meat' };
+  // W4: brains made of living tissue (the Tissue Lab), with and without newborn neurons.
+  const NEWBORN = { name: 'Newborn neurons', mind: 'tissue', count: 30, geneInit: { birthRate: [0.5, 1] } };
+  const NO_NEWBORN = { name: 'No new neurons', mind: 'tissue', count: 30, fixed: { birthRate: 0 } };
   const PRESETS = [
+    { name: 'Tissue brains: newborn neurons vs none, seasons', params: { seed: 1, seasonLength: 3000, species: [NEWBORN, NO_NEWBORN] } },
+    { name: 'Tissue brains: newborn neurons vs none, stable', params: { seed: 1, seasonLength: 0, species: [NEWBORN, NO_NEWBORN] } },
     { name: 'Hunters and prey, brains', params: { seed: 1, seasonLength: 0, plantMode: 'living', species: [PREY, HUNTERS] } },
     { name: 'Hunters and prey, instincts', params: { seed: 1, seasonLength: 0, plantMode: 'living', species: [
       Object.assign({}, PREY, { mind: 'reflex' }), Object.assign({}, HUNTERS, { mind: 'reflex' })] } },
@@ -434,6 +445,13 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
   // ---------- drawing ----------
 
   // Brain creatures: total weight from the mouth's green and violet sensors to the eat neuron.
+  // Tissue brains: the neuron population changes during life.
+  function tissueLine(c) {
+    const k = c.brain.census();
+    return `${k.neurons} live neurons (born with ${Math.round(c.g.hidden)}) · ${k.born} newborn so far, ${k.died} died · ` +
+      `${k.newborn} still maturing (gold rings) · neurogenesis gene ${c.g.birthRate.toFixed(2)}`;
+  }
+
   function biteWeights(c) {
     const b = c.brain, R = b.layout.R, eat = b.firstMotor + 2;
     let g = 0, v = 0;
@@ -567,7 +585,9 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
       const base = `#${picked.id} gen ${picked.gen} · age ${picked.age} · energy ${picked.energy.toFixed(0)} · ate ${picked.eaten} food, ${picked.poisoned} poison · `;
       if (picked.brain) {
         const [bg, bv] = biteWeights(picked);
-        el.inspect.textContent = base + `${picked.brain.synapseCount()} synapses · bite drive green ${bg.toFixed(2)}, violet ${bv.toFixed(2)} (born ${g.biteGreen.toFixed(2)}, ${g.biteViolet.toFixed(2)}) · learning rate ${g.learnRate.toFixed(3)} · ${Math.round(g.hidden)} interneurons`;
+        el.inspect.textContent = base + `${picked.brain.synapseCount()} synapses · bite drive green ${bg.toFixed(2)}, violet ${bv.toFixed(2)} (born ${g.biteGreen.toFixed(2)}, ${g.biteViolet.toFixed(2)}) · learning rate ${g.learnRate.toFixed(3)} · ` + (picked.brain.kind === 'tissue'
+          ? tissueLine(picked)
+          : `${Math.round(g.hidden)} interneurons`);
         el.brainview.hidden = false;
         drawBrain(el.brainview, picked);
       } else {
@@ -646,6 +666,7 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
     }
     ctx.globalAlpha = 1;
     for (let i = 0; i < b.n; i++) {
+      if (b.type[i] === 9) continue;   // tissue brains: an empty slot (no neuron lives there)
       let fill = '#6f7f78';
       if (i < R * 2) fill = i % 2 === 0 ? colours.green : colours.violet;
       else if (i === R * 2) fill = colours.green;
@@ -658,6 +679,13 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
       ctx.globalAlpha = b.spiked[i] ? 1 : 0.55;
       ctx.fillStyle = fill;
       ctx.beginPath(); ctx.arc(sx(i), sy(i), b.spiked[i] ? r + 2 : r, 0, Math.PI * 2); ctx.fill();
+      if (b.newborn && b.newborn[i]) {
+        // Newborn neuron from the stem-cell niche: a ring until it matures.
+        ctx.globalAlpha = 0.9;
+        ctx.strokeStyle = '#f2d16b';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(sx(i), sy(i), r + 3.5, 0, Math.PI * 2); ctx.stroke();
+      }
     }
     ctx.globalAlpha = 1;
     ctx.fillStyle = '#b7c4be';
@@ -865,7 +893,7 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
   addWorld(PRESETS[0]);
   addWorld(PRESETS[1]);
   addWorld(PRESETS[2]);
-  addWorld(PRESETS[3]);
+  addWorld(PRESETS[4]);
   drawAll();
   requestAnimationFrame(loop);
 })();

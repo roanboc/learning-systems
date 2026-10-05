@@ -10,7 +10,9 @@
 
   const HIST = 400; // steps of history kept for the timeline and traces
   const ANIMAL = '#e39a8f'; // cells that see or touch animals
-  const SENSOR = 0, EXC = 1, INH = 2, MOTOR = 3;
+  const SENSOR = 0, EXC = 1, INH = 2, MOTOR = 3, EMPTY = 9;
+  // Tissue brains (Tissue Lab slices) also show their support cells.
+  const NEWBORN = '#f2d16b', VESSEL = '#c0504d', ASTRO = '#8fb8de', MICROGLIA = '#c39be0';
 
   const CELL_INTRO = {
     eye: 'A light-sensing cell for one direction and one colour, like a cone cell in a retina. It fires faster the closer a plant of its colour sits inside its ray. Seven rays times two colours make the whole eye.',
@@ -84,7 +86,7 @@
         </section>
         <section class="ex-level ex-brain" hidden>
           <figure class="ex-fig">
-            <figcaption><b>Brain tissue</b> · senses on the left, interneurons in the middle, muscles on the right. Line width is synapse strength; red lines come from inhibitory cells. Cells flash when they spike. Click a cell to zoom in.</figcaption>
+            <figcaption><b>Brain tissue</b> · senses on the left, interneurons in the middle, muscles on the right. Line width is synapse strength; red lines come from inhibitory cells. Cells flash when they spike. Click a cell to zoom in.<span class="ex-tissue-key" hidden> This brain is living tissue from the Tissue Lab: faint red squares are blood vessels, blue stars astrocytes, purple dots microglia, the dashed oval the stem-cell niche, and gold rings newborn neurons.</span></figcaption>
             <canvas class="ex-tissue" aria-label="Brain tissue"></canvas>
           </figure>
           <figure class="ex-fig">
@@ -174,6 +176,7 @@
       if (cell !== undefined) this.cell = cell;
       this.q('.ex-organism').hidden = level !== 'organism';
       this.q('.ex-brain').hidden = level !== 'brain';
+      this.q('.ex-tissue-key').hidden = !(this.creature.brain && this.creature.brain.kind === 'tissue');
       this.q('.ex-cell').hidden = level !== 'cell';
       this.renderCrumbs();
       this.el.scrollTop = 0;
@@ -251,6 +254,7 @@
       if (i === R * 2 + 2) return 'hunger';
       if (i === R * 2 + 3) return 'pain';
       if (i >= this.animalBase() && i < b.nS) return i < this.animalBase() + R ? 'animalEye' : 'animalMouth';
+      if (b.type[i] === EMPTY) return 'empty';
       if (b.type[i] === EXC) return 'exc';
       if (b.type[i] === INH) return 'inh';
       return ['turnRight', 'turnLeft', 'eat'][i - b.firstMotor];
@@ -513,6 +517,7 @@
       ctx.lineWidth = 1.5;
       ctx.beginPath(); ctx.ellipse(bx, by, brx, bry, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
       for (let i = b.nS; i < b.firstMotor; i++) {
+        if (b.type[i] === EMPTY) continue;
         const x = bx + (b.x[i] - 0.5) * brx * 1.6, y = by + (b.y[i] - 0.5) * bry * 1.6;
         ctx.fillStyle = b.type[i] === INH ? col.danger : '#a7b8b1';
         ctx.globalAlpha = b.spiked[i] ? 1 : 0.35;
@@ -521,7 +526,10 @@
       ctx.globalAlpha = 1;
       ctx.fillStyle = '#d6e2dc';
       ctx.textAlign = 'center';
-      ctx.fillText(`${b.p.hidden} interneurons · ${b.synapseCount()} synapses`, bx, by + bry + 12 > h - 8 ? h - 8 : by + bry + 12);
+      const census = b.kind === 'tissue' ? b.census() : null;
+      ctx.fillText(census
+        ? `${census.neurons} live neurons · ${census.newborn} newborn · ${b.synapseCount()} synapses`
+        : `${b.p.hidden} interneurons · ${b.synapseCount()} synapses`, bx, by + bry + 12 > h - 8 ? h - 8 : by + bry + 12);
       ctx.fillStyle = '#9fb8b0';
       ctx.fillText('click to enter', bx, by);
       this.hits.push({ canvas: '.ex-pipeline', x: bx, y: by, r: Math.min(brx, bry), go: 'brain' });
@@ -599,7 +607,7 @@
         for (let i = 0; i < b.nS; i++) rows.push(i);
         for (let k = 0; k < 3; k++) rows.push(b.firstMotor + k);
       } else {
-        for (let i = 0; i < b.n; i++) rows.push(i);
+        for (let i = 0; i < b.n; i++) if (b.type[i] !== EMPTY) rows.push(i);
       }
       const rowH = sensesOnly ? 9 : 6;
       const daH = sensesOnly ? 0 : 40;
@@ -709,10 +717,44 @@
           if (!c.meat && g.fleeAnimal !== undefined) facts.push(['Born with flee reflex', g.fleeAnimal.toFixed(2)]);
           facts.push(['Learning rate (gene)', g.learnRate.toFixed(3)]);
           facts.push(['Interneurons (gene)', Math.round(g.hidden)]);
+          if (c.brain.kind === 'tissue') {
+            const k = c.brain.census();
+            facts.push(['Live neurons now', `${k.neurons} (${k.newborn} newborn)`]);
+            facts.push(['Born · died in life', `${k.born} · ${k.died}`]);
+            facts.push(['Neurogenesis (gene)', g.birthRate.toFixed(2)]);
+          }
         }
         if (!c.meat) facts.push(['Food is now', this.entry.world.foodColour === 0 ? 'green' : 'violet']);
       }
       this.q('.ex-facts').innerHTML = facts.map(([k, v]) => `<div><small>${k}</small><b>${v}</b></div>`).join('');
+    }
+
+    // Tissue brains: blood vessels, astrocytes, microglia and the stem-cell
+    // niche, drawn under the neurons (the Tissue Lab's cells).
+    drawGlia(ctx, T, X, Y) {
+      const G = T.G, cw = X(1 / G) - X(0), ch = Y(1 / G) - Y(0);
+      ctx.fillStyle = VESSEL;
+      ctx.globalAlpha = 0.1;
+      for (let c = 0; c < T.vesselMask.length; c++) {
+        if (T.vesselMask[c]) ctx.fillRect(X((c % G) / G), Y(Math.floor(c / G) / G), cw + 0.5, ch + 0.5);
+      }
+      ctx.globalAlpha = 0.5;
+      ctx.strokeStyle = ASTRO;
+      ctx.lineWidth = 1;
+      for (const a of T.astros) {
+        for (let k = 0; k < 6; k++) {
+          const ang = k * Math.PI / 3;
+          ctx.beginPath(); ctx.moveTo(X(a.x), Y(a.y)); ctx.lineTo(X(a.x) + 9 * Math.cos(ang), Y(a.y) + 9 * Math.sin(ang)); ctx.stroke();
+        }
+      }
+      ctx.fillStyle = MICROGLIA;
+      for (const m of T.microglia) { ctx.beginPath(); ctx.arc(X(m.x), Y(m.y), 3, 0, Math.PI * 2); ctx.fill(); }
+      ctx.globalAlpha = 0.6;
+      ctx.strokeStyle = NEWBORN;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.ellipse(X(T.niche.x), Y(T.niche.y), X(T.niche.r) - X(0), (Y(T.niche.r) - Y(0)) * 0.5, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
     }
 
     drawTissue(col) {
@@ -730,6 +772,7 @@
       const sx = (i) => animal(i) ? X(i) + 16 : body(i) ? X(i) - 50 : i < b.nS ? X(i) - (i % 2) * 16 : X(i);
       const sy = (i) => body(i) ? padY + (h - padY * 2) * (0.3 + 0.13 * (i - R * 2)) : Y(i);
       const sel = this.cell;
+      if (b.kind === 'tissue') this.drawGlia(ctx, b.tissue, (x) => padX + x * (w - padX * 2), (y) => padY + y * (h - padY * 2), w, h);
       for (let s = 0; s < b.w.length; s++) {
         const a = b.pre[s], d = b.post[s];
         const touches = sel !== null && (a === sel || d === sel);
@@ -747,6 +790,7 @@
       ctx.globalAlpha = 1;
       for (let i = 0; i < b.n; i++) {
         const kind = this.cellKind(i);
+        if (kind === 'empty') continue;
         let fill = '#7f918a';
         if (kind === 'eye') fill = i % 2 === 0 ? col.green : col.violet;
         else if (kind === 'mouth') fill = i - R * 2 === 0 ? col.green : col.violet;
@@ -756,6 +800,10 @@
         else if (b.type[i] === MOTOR) fill = '#e8efe9';
         const r = b.type[i] === MOTOR ? 9 : 5.5;
         this.cellDot(ctx, sx(i), sy(i), r, fill, b.spiked[i], null);
+        if (b.newborn && b.newborn[i]) {
+          ctx.strokeStyle = NEWBORN; ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.arc(sx(i), sy(i), r + 3, 0, Math.PI * 2); ctx.stroke();
+        }
         if (i === sel) { ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(sx(i), sy(i), r + 5, 0, Math.PI * 2); ctx.stroke(); }
         this.hits.push({ canvas: '.ex-tissue', x: sx(i), y: sy(i), r: r + 2, cell: i });
       }
@@ -772,6 +820,7 @@
 
     drawCell(col) {
       const b = this.creature.brain, i = this.cell, kind = this.cellKind(i);
+      if (kind === 'empty') { this.go('brain'); return; }   // the neuron died (tissue brains)
       const rate = b.rate[i], target = b.target[i];
       const outs = b.outList[i], ins = b.inList[i];
       const isSensor = b.type[i] === SENSOR;
@@ -790,7 +839,8 @@
           <div><dt>Outgoing synapses</dt><dd>${outs.length}${isSensor ? '' : ` of ${Math.floor(b.axEl[i])} connection points`}</dd></div>
           ${isSensor ? '' : `<div><dt>Incoming synapses</dt><dd>${ins.length} of ${Math.floor(b.denEl[i])} connection points</dd></div>`}
         </dl>
-        <p class="ex-small">${homeo} ${HOMEOSTASIS}</p>`;
+        <p class="ex-small">${homeo} ${HOMEOSTASIS}</p>${b.newborn && b.newborn[i]
+          ? '<p class="ex-small">A newborn neuron: the stem-cell niche made it during this creature\'s life. It must wire in and earn growth factor from its partners, or it dies.</p>' : ''}`;
 
       const cv = this.q('.ex-voltage');
       const { ctx, w, h } = this.fit(cv, 220);

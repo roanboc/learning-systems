@@ -12,6 +12,10 @@
   const BrainSim = typeof module !== 'undefined' && module.exports
     ? require('../../lib/brain.js')
     : root.BrainSim;
+  // Optional: brains made of living tissue (the Tissue Lab), loaded on demand.
+  const TissueBrainSim = () => (typeof module !== 'undefined' && module.exports
+    ? require('./tissue-brain.js')
+    : root.TissueBrainSim);
 
   function mulberry32(a) {
     return function () {
@@ -59,7 +63,8 @@
     mutation: 0.08,         // mutation size as a share of each gene's range
     brainMutation: 0.02,    // the same for brain genes (slower, so instincts are not rewritten every season)
     statsEvery: 25,
-    mind: 'reflex',         // 'reflex' (inherited instincts) or 'brain' (learns during life)
+    mind: 'reflex',         // 'reflex' (inherited instincts), 'brain' (learns during life, lib/brain.js)
+                            // or 'tissue' (a Tissue Lab slice: glia, growth factor, newborn neurons)
     rays: 7,                // brain mode: eye resolution
     turnGain: 0.12,         // brain mode: turn per unit of motor imbalance
     foodReward: 1,          // brain mode: dopamine on eating food
@@ -100,6 +105,8 @@
     carcass: 0.2,           // fertility left where a creature dies (dung worlds only)
     mouth: 6,               // reach of the mouth
     brain: null,            // brain mode: overrides for lib/brain.js defaults
+    tissue: null,           // tissue mode: overrides for the Tissue Lab slice (tissue-brain.js)
+    rewardScale: 5,         // tissue mode: reward learning rate per unit of the learnRate gene
   };
 
   // Heritable genes. Ranges keep evolution inside a plausible body plan.
@@ -126,6 +133,11 @@
     biteGreen:    { min: 0, max: 1.2,  init: [0.45, 0.55] },
     biteViolet:   { min: 0, max: 1.2,  init: [0.45, 0.55] },
   };
+  // Tissue brains only: how many newborn neurons the stem-cell niche makes
+  // (per 100 steps). 0 = no adult neurogenesis.
+  const TISSUE_GENES = {
+    birthRate:    { min: 0, max: 1.5,  init: [0.2, 0.3] },
+  };
 
   // Animal genes, only in worlds where predators and prey can see each other.
   // Reflex minds get one attraction weight; brains get three inborn reflexes:
@@ -145,6 +157,7 @@
   };
   const GENE_NAMES = Object.keys(GENES);
   const BRAIN_GENE_NAMES = Object.keys(BRAIN_GENES);
+  const TISSUE_GENE_NAMES = Object.keys(TISSUE_GENES);
 
   const CELL = 40; // spatial grid cell size
 
@@ -191,7 +204,8 @@
           for (let i = 0; i < this.p.plantCapacity * 0.5; i++) this.spawnPlant(patch);
         }
       }
-      this.speciesList = (this.p.species || [{ name: this.p.mind === 'brain' ? 'Brains' : 'Instincts', mind: this.p.mind, count: this.p.startCreatures }])
+      const defaultName = { brain: 'Brains', tissue: 'Tissue brains' }[this.p.mind] || 'Instincts';
+      this.speciesList = (this.p.species || [{ name: defaultName, mind: this.p.mind, count: this.p.startCreatures }])
         .map((sp) => Object.assign({ geneInit: null, fixed: null, diet: 'plants' }, sp));
       this.animalSight = this.p.animalSight === null
         ? this.speciesList.some((sp) => sp.diet === 'meat') : !!this.p.animalSight;
@@ -317,13 +331,15 @@
     }
 
     geneSpec(k) {
-      return GENES[k] || BRAIN_GENES[k] || REFLEX_ANIMAL_GENES[k] || BRAIN_ANIMAL_GENES[k];
+      return GENES[k] || BRAIN_GENES[k] || TISSUE_GENES[k] || REFLEX_ANIMAL_GENES[k] || BRAIN_ANIMAL_GENES[k];
     }
 
     geneNames(mind) {
-      const names = mind === 'brain' ? GENE_NAMES.concat(BRAIN_GENE_NAMES) : GENE_NAMES;
+      const brainy = mind === 'brain' || mind === 'tissue' || mind === 'any';
+      let names = brainy ? GENE_NAMES.concat(BRAIN_GENE_NAMES) : GENE_NAMES;
+      if (mind === 'tissue' || mind === 'any') names = names.concat(TISSUE_GENE_NAMES);
       if (!this.animalSight) return names;
-      return names.concat(Object.keys(mind === 'brain' ? BRAIN_ANIMAL_GENES : REFLEX_ANIMAL_GENES));
+      return names.concat(Object.keys(brainy ? BRAIN_ANIMAL_GENES : REFLEX_ANIMAL_GENES));
     }
 
     randomGenome(sp) {
@@ -372,7 +388,7 @@
         bitten: 0,
         killedBy: null,
       };
-      if (sp.mind === 'brain') {
+      if (sp.mind === 'brain' || sp.mind === 'tissue') {
         // On screen (y points down) a positive angle is clockwise, i.e. the
         // creature's right. Sensors: one per ray and colour, right rays at the top,
         // then mouth contact per colour, hunger and pain.
@@ -411,6 +427,23 @@
             if (g.fleeAnimal > 0) innate.push([base + r, 1 - side, g.fleeAnimal]);
           }
           if (g.biteAnimal > 0) innate.push([base + R, 2, g.biteAnimal]);
+        }
+        if (sp.mind === 'tissue') {
+          // A Tissue Lab slice: it starts with `hidden` neurons, then its own
+          // population dynamics decide how many live. Costs follow the live count.
+          const motorNoise = [0.35, 0.35, this.p.eatNoise];
+          c.brain = new (TissueBrainSim().TissueBrain)(this.rng, rows, [0.25, 0.75, 0.5], Object.assign({}, this.p.tissue, {
+            startNeurons: Math.round(g.hidden),
+            birthRate: g.birthRate,
+            neurogenesis: g.birthRate > 0,
+            rewardRate: this.p.rewardScale * g.learnRate,
+          }), innate, motorNoise);
+          c.brain.layout = { R, animal: this.animalSight, animalBase: R * 2 + 4 };
+          c.learnCost = this.p.learnCost * g.learnRate;
+          c.brainCost = this.p.neuronCost * c.brain.hiddenCount() + c.learnCost;
+          c.drive = new Float32Array(rows.length);
+          this.creatures.push(c);
+          return c;
         }
         const bp = Object.assign({
           motorNoiseOverride: [0.35, 0.35, this.p.eatNoise],
@@ -708,6 +741,7 @@
 
       const b = c.brain;
       b.step(drive);
+      if (b.kind === 'tissue') c.brainCost = p.neuronCost * b.hiddenCount() + c.learnCost;
       c.motorL = c.motorL * 0.85 + b.motorSpiked(0);
       c.motorR = c.motorR * 0.85 + b.motorSpiked(1);
       c.heading += p.turnGain * (c.motorL - c.motorR);
@@ -724,12 +758,18 @@
       const n = this.creatures.length;
       // Gene means over the creatures that carry each gene (brain genes only
       // exist in brain species).
-      const mean = {}, count = {}, names = this.geneNames('brain');
+      const mean = {}, count = {}, names = this.geneNames('any');
       for (const k of names) { mean[k] = 0; count[k] = 0; }
       const perSpecies = this.speciesList.map(() => 0);
       let energy = 0, maxGen = 0, synapses = 0, brains = 0, reflexes = 0, predators = 0;
+      let tissues = 0, liveNeurons = 0, newborn = 0;
       for (const c of this.creatures) {
         if (c.brain) { synapses += c.brain.synapseCount(); brains++; } else reflexes++;
+        if (c.brain && c.brain.kind === 'tissue') {
+          tissues++;
+          liveNeurons += c.brain.hiddenCount();
+          newborn += c.brain.tissue.counts.born;
+        }
         perSpecies[c.sp]++;
         if (c.meat) predators++;
         for (const k in c.g) { mean[k] += c.g[k]; count[k]++; }
@@ -772,6 +812,9 @@
         picky: this.pickiness(),
         learnRate: brainMode ? mean.learnRate : null,
         hidden: brainMode ? mean.hidden : null,
+        birthRate: tissues ? mean.birthRate : null,
+        neurons: tissues ? liveNeurons / tissues : null,     // live interneurons per tissue brain
+        newborn: tissues ? newborn / tissues : null,         // neurons born so far per tissue brain
         instinct,
         species: perSpecies,
         predators: this.animalSight ? predators : null,
@@ -792,7 +835,7 @@
     }
   }
 
-  const api = { World, DEFAULTS, GENES, GENE_NAMES, BRAIN_GENES, BRAIN_GENE_NAMES, GREEN, VIOLET };
+  const api = { World, DEFAULTS, GENES, GENE_NAMES, BRAIN_GENES, BRAIN_GENE_NAMES, TISSUE_GENES, GREEN, VIOLET };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.WorldSim = api;
 })(typeof self !== 'undefined' ? self : this);
