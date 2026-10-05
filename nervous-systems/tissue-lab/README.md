@@ -45,9 +45,28 @@ Synapse overshoot, survival and newborns: 4 seeds each, 40,000 steps, means. Rep
 - **Turnover:** newborns replace losses; about half of them integrate and survive. Without neurogenesis the population keeps shrinking slowly.
 - **Not shown yet:** astrocytes make little measurable difference in these runs, because glucose is rarely the limit. "Poor blood supply" is the dish to explore that.
 
+## Train a creature (`train.html`)
+
+One creature with a small Tissue Lab brain in an arena with a smell. You train it: click to place the smell, press **Good** (a click, then a treat in its gut 40 steps later) or **Bad** (a sting). Keys G and B. A helper can do the clicking: it rewards turning toward the smell, or away from it.
+
+- **Body:** two nostrils feed two contrast cells (smell stronger left, stronger right) and a hearing cell; two muscles turn left and right. At birth both smells twitch both muscles equally, so the creature has no preferred direction.
+- **Dopamine cells** (`trainer.js`): temporal-difference learning over a memory of the click. Dopamine is the gap between what the gut got and what they expected. With training the burst moves from the treat to the click.
+- **Learning:** the tissue's three-factor rule. Dopamine turns each synapse's recent "my input helped my cell fire" trace into a weight change. For this brain unsupervised strengthening and weight decay are off, so only dopamine teaches.
+
+Headless results (90,000 steps, 6 seeds, helper rewarding "toward"):
+
+| | Smells reached | Facing the smell, last sixth |
+|---|---|---|
+| Untrained (no Goods) | 6 to 24 | about 0.05 |
+| Trained | 38 to 93; 5 of 6 learned clearly | 0.35 to 0.6 in the 5 that learned |
+
+- Dopamine at the click rises from about 0 to 0.6 to 0.8 while at the treat it falls from about 0.5 to 0.01 within roughly 20,000 steps (about 40 Goods).
+- Training "away" grows the smell → turn-away wiring instead.
+- Failures: sometimes glia prune a smell synapse that went quiet and the skill fades, or both directions saturate equally. Seeds vary a lot.
+
 ## Next
-- Sensory input and three-factor learning (v3 milestone M5), so a tissue can learn and newborn neurons can be tested on telling similar patterns apart.
-- Then carry the useful mechanisms (growth factor competition, glial pruning, newborn neurons) into `lib/brain.js` behind options, so Forager Worlds creatures can grow these brains.
+- Cue-means-action tricks (light on the left means turn right), and testing whether newborn neurons help tell similar cues apart.
+- Forager Worlds creatures already run Tissue Lab brains (`environments/forager-worlds/tissue-brain.js`); next is giving them these dopamine cells, so food and poison teach through prediction error.
 
 ## Headless use
 ```js

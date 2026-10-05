@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Train a Creature</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a training room. Buttons on top, the arena and the creature's brain side by side, then what dopamine and learning are doing. */
+:root {
+  --bg: #f1f3f0;
+  --surface: #fbfcfa;
+  --ink: #1b2420;
+  --muted: #5b6862;
+  --line: #d3dad5;
+  --accent: #2a6f73;
+  --dish: #0f1613;
+  --danger: #b4412b;
+  --good: #2f8a3e;
+  --s1: #2a6f73; --s2: #c0532a; --s3: #a07a12; --s4: #3d5aa8;
+  --exc: #d9eadc; --inh: #e0705a; --newborn: #5cc46d; --astro: #d4ad45; --micro: #8aa2e6;
+  --vessel: #c0392b; --tag: #f0a050; --debris: #7d8a84; --syn: #9fb8b0; --focus: #ffffff;
+  --smell: #c9a0f0; --dopa: #f2c14e;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111614; --surface: #19201d; --ink: #e2e9e4; --muted: #95a39c; --line: #2b3531;
+    --accent: #6db6b8; --dish: #0b100e; --danger: #e07a62; --good: #6cc77a;
+    --s1: #6db6b8; --s2: #e8875c; --s3: #d4ad45; --s4: #8aa2e6;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111614; --surface: #19201d; --ink: #e2e9e4; --muted: #95a39c; --line: #2b3531;
+  --accent: #6db6b8; --dish: #0b100e; --danger: #e07a62; --good: #6cc77a;
+  --s1: #6db6b8; --s2: #e8875c; --s3: #d4ad45; --s4: #8aa2e6;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--sans); padding-inline: 16px; padding-block: 20px 40px; }
+.wrap { max-width: 1300px; margin: 0 auto; display: grid; gap: 18px; }
+header { display: grid; gap: 6px; }
+h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+h2 { margin: 0; font-size: 15px; font-weight: 600; }
+.sub { color: var(--muted); max-width: 80ch; margin: 0; }
+.eyebrow { font: 500 11px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.back { font-size: 13px; color: var(--accent); text-decoration: none; justify-self: start; }
+.back:hover { text-decoration: underline; }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button, select { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; }
+button { cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button.primary { background: var(--accent); color: var(--surface); border-color: var(--accent); font-weight: 600; min-width: 84px; }
+.teach { display: flex; gap: 8px; }
+.teach button { font-size: 16px; font-weight: 600; padding: 10px 22px; border-width: 2px; }
+#good { color: var(--good); border-color: var(--good); }
+#bad { color: var(--danger); border-color: var(--danger); }
+#good:active, #good.flash { background: var(--good); color: var(--surface); }
+#bad:active, #bad.flash { background: var(--danger); color: var(--surface); }
+.clock { font: 500 13px var(--mono); color: var(--muted); margin-left: auto; font-variant-numeric: tabular-nums; }
+.hint { font-size: 12px; color: var(--muted); }
+kbd { font: 11px var(--mono); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--surface); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: grid; gap: 10px; min-width: 0; align-content: start; }
+.grid2 { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); align-items: start; }
+canvas.square { width: 100%; aspect-ratio: 1; display: block; background: var(--dish); border-radius: 6px; }
+#arena { cursor: crosshair; touch-action: manipulation; }
+.cap { font-size: 13px; color: var(--muted); margin: 0; max-width: 75ch; }
+.cap b { color: var(--ink); font-weight: 600; }
+.chart { width: 100%; height: 150px; display: block; }
+.stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px 14px; }
+.stat { display: grid; gap: 2px; }
+.stat b { font: 500 16px var(--mono); font-variant-numeric: tabular-nums; }
+.stat small { font-size: 11px; color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 12px; height: 3px; border-radius: 2px; display: inline-block; }
+.bars { display: grid; gap: 6px; }
+.bar { display: grid; grid-template-columns: 9.5em 1fr 3.5em; gap: 10px; align-items: center; font-size: 13px; }
+.bar .track { height: 10px; background: var(--line); border-radius: 5px; overflow: hidden; }
+.bar .track i { display: block; height: 100%; background: var(--dopa); border-radius: 5px; transition: width 300ms; }
+.bar b { font: 500 13px var(--mono); text-align: right; }
+.story { margin: 0; padding-left: 18px; color: var(--muted); font-size: 13px; display: grid; gap: 5px; max-width: 90ch; }
+.story b { color: var(--ink); font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .bar .track i { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← Tissue Lab</a>
+  <header>
+    <h1>Train a creature</h1>
+    <span class="eyebrow">Nervous systems · reward, dopamine and a brain that wires itself</span>
+    <p class="sub">A small creature with a Tissue Lab brain smells a cue and turns with two muscles. Nothing tells it what to do. Teach it like an animal: click the arena to put the smell somewhere, then press <b>Good</b> when it does what you hoped and <b>Bad</b> when it does not. Good is a click followed by a treat in its gut; Bad is a sting.</p>
+  </header>
+
+  <div class="toolbar">
+    <div class="teach">
+      <button id="good" type="button" aria-keyshortcuts="G">Good</button>
+      <button id="bad" type="button" aria-keyshortcuts="B">Bad</button>
+    </div>
+    <span class="hint">Keys <kbd>G</kbd> and <kbd>B</kbd>, <kbd>Space</kbd> to pause</span>
+    <button id="play" class="primary" type="button">Pause</button>
+    <label for="speed" class="eyebrow">Speed</label>
+    <select id="speed">
+      <option value="1">1 step/frame</option>
+      <option value="2" selected>2 steps/frame</option>
+      <option value="5">5 steps/frame</option>
+      <option value="20">20 steps/frame</option>
+      <option value="60">60 steps/frame</option>
+    </select>
+    <label for="teacher" class="eyebrow">Helper</label>
+    <select id="teacher">
+      <option value="off" selected>None, I train it</option>
+      <option value="toward">Rewards turning toward the smell</option>
+      <option value="away">Rewards turning away from it</option>
+    </select>
+    <button id="reset" type="button">New creature</button>
+    <span class="clock" id="clock">t = 0</span>
+  </div>
+
+  <div class="grid2">
+    <section class="panel" aria-labelledby="arena-h">
+      <h2 id="arena-h">Arena</h2>
+      <canvas id="arena" class="square" width="640" height="640" aria-label="The arena. Click to move the smell."></canvas>
+      <p class="cap">The violet glow is the smell. The creature has two nostrils; it only senses which side smells stronger. A note above it means it heard your click, a dot going in is a treat, a red flash is a sting. Reaching the smell moves it somewhere new.</p>
+      <div class="stats">
+        <div class="stat"><b id="st-good">0</b><small>Goods</small></div>
+        <div class="stat"><b id="st-bad">0</b><small>Bads</small></div>
+        <div class="stat"><b id="st-reached">0</b><small>smells reached</small></div>
+        <div class="stat"><b id="st-energy">0</b><small>gut energy</small></div>
+      </div>
+    </section>
+    <section class="panel" aria-labelledby="brain-h">
+      <h2 id="brain-h">Its brain</h2>
+      <canvas id="brain" class="square" width="640" height="640" aria-label="The creature's brain tissue"></canvas>
+      <p class="cap">A living Tissue Lab slice. <b>Senses</b> on the left (smell left, smell right, hearing), <b>muscles</b> on the right (turn left, turn right). At birth both smells twitch both muscles equally, so it has no idea which way to turn. Lines glow gold while dopamine is changing them.</p>
+      <div class="stats">
+        <div class="stat"><b id="st-neurons">0</b><small>neurons</small></div>
+        <div class="stat"><b id="st-syn">0</b><small>synapses</small></div>
+        <div class="stat"><b id="st-right">0</b><small>smell → turn toward</small></div>
+        <div class="stat"><b id="st-wrong">0</b><small>smell → turn away</small></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="grid2">
+    <section class="panel" aria-labelledby="da-h">
+      <h2 id="da-h">Dopamine</h2>
+      <canvas id="da" class="chart" aria-label="Dopamine over the last steps"></canvas>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--dopa)"></i>dopamine: better (up) or worse (down) than expected</span>
+        <span><i class="sw" style="background:var(--good)"></i>click</span>
+        <span><i class="sw" style="background:var(--accent)"></i>treat</span>
+        <span><i class="sw" style="background:var(--danger)"></i>sting</span>
+      </div>
+      <div class="bars" aria-label="Average dopamine burst">
+        <div class="bar"><span>Burst at the click</span><span class="track"><i id="bar-click"></i></span><b id="v-click">0</b></div>
+        <div class="bar"><span>Burst at the treat</span><span class="track"><i id="bar-treat"></i></span><b id="v-treat">0</b></div>
+      </div>
+      <p class="cap">At first dopamine fires when the treat lands: a surprise. After a dozen or so Goods it fires at the click instead, and the treat no longer surprises. The click has become rewarding in itself, as in clicker training.</p>
+    </section>
+    <section class="panel" aria-labelledby="learn-h">
+      <h2 id="learn-h">Learning</h2>
+      <canvas id="learn" class="chart" aria-label="Learning curve"></canvas>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--s1)"></i>facing the smell (0 = at random, 1 = always)</span>
+        <span><i class="sw" style="background:var(--good)"></i>smell → turn toward</span>
+        <span><i class="sw" style="background:var(--danger)"></i>smell → turn away</span>
+      </div>
+      <p class="cap">Wiring is the total strength of paths from each smell cell to the muscle that turns toward it, or away from it. Reward moves them apart. In test runs with the helper on, taught creatures found the smell 3 to 6 times as often as untrained ones in 5 of 6 tries.</p>
+    </section>
+  </div>
+
+  <section class="panel" aria-labelledby="why-h">
+    <h2 id="why-h">What is going on</h2>
+    <ul class="story">
+      <li><b>No built-in "good".</b> Good means a treat arrives in the gut; Bad means damage. The brain only ever sees its senses and a dopamine signal.</li>
+      <li><b>Dopamine is surprise.</b> Dopamine cells compare what the gut got with what they expected from what was heard, like midbrain dopamine neurons (Schultz 1997). Better than expected: a burst. Worse: a dip.</li>
+      <li><b>Dopamine picks which synapses change.</b> A synapse whose input fired just before its cell did keeps a short trace. Dopamine turns that trace into a stronger or weaker synapse, so the actions just before a reward are the ones that stick.</li>
+      <li><b>The tissue stays alive.</b> Neurons are still born, compete and die, and glia still prune unused synapses. A smell connection that goes unused for long can be pruned and the skill fades: use it or lose it.</li>
+    </ul>
+  </section>
+</div>
+
+<script src="../../lib/brain.js"></script>
+<script src="engine.js"></script>
+<script src="../../environments/forager-worlds/tissue-brain.js"></script>
+<script src="draw.js"></script>
+<script src="trainer.js"></script>
+<script>
+(function () {
+  'use strict';
+  const { Trainee } = window.TrainerSim;
+  const { drawTissue, drawChart } = window.TissueDraw;
+  const TAU = Math.PI * 2;
+
+  let colours = {};
+  function readColours() {
+    const s = getComputedStyle(document.documentElement);
+    const v = (n) => s.getPropertyValue(n).trim();
+    colours = {
+      ink: v('--ink'), muted: v('--muted'), line: v('--line'), dish: v('--dish'), accent: v('--accent'),
+      good: v('--good'), danger: v('--danger'), smell: v('--smell'), dopa: v('--dopa'),
+      exc: v('--exc'), inh: v('--inh'), newborn: v('--newborn'), astro: v('--astro'), micro: v('--micro'),
+      vessel: v('--vessel'), tag: v('--tag'), debris: v('--debris'), syn: v('--syn'), focus: v('--focus'),
+      series: ['--s1', '--s2', '--s3', '--s4'].map(v),
+    };
+  }
+  readColours();
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { readColours(); drawAll(); });
+  new MutationObserver(() => { readColours(); drawAll(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  const monoFont = getComputedStyle(document.documentElement).getPropertyValue('--mono').trim();
+
+  const state = { running: true, speed: 2, teacher: 'off', seed: 1, trail: [] };
+  let sim = new Trainee({ seed: state.seed, teacher: state.teacher });
+  const $ = (id) => document.getElementById(id);
+
+  // ---------- drawing ----------
+
+  const arena = $('arena'), brainCv = $('brain');
+
+  function drawArena() {
+    const ctx = arena.getContext('2d'), W = arena.width;
+    ctx.fillStyle = colours.dish;
+    ctx.fillRect(0, 0, W, W);
+    // Smell: a soft glow, as wide as the creature can sense it.
+    const g = ctx.createRadialGradient(sim.cue.x * W, sim.cue.y * W, 0, sim.cue.x * W, sim.cue.y * W, sim.p.smellWidth * W * 1.6);
+    g.addColorStop(0, hexA(colours.smell, 0.55));
+    g.addColorStop(0.45, hexA(colours.smell, 0.18));
+    g.addColorStop(1, hexA(colours.smell, 0));
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, W);
+    ctx.fillStyle = colours.smell;
+    ctx.beginPath(); ctx.arc(sim.cue.x * W, sim.cue.y * W, sim.p.cueRadius * W * 0.5, 0, TAU); ctx.fill();
+    ctx.strokeStyle = colours.smell; ctx.globalAlpha = 0.6;
+    ctx.beginPath(); ctx.arc(sim.cue.x * W, sim.cue.y * W, sim.p.cueRadius * W, 0, TAU); ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // Trail.
+    ctx.strokeStyle = colours.exc; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    state.trail.forEach(([x, y], i) => {
+      ctx.globalAlpha = 0.04 + 0.4 * i / state.trail.length;
+      if (i) { ctx.lineTo(x * W, y * W); ctx.stroke(); ctx.beginPath(); }
+      ctx.moveTo(x * W, y * W);
+    });
+    ctx.globalAlpha = 1;
+
+    // Creature.
+    const x = sim.x * W, y = sim.y * W, h = sim.heading, b = sim.brain;
+    const recent = (kind, n) => sim.events.some((e) => e.kind === kind && sim.t - e.t < n);
+    ctx.save();
+    ctx.translate(x, y); ctx.rotate(h);
+    ctx.fillStyle = recent('sting', 25) ? colours.danger : colours.exc;
+    ctx.beginPath(); ctx.moveTo(16, 0); ctx.lineTo(-10, 10); ctx.lineTo(-5, 0); ctx.lineTo(-10, -10); ctx.closePath(); ctx.fill();
+    // Nostrils light up with their smell cell's spikes; muscles on the flanks.
+    const nose = (side, idx) => {
+      ctx.fillStyle = b.sensors[idx].spiked ? colours.smell : colours.muted;
+      ctx.beginPath(); ctx.arc(12, side * 5, b.sensors[idx].spiked ? 4 : 2.5, 0, TAU); ctx.fill();
+    };
+    nose(-1, 0); nose(1, 1);
+    const muscle = (side, idx) => {
+      if (!b.motors[idx].spiked) return;
+      ctx.strokeStyle = colours.dopa; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(-6, side * 8); ctx.lineTo(4, side * 4); ctx.stroke();
+    };
+    muscle(-1, 0); muscle(1, 1);
+    ctx.restore();
+    // Hearing the click: a note; a treat: a dot going in.
+    if (sim.sinceClick < 30) {
+      ctx.fillStyle = colours.good; ctx.font = `600 22px ${monoFont}`; ctx.textAlign = 'center';
+      ctx.globalAlpha = 1 - sim.sinceClick / 30;
+      ctx.fillText('♪', x, y - 22 - sim.sinceClick * 0.4);
+      ctx.globalAlpha = 1;
+    }
+    const treat = sim.events.slice().reverse().find((e) => e.kind === 'treat');
+    if (treat && sim.t - treat.t < 30) {
+      const k = (sim.t - treat.t) / 30;
+      ctx.fillStyle = colours.accent;
+      ctx.beginPath(); ctx.arc(x, y - 20 * (1 - k), 5 * (1 - k) + 2, 0, TAU); ctx.fill();
+    }
+  }
+
+  function drawBrain() {
+    const ctx = brainCv.getContext('2d'), W = brainCv.width;
+    const b = sim.brain, T = b.tissue;
+    drawTissue(ctx, T, W, W, colours, {});
+    // Synapses dopamine is changing right now.
+    if (Math.abs(sim.dopamine) > 0.05) {
+      ctx.strokeStyle = sim.dopamine > 0 ? colours.dopa : colours.danger;
+      ctx.lineWidth = 2;
+      for (const s of T.synapses) {
+        if (!s.elig) continue;
+        const e = s.elig * Math.exp(-(T.t - s.eligT) / T.p.tauEligibility);
+        if (e < 0.3) continue;
+        ctx.globalAlpha = Math.min(0.9, e * Math.abs(sim.dopamine));
+        ctx.beginPath(); ctx.moveTo(s.pre.x * W, s.pre.y * W); ctx.lineTo(s.post.x * W, s.post.y * W); ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+    // Body cells: larger, labelled.
+    const label = (c, text, colour, align) => {
+      ctx.fillStyle = colour;
+      ctx.beginPath(); ctx.arc(c.x * W, c.y * W, c.spiked ? 10 : 7, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#d7e2dc'; ctx.font = `12px ${monoFont}`; ctx.textBaseline = 'middle';
+      ctx.textAlign = align;
+      ctx.fillText(text, c.x * W + (align === 'left' ? 14 : -14), c.y * W - 14);
+    };
+    label(b.sensors[0], 'smell L', colours.smell, 'left');
+    label(b.sensors[1], 'smell R', colours.smell, 'left');
+    label(b.sensors[2], 'hears click', colours.good, 'left');
+    label(b.motors[0], 'turn L', colours.dopa, 'right');
+    label(b.motors[1], 'turn R', colours.dopa, 'right');
+  }
+
+  function drawDopamine() {
+    const pts = sim.daTrace;
+    const t0 = pts.length ? pts[0][0] : 0;
+    const marks = [];
+    for (const e of sim.events) {
+      if (e.t < t0) continue;
+      if (e.kind === 'good') marks.push({ t: e.t, colour: colours.good });
+      else if (e.kind === 'treat') marks.push({ t: e.t, colour: colours.accent });
+      else if (e.kind === 'sting') marks.push({ t: e.t, colour: colours.danger });
+    }
+    drawChart($('da'), [{ colour: colours.dopa, points: pts, width: 1.6, noDot: true }], { colours, font: monoFont, fmt: (v) => v.toFixed(1), marks, ticks: 3, padLeft: 36 });
+    const c = Math.max(0, sim.daAtClick), tr = Math.max(0, sim.daAtTreat);
+    $('bar-click').style.width = Math.min(100, c * 100) + '%';
+    $('bar-treat').style.width = Math.min(100, tr * 100) + '%';
+    $('v-click').textContent = sim.daAtClick.toFixed(2);
+    $('v-treat').textContent = sim.daAtTreat.toFixed(2);
+  }
+
+  function drawLearning() {
+    const H = sim.history;
+    // Smooth the facing score over the last ~10 samples.
+    const aim = H.map((h, i) => {
+      let s = 0, n = 0;
+      for (let k = Math.max(0, i - 9); k <= i; k++) { s += H[k].aim; n++; }
+      return [h.t, s / n];
+    });
+    drawChart($('learn'), [
+      { colour: colours.series[0], points: aim, width: 1.8 },
+      { colour: colours.good, points: H.map((h) => [h.t, h.right / 3]), width: 1.2, noDot: true },
+      { colour: colours.danger, points: H.map((h) => [h.t, h.wrong / 3]), width: 1.2, noDot: true },
+    ], { colours, font: monoFont, fmt: (v) => v.toFixed(1), ticks: 3, padLeft: 36 });
+  }
+
+  function drawStats() {
+    const h = sim.history[sim.history.length - 1];
+    $('st-good').textContent = sim.counts.good;
+    $('st-bad').textContent = sim.counts.bad;
+    $('st-reached').textContent = sim.counts.reached;
+    $('st-energy').textContent = sim.energy.toFixed(2);
+    $('st-neurons').textContent = sim.brain.hiddenCount();
+    $('st-syn').textContent = sim.brain.synapseCount();
+    const w = sim.smellWiring();
+    $('st-right').textContent = w.right.toFixed(2);
+    $('st-wrong').textContent = w.wrong.toFixed(2);
+    $('clock').textContent = `t = ${sim.t.toLocaleString('en-US')}`;
+    void h;
+  }
+
+  function hexA(hex, a) {
+    const h = hex.replace('#', '');
+    const n = parseInt(h.length === 3 ? h.split('').map((c) => c + c).join('') : h, 16);
+    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+  }
+
+  let frame = 0;
+  function drawAll() {
+    drawArena();
+    drawBrain();
+    drawDopamine();
+    if (frame % 10 === 0) { drawLearning(); drawStats(); }
+  }
+
+  function loop() {
+    if (state.running) {
+      for (let i = 0; i < state.speed; i++) {
+        sim.step();
+        if (sim.t % 4 === 0) { state.trail.push([sim.x, sim.y]); if (state.trail.length > 300) state.trail.shift(); }
+      }
+    }
+    frame++;
+    drawAll();
+    requestAnimationFrame(loop);
+  }
+
+  // ---------- controls ----------
+
+  function flash(id) {
+    const el = $(id);
+    el.classList.add('flash');
+    setTimeout(() => el.classList.remove('flash'), 150);
+  }
+  $('good').addEventListener('click', () => { sim.good('you'); flash('good'); });
+  $('bad').addEventListener('click', () => { sim.bad('you'); flash('bad'); });
+  document.addEventListener('keydown', (e) => {
+    if (e.target.closest && e.target.closest('select, input, textarea')) return;
+    const k = e.key.toLowerCase();
+    if (k === 'g') { sim.good('you'); flash('good'); }
+    else if (k === 'b') { sim.bad('you'); flash('bad'); }
+    else if (k === ' ') { e.preventDefault(); $('play').click(); }
+  });
+  $('play').addEventListener('click', () => {
+    state.running = !state.running;
+    $('play').textContent = state.running ? 'Pause' : 'Play';
+  });
+  $('speed').addEventListener('change', (e) => { state.speed = parseInt(e.target.value, 10); });
+  $('teacher').addEventListener('change', (e) => { state.teacher = e.target.value; sim.p.teacher = state.teacher; });
+  $('reset').addEventListener('click', () => {
+    state.seed++;
+    sim = new Trainee({ seed: state.seed, teacher: state.teacher });
+    state.trail = [];
+    drawLearning(); drawStats();
+  });
+  arena.addEventListener('click', (e) => {
+    const r = arena.getBoundingClientRect();
+    sim.placeCue((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
+  });
+  window.addEventListener('resize', () => { drawLearning(); drawDopamine(); });
+
+  drawLearning(); drawStats();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
