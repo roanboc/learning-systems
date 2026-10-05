@@ -353,6 +353,28 @@
   };
   if (reduce) { running = false; $('#play').textContent = 'Play'; }
 
+  // ---------- For guided labs (lib/learn.js) ----------
+  window.EarlyEarthPage = {
+    get worlds() { return worlds; },
+    replaceWorlds(list) {         // [[preset, seed], ...]
+      for (const W of worlds) W.el.remove();
+      worlds.length = 0;
+      for (const [p, s] of list) addWorld(p, s);
+    },
+    setLayer(W, key) { W.layer = key; $('.layer', W.el).value = key; },
+    look(W, x, y, zoom) {
+      W.follow = false; W.selected = null;
+      W.cam.cx = x; W.cam.cy = y; W.cam.zoom = clampZoom(zoom);
+      clampCam(W);
+      W.mark = { x, y };
+    },
+    scale(W) { return scale(W, $('canvas.map', W.el)); },
+    setSpeed(v) { $('#speed').value = v; },
+    play() { if (!running) $('#play').click(); },
+    setMetric(k) { metric = k; renderMetrics(); drawChart(); },
+    reveal() { $('#worlds').scrollIntoView({ block: 'start', behavior: reduce ? 'auto' : 'smooth' }); },
+  };
+
   renderMetrics();
   addWorld('full', 3);
   requestAnimationFrame(loop);

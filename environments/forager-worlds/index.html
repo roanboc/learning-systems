@@ -889,6 +889,32 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
   });
   window.addEventListener('resize', drawChart);
 
+  // ---------- For guided labs (lib/learn.js) ----------
+  window.ForagerPage = {
+    get slots() { return state.slots; },
+    replaceWorlds(presets) {
+      if (explorer.active) explorer.close();
+      for (const s of state.slots) s.el.root.remove();
+      state.slots = [];
+      presets.forEach(addWorld);
+      drawAll();
+    },
+    setMetric(k) { state.metric = k; buildMetricChips(); drawChart(); },
+    setSpeed(v) { state.speed = v; document.getElementById('speed').value = String(v); },
+    play() { if (!state.running) playBtn.click(); },
+    explore(entry, id, level, cell) {
+      if (!entry.world.creatures.some((c) => c.id === id)) return false;
+      entry.picked = id;
+      explorer.open(entry, id);
+      if (level) explorer.go(level, cell);
+      return true;
+    },
+    closeExplorer() { if (explorer.active) explorer.close(); },
+    reveal() { worldsEl.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); },
+    biteWeights,
+    DEFAULTS,
+  };
+
   buildMetricChips();
   addWorld(PRESETS[0]);
   addWorld(PRESETS[1]);
@@ -898,5 +924,7 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
   requestAnimationFrame(loop);
 })();
 </script>
+<script src="../../lib/learn.js"></script>
+<script src="labs.js"></script>
 </body>
 </html>

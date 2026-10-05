@@ -27,6 +27,7 @@ The **field journal** notes firsts and turning points (first chains and where, c
 - **Show:** nature, all chemicals, one chemical, sunlight or heat.
 - **Click to:** look (a spot or a bubble; bubbles can be followed), pour building blocks or oils, seed copiers, open a vent.
 - **Add a world** to compare presets side by side with the same seed: no sunlight, no tides, no vents, cooler vents.
+- **Guided labs** (or `#lab=tide-pools` in the URL): *Why tide pools?* builds a twin coast with the tides off and walks from the coast to a pool, down to molecules and back up to copiers. Each step says what to look at, waits until the world shows it, and says in numbers what happened. Lab data in `labs.js`, engine in `lib/learn.js`.
 
 ## Known limits
 - Bubble numbers are capped (`maxBubbles`) to keep the page fast.
