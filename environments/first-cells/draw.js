@@ -6,6 +6,7 @@
 
   const ROLE_RGB = ['#8fe3a8', '#6cc4ee', '#f2c14e', '#ee6fb0', '#b59cff'];
   const PREDATOR_RGB = '#e8553f';
+  const CONTRACT_RGB = '#ff8a2a';
 
   // cam: { cx, cy, zoom }; w, h: canvas size in CSS pixels.
   function drawCells(ctx, L, w, h, cam, opts) {
@@ -46,13 +47,18 @@
       }
       ctx.stroke();
     }
-    // Cells, one colour per role (batched).
+    // Cells, one colour per role (batched). Contracting cells flash orange
+    // and shrink a little while they squeeze.
     for (let role = 0; role < ROLE_RGB.length; role++) {
       ctx.fillStyle = ROLE_RGB[role];
       ctx.beginPath();
-      for (const c of vis) if (c.role === role) { ctx.moveTo(c.x + r, c.y); ctx.arc(c.x, c.y, r, 0, Math.PI * 2); }
+      for (const c of vis) if (c.role === role && !c.contracting) { ctx.moveTo(c.x + r, c.y); ctx.arc(c.x, c.y, r, 0, Math.PI * 2); }
       ctx.fill();
     }
+    ctx.fillStyle = CONTRACT_RGB;
+    ctx.beginPath();
+    for (const c of vis) if (c.contracting) { const rc = r * 0.82; ctx.moveTo(c.x + rc, c.y); ctx.arc(c.x, c.y, rc, 0, Math.PI * 2); }
+    ctx.fill();
     if (close) {
       ctx.fillStyle = '#d0302a';
       ctx.beginPath();
@@ -95,5 +101,5 @@
     ctx.restore();
   }
 
-  root.LifeDraw = { drawCells, ROLE_RGB, PREDATOR_RGB };
+  root.LifeDraw = { drawCells, ROLE_RGB, PREDATOR_RGB, CONTRACT_RGB };
 })(typeof self !== 'undefined' ? self : this);

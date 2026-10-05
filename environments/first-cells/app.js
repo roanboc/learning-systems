@@ -1,4 +1,4 @@
-// First cells page: Early Earth coasts with cells (lib/life.js), side by side.
+// Life pages (First cells, Bodies): Early Earth coasts with cells (lib/life.js), side by side.
 (function () {
   'use strict';
 
@@ -10,25 +10,64 @@
   const WORLD_COLOURS = ['--s1', '--s2', '--s3'];
   const MAX_WORLDS = 3;
 
-  // Each world is the same coast with one ability switched off (or none).
-  const PRESETS = {
-    evolve: { label: 'Free to evolve', params: {} },
-    fast: { label: 'Start with strong motors', params: { geneStart: { speed: [0.2, 0.3] } } },
-    nomotor: { label: 'No motors', params: { geneStart: { speed: [0, 0] }, fixed: ['speed'] } },
-    noeyes: { label: 'No eyespots', params: { geneStart: { eyespot: [0, 0] }, fixed: ['eyespot'] } },
-    nolight: { label: 'No food from light', params: { lightGain: 0 } },
-  };
-
   // Light at cells compared with light in the water, by day only.
   const lightRel = (s) => (s.lightInWater > 0.15 ? s.lightAtCells / s.lightInWater : null);
-  const METRICS = [
-    { key: 'speed', label: 'Motor', get: (s) => s.speed },
-    { key: 'tumble', label: 'Follows food', get: (s) => s.tumble },
-    { key: 'eyespot', label: 'Eyespot', get: (s) => s.eyespot },
-    { key: 'light', label: 'Light found (by day)', get: lightRel },
-    { key: 'cells', label: 'Cells', get: (s) => s.cells },
-  ];
-  let metric = 'speed';
+  const bodyOf = (L, c) => (L._beatOrder && L._beatOrder.get(c.clump)) || null;
+
+  // One page per chapter: the page says which (<body data-stage="...">).
+  // Each world is the same coast with one ability switched off (or none).
+  const CONFIGS = {
+    cells: {
+      start: 'evolve',
+      presets: {
+        evolve: { label: 'Free to evolve', params: {} },
+        fast: { label: 'Start with strong motors', params: { geneStart: { speed: [0.2, 0.3] } } },
+        nomotor: { label: 'No motors', params: { geneStart: { speed: [0, 0] }, fixed: ['speed'] } },
+        noeyes: { label: 'No eyespots', params: { geneStart: { eyespot: [0, 0] }, fixed: ['eyespot'] } },
+        nolight: { label: 'No food from light', params: { lightGain: 0 } },
+      },
+      metrics: [
+        { key: 'speed', label: 'Motor', get: (s) => s.speed, note: 'Average motor strength. Everyone starts near zero.' },
+        { key: 'tumble', label: 'Follows food', get: (s) => s.tumble, note: 'How much cells hold course while food improves. It only matters for cells that can swim.' },
+        { key: 'eyespot', label: 'Eyespot', get: (s) => s.eyespot, note: 'Average eyespot gene. Genes that do nothing still wander, so compare with a world where they matter.' },
+        { key: 'light', label: 'Light found (by day)', get: lightRel, min: 1.5, note: 'Light where the cells are, compared with light in the water on average (1 = no better than drifting). Daytime only.' },
+        { key: 'cells', label: 'Cells', get: (s) => s.cells, min: 10, note: 'Number of cells. The coast holds at most 900.' },
+      ],
+      stats: (W, st) => [['Cells', st.cells], ['Generations', st.maxGen], ['Motor', fmt(st.speed)], ['Follows food', fmt(st.tumble)],
+        ['Eyespot', fmt(st.eyespot)], ['Starved', W.sim.deathsBy.starved], ['Stranded', W.sim.deathsBy.stranded], ['Cooked', W.sim.deathsBy.cooked]],
+      genes: (c) => `motor <b>${fmt(c.g.speed)}</b> · follows food <b>${fmt(c.g.tumble)}</b> · eyespot <b>${fmt(c.g.eyespot)}</b> · divides at ${fmt(c.g.divideAt)} · light here ${fmt(c.light)}`,
+    },
+    bodies: {
+      start: 'free',
+      presets: {
+        free: { label: 'Free to evolve', params: {} },
+        coupled: { label: 'Linked rhythm', params: { geneStart: { sync: [1, 1] }, fixed: ['sync'] } },
+        uncoupled: { label: 'Each cell on its own rhythm', params: { geneStart: { sync: [0, 0] }, fixed: ['sync'] } },
+        noroles: { label: 'No roles', params: { geneStart: { specialise: [0, 0] }, fixed: ['specialise'] } },
+      },
+      metrics: [
+        { key: 'inStep', label: 'In step', get: (s) => s.inStep, min: 1, note: 'How together the contracting cells of each body squeeze, on average (1 = all at once). A few cells on random rhythms still score about 0.5.' },
+        { key: 'bodySpeed', label: 'Body speed', get: (s) => s.bodySpeed, min: 0.05, note: 'How fast bodies push themselves along, on average, not counting the current.' },
+        { key: 'sync', label: 'Linking gene', get: (s) => s.sync, note: 'Average "sync" gene: how strongly a contracting cell falls into step with the rest of its body.' },
+        { key: 'specialise', label: 'Takes a role', get: (s) => s.specialise, min: 1, note: 'Average "specialise" gene: the chance that a cell in a body takes a role.' },
+        { key: 'cells', label: 'Cells', get: (s) => s.cells, min: 10, note: 'Number of cells. The coast holds at most 900.' },
+      ],
+      stats: (W, st) => [['Cells', st.cells], ['Bodies with roles', st.bodies], ['Contracting cells', st.movers], ['Germ cells', st.germs],
+        ['In step', fmt(st.inStep)], ['Body speed', fmt(st.bodySpeed, 3)], ['Linking gene', fmt(st.sync)], ['Predators', st.predators]],
+      genes: (c, L) => {
+        const b = c.clumpSize > 1 ? bodyOf(L, c) : null;
+        const roles = [0, 0, 0, 0, 0];
+        if (c.clumpSize > 1) for (const m of L.clumpOf(c)) roles[m.role]++;
+        return (c.clumpSize > 1 ? `body of <b>${c.clumpSize}</b>: ${roles[2]} contracting, ${roles[3]} germ, ${roles[1]} without a role` +
+          (b && b.n > 1 ? ` · in step <b>${fmt(Math.hypot(b.x, b.y) / b.n)}</b>` : '') + '<br>' : '') +
+          (c.role === window.LifeSim.MOVER ? (c.contracting ? '<b>contracting now</b> · ' : 'resting · ') : '') +
+          `linking gene <b>${fmt(c.g.sync)}</b> · takes a role ${fmt(c.g.specialise)} · sticks ${fmt(c.g.stick)}`;
+      },
+    },
+  };
+  const STAGE = document.body.dataset.stage || 'cells';
+  const CFG = CONFIGS[STAGE], PRESETS = CFG.presets, METRICS = CFG.metrics;
+  let metric = METRICS[0].key;
 
   const worlds = [];
   let running = true;
@@ -55,7 +94,7 @@
   }
 
   function build(W) {
-    W.sim = makeLife('cells', W.seed, PRESETS[W.preset].params);
+    W.sim = makeLife(STAGE, W.seed, PRESETS[W.preset].params);
     W.painter = new MapPainter(W.sim.chem);
     W.cam = { cx: W.sim.earth.cols / 2, cy: W.sim.earth.rows / 2, zoom: 1 };
     W.selected = null; W.follow = false; W.journalShown = 0;
@@ -164,10 +203,9 @@
     const box = $('.inspect', W.el), c = W.selected;
     if (!c) { box.textContent = 'Click a cell to follow it.'; return; }
     if (c.dead) { box.innerHTML = `<b>Cell #${c.id}</b> died. Click another cell.`; W.follow = false; return; }
-    const g = c.g;
     box.innerHTML =
       `<b>Cell #${c.id}</b> · ${ROLE_NAMES[c.role]} · generation <b>${c.gen}</b> · age ${c.age} · energy ${fmt(c.energy)} · ${c.kids} daughters<br>` +
-      `motor <b>${fmt(g.speed)}</b> · follows food <b>${fmt(g.tumble)}</b> · eyespot <b>${fmt(g.eyespot)}</b> · divides at ${fmt(g.divideAt)} · light here ${fmt(c.light)}` +
+      CFG.genes(c, W.sim) +
       `<button class="follow">${W.follow ? 'Stop following' : 'Follow'}</button>`;
     $('.follow', box).onclick = () => { W.follow = !W.follow; if (W.follow && W.cam.zoom < 8) W.cam.zoom = 8; showInspect(W); };
   }
@@ -195,8 +233,7 @@
   function showStats(W) {
     const st = W.sim.stats, e = W.sim.earth;
     if (st.cells == null) return;
-    const items = [['Cells', st.cells], ['Generations', st.maxGen], ['Motor', fmt(st.speed)], ['Follows food', fmt(st.tumble)],
-      ['Eyespot', fmt(st.eyespot)], ['Starved', W.sim.deathsBy.starved], ['Stranded', W.sim.deathsBy.stranded], ['Cooked', W.sim.deathsBy.cooked]];
+    const items = CFG.stats(W, st);
     $('.stats', W.el).innerHTML = items.map(([k, v]) => `<div class="stat"><b>${v}</b><small>${k}</small></div>`).join('');
     $('.hud', W.el).textContent = `Day ${e.day} · ${timeOfDay(e)}` + (W.follow && W.selected ? ` · following cell #${W.selected.id}` : '');
   }
@@ -212,13 +249,7 @@
       b.onclick = () => { metric = m.key; renderMetrics(); drawChart(); };
       box.appendChild(b);
     }
-    $('#chart-note').textContent = {
-      speed: 'Average motor strength. Everyone starts near zero.',
-      tumble: 'How much cells hold course while food improves. It only matters for cells that can swim.',
-      eyespot: 'Average eyespot gene. Genes that do nothing still wander, so compare with a world where they matter.',
-      light: 'Light where the cells are, compared with light in the water on average (1 = no better than drifting). Daytime only.',
-      cells: 'Number of cells. The coast holds at most 900.',
-    }[metric];
+    $('#chart-note').textContent = METRICS.find((m) => m.key === metric).note;
   }
   function renderLegend() {
     $('#legend').innerHTML = worlds.map((W, k) =>
@@ -231,8 +262,8 @@
     const ctx = cv.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
-    const get = METRICS.find((m) => m.key === metric).get;
-    let tMax = 1, vMax = metric === 'cells' ? 10 : metric === 'light' ? 1.5 : 0.2;
+    const m = METRICS.find((x) => x.key === metric), get = m.get;
+    let tMax = 1, vMax = m.min || 0.2;
     for (const W of worlds) for (const s of W.sim.history) { tMax = Math.max(tMax, s.t); const v = get(s); if (v != null) vMax = Math.max(vMax, v); }
     const padL = 40, padB = 18, pw = w - padL - 6, ph = h - padB - 6;
     ctx.strokeStyle = token('--line'); ctx.lineWidth = 1;
@@ -266,6 +297,8 @@
     const pw = Math.round(r.width * dpr), ph = Math.round(r.height * dpr);
     if (cv.width !== pw || cv.height !== ph) { cv.width = pw; cv.height = ph; }
     if (W.follow && W.selected) {
+      // If the followed cell dies, keep following its body if any of it is left.
+      if (W.selected.dead) { const n = W.selected.bonds.map((id) => W.sim.byId.get(id)).find(Boolean); if (n) W.selected = n; }
       if (W.selected.dead) W.follow = false;
       else { W.cam.cx = W.selected.x; W.cam.cy = W.selected.y; clampCam(W); }
     }
@@ -310,7 +343,8 @@
   if (reduce) { running = false; $('#play').textContent = 'Play'; }
 
   // ---------- For guided labs (lib/learn.js) ----------
-  window.FirstCellsPage = {
+  window.FirstCellsPage = window.LifePage = {
+    addWorld(preset, seed) { return addWorld(preset, seed); },
     get worlds() { return worlds; },
     replaceWorlds(list) { // [[preset, seed], ...]
       for (const W of worlds) W.el.remove();
@@ -332,6 +366,6 @@
   };
 
   renderMetrics();
-  addWorld('evolve', 3);
+  addWorld(CFG.start, 3);
   requestAnimationFrame(loop);
 })();
