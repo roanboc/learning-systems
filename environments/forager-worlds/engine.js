@@ -16,6 +16,10 @@
   const TissueBrainSim = () => (typeof module !== 'undefined' && module.exports
     ? require('./tissue-brain.js')
     : root.TissueBrainSim);
+  // Optional: bodies made of cells (lib/body.js), loaded on demand.
+  const BodySim = () => (typeof module !== 'undefined' && module.exports
+    ? require('../../lib/body.js')
+    : root.BodySim);
 
   function mulberry32(a) {
     return function () {
@@ -107,6 +111,11 @@
     brain: null,            // brain mode: overrides for lib/brain.js defaults
     tissue: null,           // tissue mode: overrides for the Tissue Lab slice (tissue-brain.js)
     rewardScale: 5,         // tissue mode: reward learning rate per unit of the learnRate gene
+    // Bodies of cells (nested worlds N1): 'cells' gives every creature organs made
+    // of cells living in a body fluid (lib/body.js). Living, moving and seeing are
+    // then paid by those cells instead of basalCost, moveCost and senseCost.
+    body: null,
+    bodyParams: null,       // overrides for lib/body.js defaults
   };
 
   // Heritable genes. Ranges keep evolution inside a plausible body plan.
@@ -331,13 +340,15 @@
     }
 
     geneSpec(k) {
-      return GENES[k] || BRAIN_GENES[k] || TISSUE_GENES[k] || REFLEX_ANIMAL_GENES[k] || BRAIN_ANIMAL_GENES[k];
+      return GENES[k] || BRAIN_GENES[k] || TISSUE_GENES[k] || REFLEX_ANIMAL_GENES[k] || BRAIN_ANIMAL_GENES[k]
+        || (this.p.body ? BodySim().BODY_GENES[k] : undefined);
     }
 
     geneNames(mind) {
       const brainy = mind === 'brain' || mind === 'tissue' || mind === 'any';
       let names = brainy ? GENE_NAMES.concat(BRAIN_GENE_NAMES) : GENE_NAMES;
       if (mind === 'tissue' || mind === 'any') names = names.concat(TISSUE_GENE_NAMES);
+      if (this.p.body) names = names.concat(Object.keys(BodySim().BODY_GENES));
       if (!this.animalSight) return names;
       return names.concat(Object.keys(brainy ? BRAIN_ANIMAL_GENES : REFLEX_ANIMAL_GENES));
     }
@@ -357,7 +368,7 @@
       const g = {}, fixed = Object.assign({}, this.p.fixed, sp.fixed);
       for (const k of this.geneNames(sp.mind)) {
         const spec = this.geneSpec(k);
-        const size = GENES[k] || REFLEX_ANIMAL_GENES[k] ? this.p.mutation : this.p.brainMutation;
+        const size = GENES[k] || REFLEX_ANIMAL_GENES[k] || (this.p.body && BodySim().BODY_GENES[k]) ? this.p.mutation : this.p.brainMutation;
         g[k] = k in fixed ? fixed[k]
           : clamp(parent[k] + gauss(this.rng) * size * (spec.max - spec.min), spec.min, spec.max);
       }
@@ -387,7 +398,13 @@
         gut: 0,
         bitten: 0,
         killedBy: null,
+        body: null,
       };
+      if (this.p.body === 'cells') {
+        // The first creatures of a world arrive grown; children build their bodies.
+        c.body = new (BodySim().Body)(c.g, c.energy, this.p.bodyParams, !gen);
+        c.energy = c.body.total();
+      }
       if (sp.mind === 'brain' || sp.mind === 'tissue') {
         // On screen (y points down) a positive angle is clockwise, i.e. the
         // creature's right. Sensors: one per ray and colour, right rays at the top,
@@ -439,6 +456,8 @@
             rewardRate: this.p.rewardScale * g.learnRate,
           }), innate, motorNoise);
           c.brain.layout = { R, animal: this.animalSight, animalBase: R * 2 + 4 };
+          // With a body, the brain's blood vessels carry what the body fluid holds.
+          c.baseSupply = c.brain.tissue.p.vesselSupply;
           c.learnCost = this.p.learnCost * g.learnRate;
           c.brainCost = this.p.neuronCost * c.brain.hiddenCount() + c.learnCost;
           c.drive = new Float32Array(rows.length);
@@ -523,6 +542,16 @@
       }
     }
 
+    // How far a creature sees: its gene, or with a body, what its working eye cells allow.
+    sight(c) {
+      return c.body ? c.g.senseRange * c.body.sightFactor() : c.g.senseRange;
+    }
+
+    // Energy as the rest of the world sees it. A body that has lost too many cells dies.
+    bodyEnergy(c) {
+      c.energy = c.body.failed() ? 0 : c.body.total();
+    }
+
     dungAt(x, y) {
       const n = this.dungN, k = this.p.dungCell;
       return this.dungGrid[(Math.floor(y / k) % n) * n + (Math.floor(x / k) % n)];
@@ -572,7 +601,8 @@
         let lG = 0, rG = 0, lV = 0, rV = 0;
         const cosH = Math.cos(c.heading), sinH = Math.sin(c.heading);
         const half = g.fov / 2;
-        this.forPlantsNear(c.x, c.y, g.senseRange, (plant, dx, dy, d2) => {
+        const range = this.sight(c);
+        this.forPlantsNear(c.x, c.y, range, (plant, dx, dy, d2) => {
           const fwd = dx * cosH + dy * sinH;
           const side = -dx * sinH + dy * cosH;   // positive = clockwise, the creature's right on screen
           const ang = Math.atan2(side, fwd);
@@ -586,7 +616,7 @@
         let drive = c.meat ? 0 : g.wGreen * (lG - rG) + g.wViolet * (lV - rV);
         if (this.animalSight) {
           let lA = 0, rA = 0;
-          this.forPreyOrPredatorsNear(c, g.senseRange, (o, dx, dy, d2) => {
+          this.forPreyOrPredatorsNear(c, range, (o, dx, dy, d2) => {
             const ang = Math.atan2(-dx * sinH + dy * cosH, dx * cosH + dy * sinH);
             if (Math.abs(ang) > half) return;
             const w = 1 / (1 + Math.sqrt(d2) / 20);
@@ -596,8 +626,10 @@
         }
         c.heading += g.turnGain * Math.tanh(drive) + g.wander * gauss(this.rng);
         }
-        c.x = this.wrap(c.x + Math.cos(c.heading) * g.speed);
-        c.y = this.wrap(c.y + Math.sin(c.heading) * g.speed);
+        // With a body, speed comes from the muscle cells that are alive and fed.
+        const speed = c.body ? g.speed * c.body.speedFactor() : g.speed;
+        c.x = this.wrap(c.x + Math.cos(c.heading) * speed);
+        c.y = this.wrap(c.y + Math.sin(c.heading) * speed);
 
         // Eating is a choice. Reflex creatures bite a touched plant if their
         // instinct likes its colour; brains bite when the eat neuron fires.
@@ -627,15 +659,24 @@
           const amount = meal.size === undefined ? 1 : meal.size;
           c.gut += amount;
           if (meal.poison) {
-            c.energy -= p.poisonDamage * amount; c.poisoned++; this.intervalPoisonMeals++;
+            if (c.body) c.body.poison(p.poisonDamage * amount);
+            else c.energy -= p.poisonDamage * amount;
+            c.poisoned++; this.intervalPoisonMeals++;
             if (c.brain) { c.brain.reward(-p.poisonPunish * amount); c.pain = 15; }
           } else {
-            c.energy += p.foodEnergy * amount; c.eaten++; this.intervalFoodMeals++;
+            if (c.body) c.body.eat(p.foodEnergy * amount);
+            else c.energy += p.foodEnergy * amount;
+            c.eaten++; this.intervalFoodMeals++;
             if (c.brain) c.brain.reward(p.foodReward * amount);
           }
         }
 
-        c.energy -= p.basalCost + p.moveCost * g.speed * g.speed + p.senseCost * g.senseRange + c.brainCost;
+        if (c.body) {
+          // Muscles pay for moving; every cell pays to live; the brain drinks from the fluid.
+          c.body.move(p.moveCost * speed * speed);
+          c.body.step(c.brainCost);
+          this.bodyEnergy(c);
+        } else c.energy -= p.basalCost + p.moveCost * g.speed * g.speed + p.senseCost * g.senseRange + c.brainCost;
         if (this.dungGrid && c.gut > 0) {
           // Droppings: digested plants return to the soil where the creature walks.
           const d = c.gut * p.dungRate;
@@ -645,7 +686,14 @@
         }
         c.age++;
 
-        if (c.energy > g.reproEnergy && this.creatures.length + newborns.length < p.maxCreatures) {
+        if (c.body) {
+          // A child gets half the energy, from the fluid, and one germ cell.
+          if (c.energy > g.reproEnergy && c.body.canReproduce(c.energy / 2) && this.creatures.length + newborns.length < p.maxCreatures) {
+            const share = c.body.give(c.energy / 2);
+            this.bodyEnergy(c);
+            newborns.push([this.mutate(g, this.speciesList[c.sp]), c.x, c.y, share, c.gen + 1, c.sp]);
+          }
+        } else if (c.energy > g.reproEnergy && this.creatures.length + newborns.length < p.maxCreatures) {
           const share = c.energy / 2;
           c.energy -= share;
           newborns.push([this.mutate(g, this.speciesList[c.sp]), c.x, c.y, share - 5, c.gen + 1, c.sp]);
@@ -685,13 +733,15 @@
       this.forPreyOrPredatorsNear(c, p.attackReach, (o, dx, dy, d2) => { if (d2 < best) { best = d2; prey = o; } });
       if (!prey) return;
       if (c.brain ? !c.brain.motorSpiked(2) : c.g.wAnimal <= 0) return;
-      const taken = Math.min(p.attackDamage, Math.max(0, prey.energy));
-      prey.energy -= p.attackDamage;
+      let taken;
+      if (prey.body) { taken = prey.body.bite(p.attackDamage); this.bodyEnergy(prey); }
+      else { taken = Math.min(p.attackDamage, Math.max(0, prey.energy)); prey.energy -= p.attackDamage; }
       prey.bitten++;
       prey.pain = 15;
       if (prey.brain) prey.brain.reward(-p.poisonPunish);
       if (prey.energy <= 0) prey.killedBy = c.id;
-      c.energy += taken * p.meatEfficiency;
+      if (c.body) c.body.eat(taken * p.meatEfficiency);
+      else c.energy += taken * p.meatEfficiency;
       c.eaten++;
       this.intervalFoodMeals++;
       if (c.brain) c.brain.reward(p.foodReward);
@@ -703,7 +753,7 @@
       const g = c.g, p = this.p, R = p.rays, drive = c.drive;
       drive.fill(0);
       const cosH = Math.cos(c.heading), sinH = Math.sin(c.heading);
-      const half = g.fov / 2, range = g.senseRange;
+      const half = g.fov / 2, range = this.sight(c);
       this.forPlantsNear(c.x, c.y, range, (plant, dx, dy, d2) => {
         const fwd = dx * cosH + dy * sinH;
         const side = -dx * sinH + dy * cosH;   // positive = clockwise, the creature's right on screen
@@ -740,6 +790,7 @@
       if (c.pain > 0) c.pain--;
 
       const b = c.brain;
+      if (c.body && b.kind === 'tissue') b.tissue.p.vesselSupply = c.baseSupply * c.body.bloodLevel();
       b.step(drive);
       if (b.kind === 'tissue') c.brainCost = p.neuronCost * b.hiddenCount() + c.learnCost;
       c.motorL = c.motorL * 0.85 + b.motorSpiked(0);
@@ -762,8 +813,9 @@
       for (const k of names) { mean[k] = 0; count[k] = 0; }
       const perSpecies = this.speciesList.map(() => 0);
       let energy = 0, maxGen = 0, synapses = 0, brains = 0, reflexes = 0, predators = 0;
-      let tissues = 0, liveNeurons = 0, newborn = 0;
+      let tissues = 0, liveNeurons = 0, newborn = 0, bodies = 0, cells = 0, muscle = 0, sight = 0;
       for (const c of this.creatures) {
+        if (c.body) { bodies++; cells += c.body.cells(); muscle += c.body.speedFactor(); sight += c.body.sightFactor(); }
         if (c.brain) { synapses += c.brain.synapseCount(); brains++; } else reflexes++;
         if (c.brain && c.brain.kind === 'tissue') {
           tissues++;
@@ -822,6 +874,12 @@
         dung: this.dungGrid ? this.dungGrid.reduce((a, v) => a + v, 0) : null,
         toxicShare: this.plants.length ? toxic / this.plants.length : null,
         biomass: this.p.plantMode === 'living' ? sized : null,
+        cells: bodies ? cells / bodies : null,          // live cells per body
+        muscle: bodies ? muscle / bodies : null,        // share of planned muscle working
+        sight: bodies ? sight / bodies : null,          // share of planned eye working
+        gut: bodies ? mean.gut : null,
+        skin: bodies ? mean.skin : null,
+        renew: bodies ? mean.renew : null,
       });
       this.intervalBirths = 0;
       this.intervalDeaths = 0;
