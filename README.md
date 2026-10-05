@@ -19,6 +19,6 @@ Open `index.html` for the catalogue.
 - `world/`: the World Viewer, one stage for the timeline of life. Each chapter reuses a product's engine.
 - `environments/`: worlds that pose the problem (resources, hazards, change).
 - `nervous-systems/`: brains as living tissue.
-- `lib/`: code shared across products: `lib/brain.js`, the self-wiring spiking brain; `lib/earth.js`, the shared Earth (land, sea, tides, sun, heat, currents) that every chapter of the timeline of life is meant to live in; `lib/chemistry.js`, the early Earth chemistry; `lib/life.js`, cells, colonies, bodies and nerve nets living in that same Earth.
+- `lib/`: code shared across products: `lib/brain.js`, the self-wiring spiking brain; `lib/earth.js`, the shared Earth (land, sea, tides, sun, heat, currents) that every chapter of the timeline of life is meant to live in; `lib/chemistry.js`, the early Earth chemistry; `lib/life.js`, cells, colonies, bodies and nerve nets living in that same Earth; `lib/learn.js`, the guided labs panel (each product keeps its own labs in `labs.js`).
 
 Each product folder is self-contained except for `lib/`, and its engine has no DOM code, so it also runs headless in Node.

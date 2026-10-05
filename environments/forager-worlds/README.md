@@ -4,6 +4,10 @@ Several independent worlds run side by side. Each world has its own random seed,
 
 Open `index.html` in a browser. No build step. `engine.js` has no DOM code and also runs in Node.
 
+## Guided lab
+
+**Guided labs** in the toolbar (or `#lab=learning-colour` in the URL) opens *Learning a colour*: two worlds with instincts held equal for both colours, one with dopamine blocked. It goes from one synapse (the mouth cell → bite neuron, in the zoomed cell view) to what a creature bites, to picky eating across the population. In headless runs (seeds 1 to 3, 6,000 steps) picky eating reached about 0.65 to 0.85 with dopamine and stayed about 0.45 to 0.55 without (0.5 means no preference). Lab data in `labs.js`, engine in `lib/learn.js`.
+
 ## The world
 - Plants grow in patches (logistic regrowth, random withering). Each plant is green or violet. One colour is food, the other poison.
 - In seasonal worlds the meaning of the colours swaps every `seasonLength` steps.
