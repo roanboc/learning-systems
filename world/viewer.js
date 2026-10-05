@@ -22,7 +22,8 @@
     },
     {
       key: 'cells', title: 'First cells', era: 'about 3.8 billion years ago', live: true, stage: 'cells',
-      text: 'The same coast, now with cells. They eat building blocks and energy from the water, swim, divide when full and die when they run out. Daughters copy their genes with small mistakes. Watch evolution teach them to follow food.',
+      text: 'The same coast, now with cells. They eat building blocks and energy from the water, divide when full and die when they run out. At first they have no working motor and drift with the currents. Daughters copy their genes with small mistakes: watch motors, steering toward food and an eyespot for light evolve. Zoom right into a cell to see its flagellum and eyespot.',
+      lab: '../environments/first-cells/index.html',
       lenses: ['Coast', 'Cells up close', 'One cell'],
     },
     {
@@ -32,12 +33,12 @@
     },
     {
       key: 'bodies', title: 'Bodies', era: 'about 1.5 billion to 600 million years ago', live: true, stage: 'bodies',
-      text: 'Cells in a clump take on roles: outer cells become movers that swim but never divide, inner cells become germ cells that divide but never swim. Movers grow old and die; germ cells release seed cells that start new bodies.',
+      text: 'Cells in a clump take on roles: outer cells become movers that swim but never divide, inner cells become germ cells that divide but never swim. Movers grow old and die; germ cells release seed cells that start new bodies. Cells whose only job is to move the body are the road to muscle.',
       lenses: ['Coast', 'Bodies up close', 'One body'],
     },
     {
       key: 'nerves', title: 'Nerve nets', era: 'about 600 million years ago', live: true, stage: 'nerves',
-      text: 'Some outer cells become nerve cells. A cell that tastes richer food fires, nerve cells pass the signal across the body, and movers on every side push the same way. A net with no centre, like Hydra.',
+      text: 'Some outer cells become nerve cells. A cell that tastes richer food fires, nerve cells pass the signal across the body, and movers on every side push the same way. A net with no centre, like Hydra, whose first muscle-like cells pull when nerves tell them to.',
       lenses: ['Coast', 'Bodies up close', 'One body and its nerves'],
     },
     {
@@ -501,66 +502,10 @@
   }
 
   // ---------- Cells (chapters 1 to 4) ----------
-  const ROLE_RGB = ['#8fe3a8', '#6cc4ee', '#f2c14e', '#ee6fb0', '#b59cff'];
-  const PREDATOR_RGB = '#e8553f';
+  const { ROLE_RGB, PREDATOR_RGB } = window.LifeDraw;
 
   function drawLife(ctx, s, w, h) {
-    const L = s.w, k = baseScale(s) * s.cam.zoom, R = L.p.radius;
-    ctx.save();
-    ctx.translate(w / 2 - s.cam.cx * k, h / 2 - s.cam.cy * k);
-    ctx.scale(k, k);
-    // Only draw what is on screen.
-    const x0 = s.cam.cx - w / 2 / k - 1, x1 = s.cam.cx + w / 2 / k + 1, y0 = s.cam.cy - h / 2 / k - 1, y1 = s.cam.cy + h / 2 / k + 1;
-    const vis = L.cells.filter((c) => c.x > x0 && c.x < x1 && c.y > y0 && c.y < y1);
-    const r = Math.max(R, 2.6 / k);
-    // Bonds first, so cells sit on top of them.
-    if (k > 6) {
-      ctx.strokeStyle = 'rgba(240,250,245,0.5)'; ctx.lineWidth = Math.max(0.05, 1 / k);
-      ctx.beginPath();
-      for (const c of vis) for (const id of c.bonds) {
-        if (id < c.id) continue;
-        const n = L.byId.get(id); if (!n) continue;
-        ctx.moveTo(c.x, c.y); ctx.lineTo(n.x, n.y);
-      }
-      ctx.stroke();
-    }
-    // Cells, one colour per role (batched).
-    for (let role = 0; role < ROLE_RGB.length; role++) {
-      ctx.fillStyle = ROLE_RGB[role];
-      ctx.beginPath();
-      for (const c of vis) if (c.role === role) { ctx.moveTo(c.x + r, c.y); ctx.arc(c.x, c.y, r, 0, Math.PI * 2); }
-      ctx.fill();
-    }
-    // Nerve signals: a cell that just fired flashes.
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    ctx.beginPath();
-    for (const c of vis) if (c.refractory > 3) { ctx.moveTo(c.x + r * 0.6, c.y); ctx.arc(c.x, c.y, r * 0.6, 0, Math.PI * 2); }
-    ctx.fill();
-    // Predators: big engulfing cells.
-    const pr = Math.max(R * 2.6, 3.6 / k);
-    ctx.fillStyle = PREDATOR_RGB; ctx.strokeStyle = 'rgba(255,220,210,0.8)'; ctx.lineWidth = Math.max(0.05, 1 / k);
-    for (const hu of L.predators) {
-      ctx.globalAlpha = hu.digest > 0 ? 0.55 : 0.9;
-      ctx.beginPath(); ctx.arc(hu.x, hu.y, pr, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    }
-    ctx.globalAlpha = 1;
-    // The followed cell and its clump.
-    const sel = s.selected;
-    if (sel && !sel.dead) {
-      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5 / k;
-      if (sel.clumpSize > 1) {
-        let mx = 0, my = 0, far = 0;
-        const members = L.clumpOf(sel);
-        for (const m of members) { mx += m.x; my += m.y; }
-        mx /= members.length; my /= members.length;
-        for (const m of members) far = Math.max(far, Math.hypot(m.x - mx, m.y - my));
-        ctx.setLineDash([4 / k, 3 / k]);
-        ctx.beginPath(); ctx.arc(mx, my, far + R * 3, 0, Math.PI * 2); ctx.stroke();
-        ctx.setLineDash([]);
-      }
-      ctx.beginPath(); ctx.arc(sel.x, sel.y, r * 1.8, 0, Math.PI * 2); ctx.stroke();
-    }
-    ctx.restore();
+    window.LifeDraw.drawCells(ctx, s.w, w, h, s.cam, { selected: s.selected });
   }
 
   function renderLegend(s) {
@@ -573,16 +518,17 @@
     let html = rows.map(([r, label]) => `<div><i style="background:${ROLE_RGB[r]}"></i>${label}<b>${counts[r]}</b></div>`).join('');
     if (st !== 'cells') html += `<div><i class="big" style="background:${PREDATOR_RGB}"></i>Predator: swallows small things<b>${L.predators.length}</b></div>`;
     if (st === 'nerves') html += '<div><i style="background:#fff"></i>Flash: a cell firing</div>';
+    if (st === 'cells') html += '<div><i style="background:#d0302a"></i>Eyespot (zoom in close)</div><div><i style="background:rgba(230,245,238,0.75)"></i>Tail: flagellum, the motor</div>';
     $('#legend-list').innerHTML = html;
   }
 
   // Which genes matter in each chapter, and what they mean.
   const GENE_TEXT = {
-    speed: 'speed', tumble: 'follows food', divideAt: 'divides at', stick: 'sticks', share: 'shares food',
+    speed: 'motor', tumble: 'follows food', eyespot: 'eyespot', divideAt: 'divides at', stick: 'sticks', share: 'shares food',
     specialise: 'takes a role', nerve: 'becomes nerve',
   };
   const STAGE_GENES = {
-    cells: ['speed', 'tumble', 'divideAt'],
+    cells: ['speed', 'tumble', 'eyespot'],
     colonies: ['stick', 'share', 'tumble'],
     bodies: ['specialise', 'stick', 'share'],
     nerves: ['nerve', 'specialise', 'speed'],
@@ -743,9 +689,12 @@
     { ch: 1, focus: 'fit', title: 'First cells',
       text: 'Protocells became true cells: a skin, copiers that carry instructions, and machinery to eat and divide. Here they live on the same coast. Each green dot eats building blocks and energy, divides when it has stored enough and dies when it runs out.',
       look: 'Within a day, cells crowd into the sunlit shallows and around the vents, where food is made. At night food runs short and many starve.' },
-    { ch: 1, focus: 'cell', zoom: 8, title: 'Learning to follow food, by evolution',
-      text: 'Cells swim like bacteria: run straight while food gets richer, turn at random when it gets poorer. How strongly they do this is a gene. At the start most cells barely do it. Daughters copy genes with small mistakes, and cells that follow food eat more and leave more daughters.',
-      look: 'In "Looking at", watch the average "follows food" gene creep up. The journal notes when it has clearly risen.' },
+    { ch: 1, focus: 'cell', zoom: 14, title: 'Motors: from drifting to swimming',
+      text: 'The first cells were probably carried by the water. Bacteria later evolved the flagellum, a whip turned by a tiny protein motor. Here one gene sets how strong a cell\'s motor is. Swimming costs energy, but a cell that can leave a spot it has eaten bare reaches fresh food first.',
+      look: 'Up close, the wavy tail is the flagellum, longer for a stronger motor. Watch the average "motor" gene rise from almost zero. The First cells lab shows that it settles at a best strength.' },
+    { ch: 1, focus: 'cell', zoom: 8, title: 'Steering: following food, and light',
+      text: 'A motor alone moves a cell at random. Cells swim like bacteria: run straight while food gets richer, turn at random when it gets poorer. Cells here also gain a little energy from light, and an eyespot lets them turn toward light, and away when it is too strong, as the alga Chlamydomonas does. Each is a gene that can evolve.',
+      look: 'The red dot at a cell\'s front is its eyespot. In "Looking at", compare the average genes at the start and now. Light sense pays only a little on this coast, where most food comes from the dark vents.' },
     { ch: 2, focus: 'fit', title: 'Predators, and safety in numbers',
       text: 'Predators arrive: big red cells that swallow anything small. A daughter can stay stuck to its mother. A clump of four is too big to swallow, but clumped cells crowd each other for food. Experiments with real algae show predators can make single cells evolve clumps in a few hundred generations.',
       look: 'Red cells hunting. Watch the share of cells in clumps, and the "sticks" gene, rise over a few days.' },
