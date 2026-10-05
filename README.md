@@ -8,6 +8,7 @@ Open `index.html` for the catalogue.
 
 | Shelf | Product | Status |
 |---|---|---|
+| Start here | [World Viewer](world/) | First version: timeline of life, camera and levels, guided story |
 | Environments | [Early Earth](environments/early-earth/) | Available (chapter 0, first version) |
 | Environments | [Forager Worlds](environments/forager-worlds/) | Available (W5, tissue brains) |
 | Nervous systems | [Tissue Lab](nervous-systems/tissue-lab/) | Available (first version) |
@@ -15,6 +16,7 @@ Open `index.html` for the catalogue.
 ## Layout
 
 - `index.html`: catalogue page linking every product.
+- `world/`: the World Viewer, one stage for the timeline of life. Each chapter reuses a product's engine.
 - `environments/`: worlds that pose the problem (resources, hazards, change).
 - `nervous-systems/`: brains as living tissue.
 - `lib/`: code shared across products: `lib/brain.js`, the self-wiring spiking brain; `lib/earth.js`, the shared Earth (land, sea, tides, sun, heat, currents) that every chapter of the timeline of life is meant to live in; `lib/chemistry.js`, the early Earth chemistry.
