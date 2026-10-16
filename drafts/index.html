@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Planet Homepage Drafts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400..800;1,400..600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a short brief, then one row per draft (screenshots on one side,
+   notes on the other), the drafts side by side in a table, and the code they
+   share. Light and dark follow the system. */
+:root {
+  --bg: #f6f7f4;
+  --card: #ffffff;
+  --fg: #15191c;
+  --muted: #5b6670;
+  --line: #dfe3e0;
+  --accent: #1f5fd1;
+  --shot: #e9ece8;
+  --shadow: 0 1px 2px rgba(20, 30, 40, 0.06), 0 18px 40px -18px rgba(20, 30, 40, 0.28);
+  --sans: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Spline Sans Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1214; --card: #151b1e; --fg: #e9eef0; --muted: #9aa7ae; --line: #263035; --accent: #7fb2ff;
+    --shot: #1b2226; --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 18px 44px -18px rgba(0, 0, 0, 0.8);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1214; --card: #151b1e; --fg: #e9eef0; --muted: #9aa7ae; --line: #263035; --accent: #7fb2ff;
+  --shot: #1b2226; --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 18px 44px -18px rgba(0, 0, 0, 0.8);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--fg);
+  font: 400 16px/1.55 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; }
+.wrap {
+  max-width: 1180px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+@media (min-width: 700px) { .wrap { padding-left: max(32px, env(safe-area-inset-left, 0px)); padding-right: max(32px, env(safe-area-inset-right, 0px)); } }
+.mono { font-family: var(--mono); }
+
+/* Brief */
+header.top { padding: 28px 0 8px; display: flex; align-items: center; gap: 12px; }
+header.top .mark { width: 22px; height: 22px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #8fd6ff, #1f5fd1 55%, #0b2a63); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+header.top b { font-weight: 700; letter-spacing: -0.01em; }
+header.top span { color: var(--muted); font: 500 12px/1 var(--mono); letter-spacing: 0.04em; text-transform: uppercase; }
+header.top a { margin-left: auto; font-size: 14px; color: var(--muted); text-decoration: none; border-bottom: 1px solid var(--line); }
+header.top a:hover { color: var(--fg); border-color: var(--fg); }
+.brief { padding: 40px 0 28px; max-width: 760px; }
+.brief h1 { font-size: clamp(36px, 6vw, 64px); line-height: 1.02; letter-spacing: -0.035em; font-weight: 800; margin: 0 0 18px; }
+.brief p { font-size: 18px; color: var(--muted); margin: 0 0 12px; }
+.brief p strong { color: var(--fg); font-weight: 600; }
+.jump { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 0; padding: 0; list-style: none; }
+.jump a { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px 7px 8px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); text-decoration: none; font-weight: 600; font-size: 15px; }
+.jump a:hover { border-color: var(--fg); }
+.jump i { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--c); color: #0b0f12; font: 600 11px/1 var(--mono); font-style: normal; }
+
+/* One row per draft */
+.draft { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 40px; align-items: center; padding: 48px 0; border-top: 1px solid var(--line); scroll-margin-top: 12px; }
+.draft:nth-of-type(even) { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); }
+.draft:nth-of-type(even) .media { order: 2; }
+.media { position: relative; display: block; padding-right: 9%; padding-bottom: 7%; text-decoration: none; }
+.media .shot { display: block; border-radius: 12px; overflow: hidden; background: var(--shot); box-shadow: var(--shadow); border: 1px solid var(--line); aspect-ratio: 16 / 10; }
+.media .shot img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s cubic-bezier(.2, .7, .2, 1); }
+.media:hover .shot img { transform: scale(1.02); }
+.media .phone { position: absolute; right: 0; bottom: 0; width: 23%; min-width: 74px; aspect-ratio: 300 / 650; border-radius: 16px; overflow: hidden; border: 4px solid #0b0f12; background: #0b0f12; box-shadow: 0 0 0 1px var(--line), var(--shadow); }
+.media .phone img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.notes .num { display: inline-flex; align-items: center; gap: 8px; font: 500 12px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.notes .num::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
+.notes h2 { font-size: clamp(30px, 3.6vw, 42px); line-height: 1.05; letter-spacing: -0.03em; font-weight: 800; margin: 10px 0 10px; }
+.notes .idea { font-size: 18px; margin: 0 0 18px; }
+.notes dl { margin: 0 0 16px; display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; font-size: 15px; }
+.notes dt { font: 500 11.5px/1.9 var(--mono); letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+.notes dd { margin: 0; }
+.notes .try { margin: 0 0 20px; padding: 10px 14px; border-left: 3px solid var(--c); background: color-mix(in srgb, var(--c) 9%, var(--card)); border-radius: 0 8px 8px 0; font-size: 15px; }
+.notes .try b { font-weight: 700; }
+.acts { display: flex; flex-wrap: wrap; gap: 10px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border-radius: 999px; font-weight: 600; font-size: 15px; text-decoration: none; border: 1px solid var(--line); background: var(--card); }
+.btn:hover { border-color: var(--fg); }
+.btn.go { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.btn.go:hover { background: color-mix(in srgb, var(--fg) 86%, var(--c)); }
+a:focus-visible, .table:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+/* Side by side */
+section.compare, section.shared { padding: 48px 0; border-top: 1px solid var(--line); }
+section h2.h { font-size: clamp(26px, 3vw, 34px); letter-spacing: -0.025em; font-weight: 800; margin: 0 0 8px; }
+section p.sub { color: var(--muted); margin: 0 0 22px; max-width: 680px; }
+.table { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 14.5px; }
+th, td { text-align: left; vertical-align: top; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+tbody tr:last-child th, tbody tr:last-child td { border-bottom: 0; }
+thead th { font-size: 15px; font-weight: 700; white-space: nowrap; }
+thead th i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--c); margin-right: 8px; }
+tbody th { font: 500 11.5px/1.7 var(--mono); letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+/* The aspect names stay in view while the table scrolls sideways on a phone. */
+tbody th, thead td { position: sticky; left: 0; background: var(--card); }
+
+/* Shared code */
+.code { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+.code li { padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); font-size: 15px; }
+.code code { display: block; font: 500 13px/1.4 var(--mono); color: var(--accent); margin-bottom: 6px; }
+footer { padding: 28px 0 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+footer code { font: 500 12.5px var(--mono); }
+
+@media (max-width: 899px) {
+  .draft { grid-template-columns: minmax(0, 1fr); gap: 24px; padding: 36px 0; }
+  .draft:nth-of-type(even) { grid-template-columns: minmax(0, 1fr); }
+  .draft:nth-of-type(even) .media { order: 0; }
+}
+@media (max-width: 520px) {
+  .brief { padding-top: 24px; }
+  .brief p { font-size: 17px; }
+  .notes dl { grid-template-columns: 1fr; gap: 2px; }
+  .notes dd { margin-bottom: 8px; }
+  .media .phone { border-width: 3px; border-radius: 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .media .shot img { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <i class="mark" aria-hidden="true"></i>
+    <b>Learning Systems</b>
+    <span>New home page</span>
+    <a href="https://roanboc.github.io/learning-systems/">Current site</a>
+  </header>
+
+  <section class="brief">
+    <h1>Four ways to open the planet</h1>
+    <p>Each draft turns the home page into a living Earth. It turns, lights up sunlight, currents, heat and life, pins every system to a real place, and travels back 4.5 billion years. <strong>Each one also has a plain list of topics</strong> for people who prefer that.</p>
+    <p>They are working pages, so open one and play with it. Nothing on the live site has changed.</p>
+    <ul class="jump" aria-label="The drafts">
+      <li><a href="#observatory" style="--c:#f2b84b"><i>1</i>Observatory</a></li>
+      <li><a href="#atlas" style="--c:#d9674c"><i>2</i>Field Atlas</a></li>
+      <li><a href="#orbits" style="--c:#9b86ff"><i>3</i>Orbits</a></li>
+      <li><a href="#deep" style="--c:#3fe0d0"><i>4</i>Deep Dive</a></li>
+    </ul>
+  </section>
+
+  <article class="draft" id="observatory" style="--c:#f2b84b">
+    <a class="media" href="observatory/index.html" aria-label="Open the Observatory draft">
+      <span class="shot"><img src="thumbs/observatory.webp" width="960" height="600" alt="A realistic Earth turning against a starry sky, with a short statement on the left and a deep-time ruler along the bottom."></span>
+      <span class="phone"><img src="thumbs/observatory-phone.webp" width="300" height="650" alt="" loading="lazy"></span>
+    </a>
+    <div class="notes">
+      <span class="num">Draft 1</span>
+      <h2>Observatory</h2>
+      <p class="idea">A realistic Earth turns in a dark sky, as if seen through a telescope.</p>
+      <dl>
+        <dt>Look</dt><dd>Night sky, glowing markers, classic serif titles.</dd>
+        <dt>Explore</dt><dd>Turn and zoom the Earth, light up one kind of system or one Earth layer, and click a marker to open its panel with a live simulation.</dd>
+        <dt>History</dt><dd>A deep-time ruler along the bottom. Play history and the Earth changes as the ages pass.</dd>
+        <dt>List view</dt><dd>A plain page: ways in, every system grouped by kind, and the history.</dd>
+      </dl>
+      <p class="try"><b>Try:</b> press Play history, then click a marker.</p>
+      <div class="acts">
+        <a class="btn go" href="observatory/index.html">Open the draft <span aria-hidden="true">→</span></a>
+        <a class="btn" href="observatory/index.html#list">List view</a>
+      </div>
+    </div>
+  </article>
+
+  <article class="draft" id="atlas" style="--c:#d9674c">
+    <a class="media" href="atlas/index.html" aria-label="Open the Field Atlas draft">
+      <span class="shot"><img src="thumbs/atlas.webp" width="960" height="600" alt="An engraved globe on paper beside a time rail, with the atlas title page on the right." loading="lazy"></span>
+      <span class="phone"><img src="thumbs/atlas-phone.webp" width="300" height="650" alt="" loading="lazy"></span>
+    </a>
+    <div class="notes">
+      <span class="num">Draft 2</span>
+      <h2>Field Atlas</h2>
+      <p class="idea">A printed atlas: an engraved globe stays put while you scroll through one plate per system, oldest first.</p>
+      <dl>
+        <dt>Look</dt><dd>Paper, ink and engraving, with a blueprint version for the night.</dd>
+        <dt>Explore</dt><dd>Scroll, and the globe turns to each system's place. Every plate runs its simulation live.</dd>
+        <dt>History</dt><dd>Scrolling is travelling in time: seas, ice, the first land and the first green appear as you go.</dd>
+        <dt>List view</dt><dd>The Index: a table of contents and a chronology.</dd>
+      </dl>
+      <p class="try"><b>Try:</b> scroll slowly and watch the planet change with each age.</p>
+      <div class="acts">
+        <a class="btn go" href="atlas/index.html">Open the draft <span aria-hidden="true">→</span></a>
+        <a class="btn" href="atlas/index.html#index">List view</a>
+      </div>
+    </div>
+  </article>
+
+  <article class="draft" id="orbits" style="--c:#9b86ff">
+    <a class="media" href="orbits/index.html" aria-label="Open the Orbits draft">
+      <span class="shot"><img src="thumbs/orbits.webp" width="960" height="600" alt="A dotted Earth in the middle of five coloured rings, with systems as moons and a 24-hour clock around the outside." loading="lazy"></span>
+      <span class="phone"><img src="thumbs/orbits-phone.webp" width="300" height="650" alt="" loading="lazy"></span>
+    </a>
+    <div class="notes">
+      <span class="num">Draft 3</span>
+      <h2>Orbits</h2>
+      <p class="idea">A systems diagram: each level of organisation is a ring around the Earth, and each system is a moon on its ring.</p>
+      <dl>
+        <dt>Look</dt><dd>Bright and clean, with a dotted Earth. Follows light or dark mode.</dd>
+        <dt>Explore</dt><dd>Open any moon for its card and live simulation. Drag the Earth to turn it.</dd>
+        <dt>History</dt><dd>The whole history of the Earth as one 24-hour day around the rings.</dd>
+        <dt>List view</dt><dd>A grid of the same cards.</dd>
+      </dl>
+      <p class="try"><b>Try:</b> drag the clock hand back toward midnight and watch the moons fade to outlines.</p>
+      <div class="acts">
+        <a class="btn go" href="orbits/index.html">Open the draft <span aria-hidden="true">→</span></a>
+        <a class="btn" href="orbits/index.html#list">List view</a>
+      </div>
+    </div>
+  </article>
+
+  <article class="draft" id="deep" style="--c:#3fe0d0">
+    <a class="media" href="deep/index.html" aria-label="Open the Deep Dive draft">
+      <span class="shot"><img src="thumbs/deep.webp" width="960" height="600" alt="A dark planet with glowing coastlines in a round lens, a depth gauge on the right and a panel inviting you to start the dive." loading="lazy"></span>
+      <span class="phone"><img src="thumbs/deep-phone.webp" width="300" height="650" alt="" loading="lazy"></span>
+    </a>
+    <div class="notes">
+      <span class="num">Draft 4</span>
+      <h2>Deep Dive</h2>
+      <p class="idea">A glowing planet floats in a round lens. Scroll to sink from a whole ecosystem to a brain, then cells, then molecules.</p>
+      <dl>
+        <dt>Look</dt><dd>Deep-sea dark, with glowing coasts and drifting plankton.</dd>
+        <dt>Explore</dt><dd>Scroll, swipe or use the depth gauge. Each stop opens its live simulation inside the same lens.</dd>
+        <dt>History</dt><dd>Deeper levels are mostly older, from 520 million to 4 billion years ago. An age bar travels in time at the surface.</dd>
+        <dt>List view</dt><dd>The Log: every level and event in order.</dd>
+      </dl>
+      <p class="try"><b>Try:</b> press Start the dive, then keep scrolling down.</p>
+      <div class="acts">
+        <a class="btn go" href="deep/index.html">Open the draft <span aria-hidden="true">→</span></a>
+        <a class="btn" href="deep/index.html#list">List view</a>
+      </div>
+    </div>
+  </article>
+
+  <section class="compare" aria-labelledby="compare-h">
+    <h2 class="h" id="compare-h">Side by side</h2>
+    <p class="sub">The same eight systems, the same history and the same simulations, shown four ways.</p>
+    <div class="table" role="region" aria-labelledby="compare-h" tabindex="0">
+      <table>
+        <thead>
+          <tr>
+            <td></td>
+            <th scope="col" style="--c:#f2b84b"><i></i>Observatory</th>
+            <th scope="col" style="--c:#d9674c"><i></i>Field Atlas</th>
+            <th scope="col" style="--c:#9b86ff"><i></i>Orbits</th>
+            <th scope="col" style="--c:#3fe0d0"><i></i>Deep Dive</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">Feel</th><td>Calm, cinematic</td><td>Crafted, bookish</td><td>Clear, diagrammatic</td><td>Playful, game-like</td></tr>
+          <tr><th scope="row">Planet</th><td>Realistic Earth with clouds, ice and a night side</td><td>Engraved globe with contour lines</td><td>Dotted Earth at the centre of the rings</td><td>Glowing coastlines in a round lens</td></tr>
+          <tr><th scope="row">Main move</th><td>Turn the Earth and click a marker</td><td>Scroll through the plates</td><td>Open a moon on a ring</td><td>Dive down one level at a time</td></tr>
+          <tr><th scope="row">History</th><td>Ruler along the bottom, with Play</td><td>Scrolling moves through time</td><td>A 24-hour clock around the rings</td><td>Depth gauge and an age bar</td></tr>
+          <tr><th scope="row">Simulations</th><td>In a side panel</td><td>On each plate</td><td>On each card</td><td>Inside the lens, as the view itself</td></tr>
+          <tr><th scope="row">List view</th><td>Plain page of systems</td><td>Index and chronology</td><td>Grid of cards</td><td>Log of levels and events</td></tr>
+          <tr><th scope="row">Light, dark</th><td>Dark only</td><td>Paper or blueprint</td><td>Both</td><td>Dark only</td></tr>
+          <tr><th scope="row">Best for</th><td>A striking first look</td><td>Reading in order, like a book</td><td>Seeing how levels nest</td><td>Zooming across levels, like the World Viewer</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="shared" aria-labelledby="shared-h">
+    <h2 class="h" id="shared-h">What all four share</h2>
+    <p class="sub">The drafts run on the same new code, so ideas can move from one to another after you pick.</p>
+    <ul class="code">
+      <li><code>lib/globe.js</code>The turnable globe: drag, zoom, keys, and the planet painter.</li>
+      <li><code>lib/planet.js</code>The Earth's land, currents, heat and life, built into the page with no downloads.</li>
+      <li><code>lib/system-catalogue.js</code>Every system placed on the map and in time, with the eons and big events.</li>
+      <li><code>lib/previews.js</code>Runs the real simulations, small, inside the page.</li>
+    </ul>
+  </section>
+
+  <footer>
+    Drafts on the branch <code>claude/planet-homepage-p1wzz4</code>. The current home page stays as it is until a draft is chosen.
+  </footer>
+</div>
+</body>
+</html>

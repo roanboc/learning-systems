@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Learning Systems: Field Atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..600;1,8..60,400..600&display=swap">
+<style>
+/* Layout: a printed atlas. An engraved globe stays on the left while the
+   plates scroll past on the right, one plate per system, in the order they
+   arose; scrolling moves the planet through time. The index is the list view.
+   Two inks: paper and sepia, or a blueprint at night. */
+:root {
+  --paper: #f3ecdc;
+  --paper-2: #ebe2cb;
+  --ink: #2b241c;
+  --ink-2: #5d5244;
+  --ink-3: #8b7e6a;
+  --rule: rgba(43, 36, 28, 0.2);
+  --sea-ink: #2f5d7c;
+  --red: #b8432f;
+  --leaf: #4f7a3a;
+  --ochre: #c08a2d;
+  --k-chemistry: #c08a2d;
+  --k-cells: #4f8a4a;
+  --k-bodies: #b8432f;
+  --k-nervous: #6b4f9c;
+  --k-ecosystems: #2f7f80;
+  --grain: 0.07;
+  --display: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --serif: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+  --bar: 52px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0f2c47; --paper-2: #13365a; --ink: #e8f0f4; --ink-2: #b6c9d7; --ink-3: #7f98ad; --rule: rgba(232, 240, 244, 0.2);
+    --sea-ink: #9cc9e6; --red: #ff9b7a; --leaf: #9fdca5; --ochre: #f2c46d;
+    --k-chemistry: #f2c46d; --k-cells: #9fdca5; --k-bodies: #ff9b7a; --k-nervous: #c6b2ff; --k-ecosystems: #7fd8d4;
+    --grain: 0.05; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0f2c47; --paper-2: #13365a; --ink: #e8f0f4; --ink-2: #b6c9d7; --ink-3: #7f98ad; --rule: rgba(232, 240, 244, 0.2);
+  --sea-ink: #9cc9e6; --red: #ff9b7a; --leaf: #9fdca5; --ochre: #f2c46d;
+  --k-chemistry: #f2c46d; --k-cells: #9fdca5; --k-bodies: #ff9b7a; --k-nervous: #c6b2ff; --k-ecosystems: #7fd8d4;
+  --grain: 0.05; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { scroll-padding-top: var(--bar); }
+html, body { margin: 0; }
+body {
+  background-color: var(--paper); color: var(--ink); font: 17px/1.6 var(--serif); font-optical-sizing: auto;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.45 0 0 0 0 0.38 0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  background-blend-mode: multiply;
+}
+a { color: inherit; text-decoration-color: var(--ink-3); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover { text-decoration-color: var(--red); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.smallcaps { font-variant: all-small-caps; letter-spacing: 0.1em; font-weight: 500; }
+
+/* ---------- Masthead ---------- */
+.bar {
+  position: sticky; top: 0; z-index: 20; height: var(--bar); display: flex; align-items: center; gap: 10px 20px;
+  padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px));
+  background: var(--paper); border-bottom: 1px solid var(--ink);
+  box-shadow: 0 3px 0 -2px var(--paper), 0 4px 0 -2px var(--rule);
+}
+.brand { display: flex; align-items: baseline; gap: 12px; text-decoration: none; margin-right: auto; min-width: 0; overflow: hidden; }
+.brand b { font: 600 20px/1 var(--display); letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.brand span { font-style: italic; color: var(--ink-2); font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.seg { display: inline-flex; border: 1px solid var(--ink); border-radius: 2px; }
+.seg button { border: 0; background: transparent; padding: 3px 12px; cursor: pointer; font-size: 15px; }
+.seg button + button { border-left: 1px solid var(--ink); }
+.seg button[aria-selected="true"], .seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.bar nav { display: flex; gap: 16px; font-size: 15px; }
+.ink-toggle { border: 1px solid var(--ink); border-radius: 2px; background: transparent; padding: 3px 10px; cursor: pointer; font-size: 15px; font-style: italic; }
+.ink-toggle[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.bar nav small { color: var(--ink-3); }
+
+/* ---------- Atlas ---------- */
+.atlas { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(380px, 0.88fr); }
+.figure { position: sticky; top: var(--bar); height: calc(100vh - var(--bar)); height: calc(100dvh - var(--bar)); border-right: 1px solid var(--rule); }
+.figure canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#overlay { touch-action: none; cursor: grab; }
+#overlay.is-dragging { cursor: grabbing; }
+#overlay.over-mark { cursor: pointer; }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; font-style: italic; color: var(--ink-3); pointer-events: none; }
+.caption { position: absolute; left: 24px; right: 84px; bottom: 82px; font-style: italic; font-size: 15px; color: var(--ink-2); pointer-events: none; }
+.caption b { font-style: normal; font-variant: all-small-caps; letter-spacing: 0.1em; color: var(--ink); font-weight: 600; margin-right: 6px; }
+.key { position: absolute; left: 16px; right: 84px; bottom: 14px; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+.key .label { font-variant: all-small-caps; letter-spacing: 0.12em; color: var(--ink-3); font-size: 14px; }
+.key .group { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.toggle {
+  display: inline-flex; align-items: center; gap: 7px; border: 1px solid transparent; background: transparent; border-radius: 2px;
+  padding: 2px 8px 2px 6px; cursor: pointer; font-size: 14.5px; color: var(--ink-2);
+}
+.toggle svg { width: 14px; height: 14px; flex: none; overflow: visible; }
+.toggle:hover { border-color: var(--rule); color: var(--ink); }
+.toggle[aria-pressed="true"] { border-color: var(--ink); color: var(--ink); background: color-mix(in srgb, var(--paper-2) 70%, transparent); }
+.hover-label { position: absolute; z-index: 3; pointer-events: none; transform: translate(14px, -50%); background: var(--paper); border: 1px solid var(--ink); padding: 4px 9px; font-size: 14px; max-width: 260px; }
+.hover-label b { display: block; font-family: var(--display); font-weight: 600; }
+.hover-label small { color: var(--ink-2); font-style: italic; }
+
+/* Time rail: every plate and note, oldest at the top. */
+.rail { position: absolute; right: 22px; top: 26px; bottom: 26px; width: 44px; }
+.rail .eon { position: absolute; left: 18px; width: 8px; background: var(--c); opacity: 0.7; }
+.rail .eon span { position: absolute; left: 12px; top: 50%; transform: translateY(-50%) rotate(180deg); writing-mode: vertical-rl; font-variant: all-small-caps; letter-spacing: 0.14em; font-size: 12.5px; color: var(--ink-3); white-space: nowrap; }
+.rail .stop { position: absolute; left: 0; width: 44px; height: 14px; transform: translateY(-50%); border: 0; padding: 0; background: transparent; cursor: pointer; }
+.rail .stop::before { content: ""; position: absolute; left: 14px; top: 6px; width: 16px; height: 1px; background: var(--ink-3); }
+.rail .stop.sys::before { left: 12px; top: 3px; width: 8px; height: 8px; border: 1.5px solid var(--ink); background: var(--c); transform: rotate(45deg); left: 18px; }
+.rail .stop:hover::before { background: var(--red); }
+.rail .stop b { position: absolute; right: 28px; top: -1px; font: 600 11px/1 var(--serif); color: var(--ink-3); }
+.rail .here { position: absolute; left: 6px; width: 32px; height: 2px; background: var(--red); transform: translateY(-1px); pointer-events: none; transition: top 0s; }
+.rail .here::after { content: ""; position: absolute; right: -6px; top: -4px; border: 5px solid transparent; border-right-color: var(--red); }
+
+/* ---------- Plates ---------- */
+.plates { min-width: 0; }
+.leaf { padding: 56px clamp(24px, 4vw, 56px); border-bottom: 1px solid var(--rule); }
+.leaf.intro { min-height: calc(100vh - var(--bar)); display: grid; align-content: center; gap: 22px; }
+.intro .kicker { color: var(--ink-2); }
+.intro h1 { margin: 0; font: 400 clamp(46px, 5.4vw, 80px)/0.98 var(--display); letter-spacing: -0.02em; font-variation-settings: "SOFT" 50, "WONK" 1; }
+.intro h1 em { color: var(--red); font-weight: 400; }
+.intro .lede { margin: 0; font-size: 19px; max-width: 34em; }
+.intro ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; color: var(--ink-2); font-size: 16px; }
+.intro ol li { display: grid; grid-template-columns: 26px 1fr; }
+.intro ol li::before { content: "✦"; color: var(--red); }
+.ways { display: grid; gap: 0; border-top: 1px solid var(--ink); }
+.ways a { display: grid; grid-template-columns: 1fr auto; gap: 2px 16px; padding: 10px 0; border-bottom: 1px solid var(--rule); text-decoration: none; }
+.ways a b { font: 600 19px/1.3 var(--display); }
+.ways a span { color: var(--ink-2); font-size: 15px; grid-column: 1; }
+.ways a i { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-style: normal; color: var(--red); }
+.ways a:hover b { color: var(--red); }
+.begin { justify-self: start; border: 1px solid var(--ink); background: transparent; padding: 8px 16px; cursor: pointer; font-style: italic; font-size: 16px; }
+.begin:hover { background: var(--ink); color: var(--paper); }
+
+.leaf.note { padding-block: 34px; min-height: 42vh; display: grid; align-content: center; }
+.note .date { color: var(--red); }
+.note h3 { margin: 2px 0 4px; font: 500 26px/1.15 var(--display); }
+.note p { margin: 0; color: var(--ink-2); max-width: 34em; }
+.note.rewind { min-height: 60vh; }
+.note.rewind h3 { font-size: 34px; }
+
+.leaf.plate { min-height: calc(100vh - var(--bar)); display: grid; align-content: center; gap: 14px; }
+.plate .no { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; color: var(--ink-2); }
+.plate .no b { font: 600 15px var(--display); letter-spacing: 0.2em; color: var(--kc); white-space: nowrap; }
+.plate h2 { margin: 0; font: 400 clamp(40px, 4vw, 60px)/1 var(--display); letter-spacing: -0.015em; }
+.plate .era { margin: 0; font-style: italic; color: var(--ink-2); }
+.plate .era b { font-style: normal; color: var(--ink); font-weight: 600; }
+.fig { margin: 4px 0; display: grid; gap: 6px; }
+.fig .frame { position: relative; aspect-ratio: 16 / 10; border: 1px solid var(--ink); padding: 5px; background: var(--paper); }
+.fig .frame::after { content: ""; position: absolute; inset: 2px; border: 1px solid var(--rule); pointer-events: none; }
+.fig canvas { width: 100%; height: 100%; display: block; background: #0b100e; }
+.fig .status { position: absolute; left: 14px; bottom: 12px; font-size: 13px; font-style: italic; color: #e6efe9; background: rgba(0, 0, 0, 0.55); padding: 1px 8px; }
+.fig .poster { position: absolute; inset: 5px; display: grid; place-items: center; background: #0b100e; color: #cfd9d3; font-style: italic; font-size: 14px; }
+.fig figcaption { font-size: 14px; color: var(--ink-2); font-style: italic; }
+.fig figcaption b { font-style: normal; font-variant: all-small-caps; letter-spacing: 0.1em; color: var(--ink); }
+.plate p { margin: 0; max-width: 36em; }
+.fieldnote { border-left: 2px solid var(--kc); padding: 2px 0 2px 14px; color: var(--ink-2); font-size: 16px; }
+.fieldnote b { display: block; font-variant: all-small-caps; letter-spacing: 0.12em; color: var(--ink); font-weight: 600; font-size: 15px; }
+.go { display: grid; border-top: 1px solid var(--ink); max-width: 36em; }
+.go a { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--rule); text-decoration: none; }
+.go a span small { display: block; color: var(--ink-2); font-size: 14px; font-style: italic; }
+.go a i { font-style: normal; color: var(--red); }
+.go a.main { font-weight: 600; }
+.go a:hover { color: var(--red); }
+.plate.dim, .note.dim { opacity: 0.38; }
+.end { min-height: 60vh; display: grid; align-content: center; gap: 14px; }
+.end h2 { margin: 0; font: 400 40px/1.05 var(--display); }
+
+/* ---------- Index (list view) ---------- */
+.index { padding: 40px max(20px, env(safe-area-inset-right, 0px)) 80px max(20px, env(safe-area-inset-left, 0px)); }
+.index-inner { max-width: 1120px; margin: 0 auto; display: grid; gap: 44px; }
+.index h1 { margin: 0; font: 400 clamp(40px, 6vw, 68px)/1 var(--display); letter-spacing: -0.02em; }
+.index .lede { margin: 10px 0 0; max-width: 40em; color: var(--ink-2); }
+.index .ways { border-top: 0; }
+.index h2 { margin: 0 0 10px; font: 500 15px var(--serif); font-variant: all-small-caps; letter-spacing: 0.16em; border-bottom: 1px solid var(--ink); padding-bottom: 6px; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: 44px; align-items: start; }
+.entries { list-style: none; margin: 0; padding: 0; }
+.entries .kind { margin: 18px 0 6px; font-style: italic; color: var(--kc); display: flex; gap: 8px; align-items: center; }
+.entries .kind:first-child { margin-top: 4px; }
+.entry { padding: 4px 0 8px; }
+.entry .line { display: flex; align-items: baseline; gap: 6px; }
+.entry .line a { font: 600 19px var(--display); text-decoration: none; }
+.entry .line a:hover { color: var(--red); }
+.entry .dots { flex: 1; border-bottom: 1.5px dotted var(--ink-3); transform: translateY(-4px); min-width: 20px; }
+.entry .line span { font-size: 15px; color: var(--ink-2); white-space: nowrap; }
+.entry p { margin: 2px 0 0; color: var(--ink-2); font-size: 15.5px; }
+.entry .sub { display: flex; flex-wrap: wrap; gap: 2px 16px; font-size: 15px; margin-top: 3px; }
+.chron { list-style: none; margin: 0; padding: 0; }
+.chron li { display: grid; grid-template-columns: 92px 1fr; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--rule); }
+.chron time { color: var(--red); font-size: 15px; }
+.chron b { font-family: var(--display); font-weight: 600; }
+.chron span { color: var(--ink-2); font-size: 15px; }
+.chron .sim { font-style: italic; color: var(--ink-3); font-size: 14px; }
+.foot { color: var(--ink-3); font-style: italic; font-size: 15px; }
+
+/* ---------- Narrow screens ---------- */
+@media (max-width: 900px) {
+  :root { --bar: 48px; }
+  .brand b { font-size: 14px; letter-spacing: 0.04em; }
+  .brand span, .bar nav { display: none; }
+  .bar { gap: 8px; }
+  .seg button { padding: 3px 9px; font-size: 14px; }
+  .ink-toggle { font-size: 0; padding: 3px 8px; }
+  .ink-toggle::before { content: "◐"; font-size: 15px; font-style: normal; }
+  .atlas { display: block; }
+  .figure { height: 46vh; height: 46svh; z-index: 10; background-color: var(--paper); border-right: 0; border-bottom: 1px solid var(--ink); }
+  .caption { left: 14px; right: 40px; bottom: 40px; font-size: 13px; }
+  .caption .where { display: none; }
+  .key { left: 10px; right: 10px; bottom: 6px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .key .label { display: none; }
+  .key .group { flex-wrap: nowrap; }
+  .toggle { flex: none; font-size: 13.5px; }
+  .rail { right: 6px; top: 10px; bottom: 70px; width: 30px; }
+  .rail .stop b { display: none; }
+  .rail .eon span { display: none; }
+  .rail .stop { width: 30px; }
+  .rail .here { left: 0; width: 26px; }
+  .leaf { padding: 32px 20px; }
+  .leaf.intro { min-height: 54svh; gap: 16px; }
+  .intro .lede { font-size: 17px; }
+  .leaf.plate { min-height: 70svh; }
+  .leaf.note { min-height: 30svh; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+</style>
+</head>
+<body>
+<header class="bar">
+  <a class="brand" href="../index.html" title="All drafts"><b>Learning Systems</b><span>a field atlas of worlds that organise themselves</span></a>
+  <div class="seg" role="tablist" aria-label="View">
+    <button role="tab" id="tab-atlas" aria-selected="true" aria-controls="atlas-view">Atlas</button>
+    <button role="tab" id="tab-index" aria-selected="false" aria-controls="index-view">Index</button>
+  </div>
+  <nav aria-label="Ways in">
+    <a href="../../world/index.html#story">Story</a>
+    <a href="../../labs/index.html">Labs <small id="labs-done"></small></a>
+  </nav>
+  <button class="ink-toggle" id="ink" aria-pressed="false" title="Print the atlas in blueprint ink">Blueprint</button>
+</header>
+
+<div class="atlas" id="atlas-view" role="tabpanel" aria-labelledby="tab-atlas">
+  <div class="figure" id="figure">
+    <canvas id="globe" aria-hidden="true"></canvas>
+    <canvas id="overlay" tabindex="0" aria-label="The globe. Drag to turn it, click a symbol to go to its plate. Arrow keys turn it."></canvas>
+    <div class="loading" id="loading">Engraving the planet…</div>
+    <div class="caption" id="caption" aria-live="polite"></div>
+    <div class="key" id="key">
+      <div class="group" id="key-kinds"><span class="label">Key</span></div>
+      <div class="group" id="key-layers"><span class="label">Overlays</span></div>
+    </div>
+    <div class="rail" id="rail" aria-label="Time"></div>
+    <div class="hover-label" id="hover" hidden><b></b><small></small></div>
+  </div>
+
+  <main class="plates" id="plates">
+    <section class="leaf intro" data-t="0">
+      <span class="smallcaps kicker">A field atlas · eight plates · four and a half billion years</span>
+      <h1>Worlds that <em>organise</em> themselves</h1>
+      <p class="lede">Each plate in this atlas is a small simulated world, set on the globe where the oldest evidence for it was found. Scroll to travel from the molten planet to today; every world runs live as you reach it.</p>
+      <ol>
+        <li>Scroll, and the planet changes with the age: seas, ice, the first land, the first green.</li>
+        <li>Drag the globe to turn it. Click a symbol to go to its plate.</li>
+        <li>Use the key to pick out one kind of system or the machinery of the Earth.</li>
+      </ol>
+      <div class="ways">
+        <a href="../../world/index.html#story"><b>Watch the story</b><span>A guided tour of one world, chapter by chapter.</span><i>→</i></a>
+        <a href="../../labs/index.html"><b>Take a mechanism apart</b><span>Guided labs that change one thing and follow the effect.</span><i>→</i></a>
+        <a href="../../world/index.html"><b>Explore freely</b><span>The World Viewer, from a whole coast down to single cells.</span><i>→</i></a>
+      </div>
+      <button class="begin" id="begin">Begin at the beginning ↓</button>
+    </section>
+  </main>
+</div>
+
+<main class="index" id="index-view" role="tabpanel" aria-labelledby="tab-index" hidden></main>
+
+<script src="../../lib/lab-catalogue.js"></script>
+<script src="../../lib/system-catalogue.js"></script>
+<script src="../../lib/planet.js"></script>
+<script src="../../lib/globe.js"></script>
+<script src="../../lib/previews.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
