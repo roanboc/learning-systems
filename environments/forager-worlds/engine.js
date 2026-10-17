@@ -133,6 +133,7 @@
     plantBlocks: 1,         // coast: blocks seaweed takes from the water to grow one full size
     dropBlocks: 0.5,        // coast: blocks returned per unit of plant digested
     bodyBlocks: 2,          // coast: blocks returned where a creature dies
+    huntDepth: 0,           // coast: water (metres) a hunter needs to swim; shallower water is a refuge for prey
   };
 
   // Heritable genes. Ranges keep evolution inside a plausible body plan.
@@ -320,8 +321,10 @@
     cellAt(x, y) { return this.earth.cellAt(x / this.sx, y / this.sx); }
 
     // Water a creature can swim in: inside the map, and not dry ground.
-    swimmable(x, y) {
-      return x >= 0 && y >= 0 && x < this.p.size && y < this.H && this.earth.water[this.cellAt(x, y)] > 0.05;
+    // Hunters are bigger and need deeper water (huntDepth).
+    swimmable(x, y, c) {
+      const need = c && c.meat && this.p.huntDepth > 0 ? this.p.huntDepth : 0.05;
+      return x >= 0 && y >= 0 && x < this.p.size && y < this.H && this.earth.water[this.cellAt(x, y)] > need;
     }
 
     // A random spot of open, not too hot, water.
@@ -733,7 +736,7 @@
           const i = this.cellAt(c.x, c.y), e = this.earth;
           const nx = c.x + Math.cos(c.heading) * speed + e.vx[i] * this.sx * p.drift;
           const ny = c.y + Math.sin(c.heading) * speed + e.vy[i] * this.sx * p.drift;
-          if (this.swimmable(nx, ny)) { c.x = nx; c.y = ny; } else c.heading += Math.PI * (0.5 + this.rng());
+          if (this.swimmable(nx, ny, c)) { c.x = nx; c.y = ny; } else c.heading += Math.PI * (0.5 + this.rng());
         } else {
           c.x = this.wrap(c.x + Math.cos(c.heading) * speed);
           c.y = this.wrap(c.y + Math.sin(c.heading) * speed);
