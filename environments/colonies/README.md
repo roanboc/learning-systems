@@ -33,3 +33,7 @@ So sharing holds when families stay together and the help stays local, and cheat
 ## Simplified
 
 The helper molecule is made up, one map cell is far bigger than a real cell, and genes are numbers. Real microbes also regulate production (quorum sensing), police cheats and choose partners; none of that is here yet.
+
+## References
+
+The studies, papers and books this simulation draws on, with what each supports and how firm the claim is, are listed at the end of the page. They live in `lib/references.js`.

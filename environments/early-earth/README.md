@@ -32,3 +32,7 @@ The **field journal** notes firsts and turning points (first chains and where, c
 ## Known limits
 - Bubble numbers are capped (`maxBubbles`) to keep the page fast.
 - The simulation runs on the page's main thread. Fast-forward trades frame rate for speed.
+
+## References
+
+The studies, papers and books this simulation draws on, with what each supports and how firm the claim is, are listed at the end of the page. They live in `lib/references.js`.
