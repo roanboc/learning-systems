@@ -460,14 +460,6 @@
     for (let i = 0; i < 160; i++) { ctx.beginPath(); ctx.arc(rnd() * w, rnd() * h, rnd() * 1.4, 0, Math.PI * 2); ctx.fill(); }
   }
 
-  function bodyPath(ctx, sp, sz) {
-    ctx.beginPath();
-    if (sp === 1) { ctx.moveTo(sz * 1.9, 0); ctx.lineTo(-sz, sz * 0.55); ctx.lineTo(-sz, -sz * 0.55); }
-    else if (sp === 2) { ctx.arc(0, 0, sz * 0.95, 0.5, Math.PI * 2 - 0.5); ctx.lineTo(sz * 1.7, 0); }
-    else { ctx.moveTo(sz * 1.6, 0); ctx.lineTo(-sz, sz); ctx.lineTo(-sz * 0.5, 0); ctx.lineTo(-sz, -sz); }
-    ctx.closePath();
-  }
-
   function drawForager(ctx, s, w, h) {
     const world = s.w, k = baseScale(s) * s.cam.zoom, size = s.size[0];
     if (s.coast) {
@@ -501,10 +493,7 @@
     ctx.globalAlpha = 1;
     for (const c of world.creatures) {
       const sz = 4 + Math.min(4, c.energy / 40);
-      ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.heading);
-      ctx.fillStyle = c.meat ? colours.danger : (c.sp === 1 ? '#f0d58c' : '#e8efe9');
-      bodyPath(ctx, c.sp, sz); ctx.fill();
-      ctx.restore();
+      window.CreatureDraw.draw(ctx, c, c.x, c.y, sz, c.meat ? colours.danger : (c.sp === 1 ? '#f0d58c' : '#e8efe9'), { px: k });
     }
     const c = s.selected;
     if (c && world.creatures.includes(c)) {

@@ -86,7 +86,7 @@ Set with `plantMode: 'living'` and `species`.
 
 **Drifting soil.** Fertile spots (`soilSpots`, `soilRadius`) wander slowly (`soilDrift`). Plants stay rooted, so the vegetation moves by dying where the soil gets poor and seeding where it gets rich. The dish shows soil as a brown glow. Click near a plant to see its life: stage, size, age, seeds dropped and soil fertility.
 
-**Several species in one world.** `species` is a list of `{ name, mind, count, geneInit, fixed }`. Each species keeps its own kind of mind, and its genes evolve inside the species. The presets use three species, each drawn with its own body shape:
+**Several species in one world.** `species` is a list of `{ name, mind, count, geneInit, fixed }`. Each species keeps its own kind of mind, and its genes evolve inside the species. The presets use three species. Body shape follows the genes (`lib/creature-draw.js`): fast swimmers are slender, big brains make big heads, creatures without a brain are flat ribbed ovals like Dickinsonia, and hunters have grasping arms like Anomalocaris:
 - Grazers: instincts only, no brain.
 - Small brains: starting with 4 to 8 interneurons.
 - Large brains: starting with 28 to 36 interneurons.
