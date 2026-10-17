@@ -2,7 +2,7 @@
 
 Small simulated worlds for learning how living systems organise themselves: behaviour emerges from local rules, with no global controller. Everything runs in the browser with no build step.
 
-Open `index.html` for the catalogue, or visit the live site at https://roanboc.github.io/learning-systems/ (deployed from `main` by `.github/workflows/pages.yml`).
+Open `index.html` for the home page, or visit the live site at https://roanboc.github.io/learning-systems/ (deployed from `main` by `.github/workflows/pages.yml`).
 
 ## Products
 
@@ -17,11 +17,11 @@ Open `index.html` for the catalogue, or visit the live site at https://roanboc.g
 
 ## Layout
 
-- `index.html`: catalogue page linking every product.
+- `index.html` and `home.js`: the home page. A glowing planet you dive into, level by level, from an ecosystem down to the chemistry life began with; every stop runs the real simulation. The List tab shows every system as a plain list with links to its pages, its guided lab and the history of life.
 - `world/`: the World Viewer, one stage for the timeline of life. Each chapter reuses a product's engine.
 - `environments/`: worlds that pose the problem (resources, hazards, change).
 - `nervous-systems/`: brains as living tissue.
 - `labs/`: all guided labs on one page with progress, plus situations to decide ("Make the call").
-- `lib/`: code shared across products: `lib/brain.js`, the self-wiring spiking brain; `lib/earth.js`, the shared Earth (land, sea, tides, sun, heat, currents) that every chapter of the timeline of life is meant to live in; `lib/chemistry.js`, the early Earth chemistry; `lib/life.js`, cells, colonies, bodies and nerve nets living in that same Earth; `lib/body.js`, a creature's body made of organs and cells in a body fluid (Forager Worlds `body: 'cells'`); `lib/learn.js`, the guided labs panel (each product keeps its own labs in `labs.js`), and `lib/lab-catalogue.js`, the list of every lab, so any page can link to labs elsewhere; `lib/nav.js`, the site bar on every product page (where you are, the previous and next chapter, and a prompt to start that page's guided lab).
+- `lib/`: code shared across products: `lib/brain.js`, the self-wiring spiking brain; `lib/earth.js`, the shared Earth (land, sea, tides, sun, heat, currents) that every chapter of the timeline of life is meant to live in; `lib/chemistry.js`, the early Earth chemistry; `lib/life.js`, cells, colonies, bodies and nerve nets living in that same Earth; `lib/body.js`, a creature's body made of organs and cells in a body fluid (Forager Worlds `body: 'cells'`); `lib/learn.js`, the guided labs panel (each product keeps its own labs in `labs.js`), and `lib/lab-catalogue.js`, the list of every lab, so any page can link to labs elsewhere; `lib/nav.js`, the site bar on every product page (where you are, the previous and next chapter, and a prompt to start that page's guided lab). For the home page: `lib/system-catalogue.js`, every system placed on the planet and in the history of life; `lib/planet.js`, land, coasts, currents, heat and life as data; `lib/globe.js`, a globe you can turn and paint with WebGL; `lib/previews.js`, the real engines run small.
 
 Each product folder is self-contained except for `lib/`, and its engine has no DOM code, so it also runs headless in Node.
