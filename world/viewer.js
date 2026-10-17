@@ -55,6 +55,13 @@
       lab: '../environments/forager-worlds/index.html',
       lenses: ['Coast', 'Creature', 'Body, brain and cells'], gaia: true,
     },
+    {
+      // Seed 1: on seed 3 the hunters die out (environments/onto-land/README.md).
+      key: 'shores', title: 'Onto land', era: 'about 430 to 375 million years ago', live: true, seed: 1,
+      text: 'The same coast, and every grazer\'s body is now a row of segments with fins or legs. Mats grow on the damp ground the tide uncovers. Legs drag in water, but only legs walk, and only if they are sturdy enough to hold the body up. Hunters keep to deep water. Watch legged grazers (sand-coloured) spread along the shore.',
+      lab: '../environments/onto-land/index.html',
+      lenses: ['Coast', 'Creature', 'Body, brain and cells'], gaia: true,
+    },
   ];
 
   // ---------- State ----------
@@ -100,7 +107,7 @@
       // Brains descend from the Nerve nets bodies, from the chapter's own
       // world when it has been visited (else Gaia grows one).
       const nerves = state.sims.nerves;
-      const g = window.Gaia.make({ era: ch.key, seed: 3, from: ch.key === 'brains' && nerves ? nerves.w : undefined }), w = g.world;
+      const g = window.Gaia.make({ era: ch.key, seed: ch.seed || 3, from: ch.key === 'brains' && nerves ? nerves.w : undefined }), w = g.world;
       s = { kind: 'forager', w, coast: g.chem, painter: new window.EarthDraw.MapPainter(g.chem), entry: { name: ch.title, world: w, params: w.p }, size: [w.p.size, w.H], journalShown: 0 };
     } else {
       const { World, DEFAULTS } = window.WorldSim;
@@ -297,6 +304,7 @@
       const sp = s.w.speciesList ? s.w.speciesList[c.sp].name : '';
       box.innerHTML = `<b>Creature #${c.id}</b> · ${sp}<br>generation ${c.gen} · age ${c.age} · energy ${fmt(c.energy, 0)}<br>ate ${c.eaten} food, ${c.poisoned} poison` +
         (c.brain ? ` · ${c.brain.synapseCount()} synapses` : '') +
+        (s.w.p.bodyPlan && !c.meat ? `<br>${bodyPlanText(s.w, c)}` : '') +
         (c.origin ? `<br>Descends from Nerve nets body #${c.origin.body}: ${c.origin.cells} cells (${c.origin.movers} contracting, ${c.origin.germ} germ, ${c.origin.nerve} nerve)` : '');
       setActions('c' + c.id, [
         [s.follow ? 'Stop following' : 'Follow it', () => { s.follow = !s.follow; if (s.follow && s.cam.zoom < 4) s.cam.zoom = 4; renderSide(); }],
@@ -307,6 +315,13 @@
       box.textContent = 'Click a creature to follow it. Keep zooming in on it to go inside its body, brain and cells.';
       setActions('', []);
     }
+  }
+
+  // Onto land: segments, limbs and how well the legs hold the body up.
+  function bodyPlanText(w, c) {
+    const P = w.plan(c), kind = ['no limbs', 'fins', 'legs'][P.type];
+    const limbs = P.pairs ? `${P.pairs} pairs of ${kind}` : 'no limbs';
+    return `${P.segs} segments · ${limbs}` + (P.type === 2 ? ` · legs hold ${Math.round(P.hold * 100)}% of its weight` : '') + ` · ${Math.round((c.dry || 0) * 100)}% of recent life on land`;
   }
 
   function enterCreature(s) {
@@ -461,6 +476,7 @@
     for (let i = 0; i < 160; i++) { ctx.beginPath(); ctx.arc(rnd() * w, rnd() * h, rnd() * 1.4, 0, Math.PI * 2); ctx.fill(); }
   }
 
+  const LIMB_FILL = ['#e8efe9', '#bfe1ec', '#e9c27a'];
   function drawForager(ctx, s, w, h) {
     const world = s.w, k = baseScale(s) * s.cam.zoom, size = s.size[0];
     if (s.coast) {
@@ -494,7 +510,9 @@
     ctx.globalAlpha = 1;
     for (const c of world.creatures) {
       const sz = 4 + Math.min(4, c.energy / 40);
-      window.CreatureDraw.draw(ctx, c, c.x, c.y, sz, c.meat ? colours.danger : (c.sp === 1 ? '#f0d58c' : '#e8efe9'), { px: k });
+      // Onto land: grazers coloured by limbs (none, fins, legs).
+      const fill = c.meat ? colours.danger : world.p.bodyPlan ? LIMB_FILL[world.plan(c).type] : (c.sp === 1 ? '#f0d58c' : '#e8efe9');
+      window.CreatureDraw.draw(ctx, c, c.x, c.y, sz, fill, { px: k });
     }
     const c = s.selected;
     if (c && world.creatures.includes(c)) {
@@ -733,6 +751,9 @@
     { ch: 6, focus: 'fit', title: 'Ecosystems',
       text: 'Add hunters, and plant eaters must see them and flee. Chases, booms, crashes and extinctions emerge from nothing but local rules, as in the Cambrian seas.',
       look: 'Red arrows are hunters. Watch how the numbers of hunters and prey rise and fall together.' },
+    { ch: 7, focus: 'fit', title: 'Onto land', lab: 'keep-them-in-the-sea',
+      text: 'Bodies are built from repeated segments, and one gene says whether the trunk grows fins or legs. Mats on the damp shore are food only legs can reach. The same mutations happen everywhere; the place decides which bodies pay.',
+      look: 'Sand-coloured grazers have legs, pale blue ones fins. Over many days, legged grazers gather along the shore.' },
   ];
 
   const story = { on: false, i: 0 };

@@ -14,11 +14,14 @@ Short lessons, each with the product it came from. Add one when something surpri
 - **A behaviour can be useless until the world lets it pay.** Steering toward food did nothing while cells felt the full current; at 25% drift it evolved (First cells).
 - **Selection is weak when food caps the population.** Specialisation and nerve genes rose only modestly; say so rather than over-tune (Colonies, Nerve nets).
 - **Night crashes look like a bug.** Boom and bust at night came from food running out; low upkeep and a prey-scaled predator cap fixed it (cell chapters).
+- **Cheap genes drift on both coasts.** Sturdiness and air skin rose as much on the twin as with shore food; only the costly switch (fins to legs) followed the place. Read a gene against its twin, not against its start (Onto land).
+- **When prey shapes evolve, check the hunters.** Grazers that evolved faster bodies starved fixed-body hunters on 5 of 6 seeds; give hunters the same speed genes and a capped range (Onto land).
 - **Seaweed starved until its light and nutrient thresholds matched the coast** (0.15, not 0.5 and 0.3; Gaia PR #16).
 
 ## Honesty
 
 - **Report what failed.** README results list the variants that did not work, with seeds and steps.
+- **Pick the page seed honestly.** If the shown seed is a good one (Onto land runs seed 1, where hunters survive), say so on the page and give the count across seeds.
 - **Few seeds means an early sign.** Say "early sign" for results from three or four seeds.
 - **Don't rebuild arbitrary rules.** Rodrigo's 2009 and 2016 neurogenesis models are inspiration only; rules come from current neurobiology.
 - **Map layers need real data.** On the home planet, layers not based on real data (a guessed "Life today") were removed; a simplified map says so (PR #18).
