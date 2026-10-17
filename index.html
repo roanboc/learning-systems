@@ -6,316 +6,224 @@
 <title>Learning Systems</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,500;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: a catalogue. A short statement, then one shelf per kind of system, each holding product cards. */
+/* Layout: one screen you dive into. The glowing planet floats in a round lens;
+   scroll, swipe or use the depth gauge on the right to sink through the
+   levels of life, from a whole ecosystem down to molecules, each one a live
+   simulation opening in the same lens. The log is the list view. One dark
+   look by design: the deep sea. */
 :root {
-  --bg: #f1f3f0;
-  --surface: #fbfcfa;
-  --ink: #1b2420;
-  --muted: #5b6862;
-  --line: #d3dad5;
-  --accent: #2a6f73;
-  --dish: #0f1613;
-  --green: #5cc46d;
-  --violet: #a97ff2;
-  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --serif: "IBM Plex Serif", Georgia, "Times New Roman", serif;
-  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #111614; --surface: #19201d; --ink: #e2e9e4; --muted: #95a39c; --line: #2b3531;
-    --accent: #6db6b8; --dish: #0b100e;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #111614; --surface: #19201d; --ink: #e2e9e4; --muted: #95a39c; --line: #2b3531;
-  --accent: #6db6b8; --dish: #0b100e;
+  --abyss: #020b10;
+  --abyss-2: #06151d;
+  --panel: rgba(4, 18, 26, 0.72);
+  --ink: #e6fbff;
+  --muted: #8fb3bd;
+  --faint: #4f707a;
+  --line: rgba(120, 230, 240, 0.18);
+  --glow: #4ff0e0;
+  --k-chemistry: #ffb547;
+  --k-cells: #b4ff5a;
+  --k-bodies: #ff6b9a;
+  --k-nervous: #c08bff;
+  --k-ecosystems: #4ff0e0;
+  --sans: "Space Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html, body { margin: 0; }
-body { background: var(--bg); color: var(--ink); font: 15px/1.6 var(--sans); padding-inline: 16px; padding-block: 40px 64px; }
-.wrap { max-width: 1040px; margin: 0 auto; display: grid; gap: 44px; }
-.eyebrow { font: 500 11px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
-header { display: grid; gap: 14px; max-width: 68ch; }
-h1 { margin: 0; font: 500 clamp(34px, 6vw, 52px)/1.05 var(--serif); letter-spacing: -0.02em; text-wrap: balance; }
-h1 em { font-style: italic; font-weight: 400; color: var(--accent); }
-.lede { margin: 0; color: var(--muted); font-size: 17px; }
-.principles { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 4px 0 0; list-style: none; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--abyss); color: var(--ink); font: 15px/1.5 var(--sans); overflow: hidden; }
+body.listing { overflow: auto; }
+a { color: var(--glow); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--glow); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* ---------- The dive ---------- */
+.dive { position: fixed; inset: 0; overflow: hidden; background: radial-gradient(ellipse at 50% 40%, #082430 0%, var(--abyss) 70%); touch-action: none; }
+.dive canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.sim { position: absolute; left: 0; top: 0; width: 0; height: 0; opacity: 0; }
+.sim canvas { background: #0b100e; will-change: transform; }
+.sim::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle, transparent 52%, rgba(2, 11, 16, 0.7) 71%); }
+.sim .status { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: 86%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font: 13px var(--mono); color: var(--ink); background: rgba(2, 11, 16, 0.6); border: 1px solid var(--line); border-radius: 999px; padding: 4px 14px; z-index: 1; }
+#globe, #glow { pointer-events: none; }
+#globe { z-index: 1; }
+#glow { z-index: 3; mix-blend-mode: screen; }
+#hit { z-index: 4; touch-action: none; cursor: grab; }
+#hit.over { cursor: pointer; }
+#hit.is-dragging { cursor: grabbing; }
+
+/* ---------- HUD ---------- */
+.bar { position: fixed; z-index: 10; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap; padding: 14px max(20px, env(safe-area-inset-right, 0px)) 0 max(20px, env(safe-area-inset-left, 0px)); pointer-events: none; }
+.bar > * { pointer-events: auto; }
+body.listing .bar { position: sticky; background: linear-gradient(var(--abyss) 70%, transparent); padding-bottom: 14px; }
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); margin-right: auto; }
+.brand i { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--glow); box-shadow: 0 0 14px var(--glow), inset 0 0 8px var(--glow); }
+.brand b { font-weight: 700; font-size: 18px; letter-spacing: 0.02em; }
+.toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: rgba(2, 11, 16, 0.5); backdrop-filter: blur(8px); }
+.toggle button { border: 0; background: transparent; border-radius: 999px; padding: 5px 14px; cursor: pointer; color: var(--muted); font-weight: 600; font-size: 13.5px; }
+.toggle button[aria-selected="true"] { background: var(--glow); color: var(--abyss); }
+.ways { display: flex; gap: 6px; }
+.ways a { text-decoration: none; color: var(--ink); font-size: 13.5px; font-weight: 500; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; background: rgba(2, 11, 16, 0.5); backdrop-filter: blur(8px); }
+.ways a:hover { border-color: var(--glow); }
+.ways small { font: 11px var(--mono); color: var(--muted); }
+
+/* The stop: what you are looking at. */
+.stop {
+  position: fixed; z-index: 5; left: max(20px, env(safe-area-inset-left, 0px)); bottom: 22px; width: min(440px, calc(100% - 140px));
+  display: grid; gap: 10px; padding: 18px 20px; border-radius: 18px; background: var(--panel); border: 1px solid var(--line); backdrop-filter: blur(14px);
+  transition: opacity 250ms ease, transform 250ms ease;
+}
+.stop.fading { opacity: 0; transform: translateY(8px); }
+.stop .depth { font: 500 11.5px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--kc, var(--glow)); display: flex; gap: 10px; flex-wrap: wrap; }
+.stop .depth span { color: var(--muted); }
+.stop .into { color: var(--muted); font-size: 14px; margin-bottom: -6px; }
+.stop h1, .stop h2 { margin: 0; font-weight: 700; letter-spacing: -0.02em; line-height: 1.02; }
+.stop h1 { font-size: clamp(34px, 4vw, 52px); }
+.stop h1 em { font-style: normal; color: var(--glow); text-shadow: 0 0 24px rgba(79, 240, 224, 0.6); }
+.stop h2 { font-size: clamp(30px, 3.4vw, 44px); }
+.stop .facts { display: flex; flex-wrap: wrap; gap: 4px 14px; font: 12.5px var(--mono); color: var(--muted); }
+.stop .facts b { color: var(--ink); font-weight: 500; }
+.stop p { margin: 0; color: #c4dde3; }
+.stop .ev { font-size: 13px; color: var(--muted); border-left: 2px solid var(--kc, var(--glow)); padding-left: 10px; }
+.stop .acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
+.stop .acts a, .stop .acts button { text-decoration: none; border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; font-weight: 600; font-size: 13.5px; color: var(--ink); background: rgba(255, 255, 255, 0.03); cursor: pointer; }
+.stop .acts .main { background: var(--kc, var(--glow)); color: var(--abyss); border-color: transparent; box-shadow: 0 0 22px color-mix(in srgb, var(--kc, var(--glow)) 45%, transparent); }
+.stop .acts a:hover, .stop .acts button:hover { border-color: var(--kc, var(--glow)); }
+.stop .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.stop .chips .lab { font: 500 11px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-right: 2px; }
+.stop .steps { display: flex; flex-wrap: wrap; gap: 8px; border-top: 1px solid var(--line); padding-top: 10px; }
+.stop .steps button { border: 1px solid var(--line); border-radius: 999px; background: transparent; padding: 5px 12px; font-size: 13px; color: var(--muted); cursor: pointer; }
+.stop .steps button:hover { color: var(--ink); border-color: var(--glow); }
+.chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px 4px 8px; background: rgba(255, 255, 255, 0.02); cursor: pointer; font-size: 12.5px; }
+.chip i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); box-shadow: 0 0 8px var(--c); }
+.chip[aria-pressed="true"] { border-color: var(--c); background: color-mix(in srgb, var(--c) 18%, transparent); }
+
+/* Depth gauge: the levels of life on a log scale of size. */
+.gauge { position: fixed; z-index: 6; right: max(18px, env(safe-area-inset-right, 0px)); top: 76px; bottom: 26px; width: 200px; pointer-events: none; }
+.gauge .rail { position: absolute; right: 18px; top: 0; bottom: 0; width: 2px; border-radius: 2px; pointer-events: auto; cursor: pointer; opacity: 0.8; }
+.gauge .rail::before { content: ""; position: absolute; left: -12px; right: -12px; top: 0; bottom: 0; }
+.gauge .lvl { position: absolute; right: 8px; transform: translateY(-50%); display: flex; align-items: center; gap: 10px; border: 0; background: transparent; padding: 2px 0; cursor: pointer; pointer-events: auto; color: var(--muted); font-size: 13px; font-weight: 500; text-align: right; }
+.gauge .lvl i { order: 2; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--c); background: var(--abyss); box-shadow: 0 0 10px var(--c); }
+.gauge .lvl:hover, .gauge .lvl[aria-current="true"] { color: var(--ink); }
+.gauge .lvl[aria-current="true"] i { background: var(--c); }
+.gauge .lvl small { display: block; font: 10.5px var(--mono); color: var(--faint); }
+.gauge .here { position: absolute; right: 2px; width: 34px; height: 2px; transform: translateY(-1px); background: var(--ink); box-shadow: 0 0 12px var(--glow); }
+.gauge .here { pointer-events: none; }
+.gauge .here b { display: none; position: absolute; right: 40px; top: -9px; font: 500 11px var(--mono); color: var(--ink); white-space: nowrap; background: rgba(2, 11, 16, 0.7); padding: 1px 6px; border-radius: 4px; }
+
+/* History strip at the surface: drag to age the planet. */
+.history { position: fixed; z-index: 5; left: calc(min(440px, 100% - 140px) + 44px); right: 250px; bottom: 26px; display: grid; gap: 6px; transition: opacity 300ms ease; }
+body.deep .history, body.deep .cue { opacity: 0; pointer-events: none; }
+.history .label button { border: 0; background: none; padding: 0 0 0 8px; font: inherit; letter-spacing: inherit; text-transform: inherit; color: var(--glow); cursor: pointer; }
+.history .label { font: 500 11px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; gap: 10px; }
+.history .label b { color: var(--ink); font-weight: 500; }
+.strip { position: relative; height: 34px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); cursor: ew-resize; touch-action: none; }
+.strip .eon { position: absolute; top: 0; bottom: 0; background: color-mix(in srgb, var(--c) 30%, transparent); border-left: 1px solid rgba(255, 255, 255, 0.12); }
+.strip .eon { overflow: hidden; }
+.strip .eon span { position: absolute; left: 5px; top: 3px; font: 9.5px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: rgba(230, 251, 255, 0.75); white-space: nowrap; }
+.strip .sys { position: absolute; top: 23px; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: var(--c); box-shadow: 0 0 8px var(--c); }
+.strip .knob { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--ink); box-shadow: 0 0 10px var(--glow); }
+
+.cue { position: fixed; z-index: 4; left: 50%; top: 80%; transform: translateX(-50%); font: 12px var(--mono); color: var(--muted); display: grid; justify-items: center; gap: 3px; pointer-events: none; animation: bob 2.4s ease-in-out infinite; transition: opacity 300ms ease; }
+.cue::after { content: ""; width: 1px; height: 16px; background: linear-gradient(var(--glow), transparent); }
+@keyframes bob { 0%, 100% { transform: translate(-50%, 0); opacity: 0.85; } 50% { transform: translate(-50%, 6px); opacity: 0.5; } }
+.label-tip { position: fixed; z-index: 7; pointer-events: none; transform: translate(-50%, calc(-100% - 10px)); text-align: center; white-space: nowrap; background: rgba(2, 11, 16, 0.85); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; font-size: 13px; }
+.label-tip small { display: block; font: 11px var(--mono); color: var(--muted); }
+
+/* ---------- Log (list view) ---------- */
+.log { position: relative; padding: 8px max(20px, env(safe-area-inset-right, 0px)) 80px max(20px, env(safe-area-inset-left, 0px)); }
+.log-inner { max-width: 980px; margin: 0 auto; display: grid; gap: 36px; }
+.log h1 { margin: 10px 0 0; font: 700 clamp(34px, 5vw, 54px)/1 var(--sans); letter-spacing: -0.03em; }
+.log .lede { margin: 10px 0 0; color: var(--muted); max-width: 60ch; font-size: 16px; }
+.principles { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 14px 0 0; list-style: none; }
 .principles li { font: 12px var(--mono); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; color: var(--muted); }
+.log h2 { margin: 0 0 12px; font: 600 13px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--glow); }
+.log h2 small { color: var(--muted); font-weight: 400; margin-left: 8px; }
+.ways-list b { font-weight: 600; }
+.ways-list { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); }
+.ways-list a { display: grid; gap: 3px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; text-decoration: none; color: var(--ink); background: rgba(255, 255, 255, 0.02); }
+.ways-list a:hover { border-color: var(--glow); }
+.ways-list span { color: var(--muted); font-size: 14px; }
+.levels { list-style: none; margin: 0; padding: 0 0 0 28px; position: relative; display: grid; gap: 4px; }
+.levels::before { content: ""; position: absolute; left: 7px; top: 8px; bottom: 8px; width: 2px; background: linear-gradient(var(--glow), rgba(79, 240, 224, 0.1)); }
+.levels li { position: relative; display: grid; gap: 4px; padding: 12px 0 14px; border-bottom: 1px solid var(--line); }
+.levels li::before { content: ""; position: absolute; left: -26px; top: 18px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--c); background: var(--abyss); box-shadow: 0 0 10px var(--c); }
+.levels .head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
+.levels .head a { font-size: 21px; font-weight: 700; color: var(--ink); text-decoration: none; letter-spacing: -0.01em; }
+.levels .head a:hover { color: var(--c); }
+.levels .head span { font: 12px var(--mono); color: var(--muted); }
+.levels p { margin: 0; color: #c4dde3; }
+.levels .more { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 14px; }
+.levels .more button { border: 0; background: none; padding: 0; font: inherit; color: var(--c); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.chron { list-style: none; margin: 0; padding: 0; display: grid; }
+.chron li { display: grid; grid-template-columns: 96px 1fr; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.chron time { font: 12px var(--mono); color: var(--glow); padding-top: 3px; }
+.chron b { font-weight: 600; }
+.chron span { color: var(--muted); font-size: 14px; }
+.foot { color: var(--faint); font-size: 13px; }
 
-.shelf { display: grid; gap: 16px; }
-.shelf-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; border-top: 1px solid var(--line); padding-top: 16px; }
-.shelf-head h2 { margin: 0; font: 500 22px var(--serif); }
-.shelf-head p { margin: 0; color: var(--muted); font-size: 14px; flex: 1 1 30ch; }
-.cards { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); }
-
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; display: grid; grid-template-rows: auto 1fr; color: inherit; text-decoration: none; min-width: 0; }
-a.card:hover { border-color: var(--accent); }
-a.card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.card canvas { width: 100%; aspect-ratio: 16 / 9; display: block; background: var(--dish); }
-.card .ph { aspect-ratio: 16 / 9; background: repeating-linear-gradient(135deg, transparent 0 10px, color-mix(in srgb, var(--line) 60%, transparent) 10px 11px), var(--bg); display: grid; place-items: center; color: var(--muted); font: 12px var(--mono); }
-.card .body { padding: 14px 16px 16px; display: grid; gap: 8px; align-content: start; }
-.card h3 { margin: 0; font-size: 17px; font-weight: 600; }
-.card p { margin: 0; color: var(--muted); font-size: 14px; }
-.tags { display: flex; flex-wrap: wrap; gap: 6px; }
-.tag { font: 500 11px var(--mono); border-radius: 999px; padding: 2px 8px; border: 1px solid var(--line); color: var(--muted); }
-.tag.live { color: var(--accent); border-color: var(--accent); }
-.open { font-weight: 600; color: var(--accent); font-size: 14px; }
-
-.roadmap { display: grid; gap: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
-.step { display: grid; grid-template-columns: 52px 1fr auto; gap: 12px; align-items: baseline; padding: 10px 16px; border-top: 1px solid var(--line); }
-.step:first-child { border-top: 0; }
-.step b { font: 500 13px var(--mono); color: var(--muted); }
-.step span { min-width: 0; }
-.step small { font: 11px var(--mono); color: var(--muted); white-space: nowrap; }
-.step.done small { color: var(--accent); }
-.path { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); counter-reset: path; }
-.path a { display: grid; gap: 4px; height: 100%; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: inherit; text-decoration: none; }
-.path a:hover { border-color: var(--accent); }
-.path a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.path b { font-size: 16px; }
-.path b::before { counter-increment: path; content: counter(path) ". "; color: var(--accent); }
-.path span { color: var(--muted); font-size: 14px; }
-.path small { font: 12px var(--mono); color: var(--accent); }
-footer { color: var(--muted); font-size: 13px; }
-footer code { font-family: var(--mono); }
-@media (max-width: 480px) { .step { grid-template-columns: 40px 1fr; } .step small { grid-column: 2; } }
+@media (max-width: 1180px) and (min-width: 861px) {
+  .stop { width: 380px; }
+  .gauge { width: 170px; }
+  .history { left: 444px; right: 210px; }
+}
+@media (max-width: 860px) {
+  .ways { display: none; }
+  .stop { left: 10px; right: 10px; width: auto; bottom: 10px; padding: 14px 16px; gap: 8px; max-height: 52%; overflow: auto; }
+  .stop h1 { font-size: 30px; }
+  .stop h2 { font-size: 28px; }
+  .stop p { font-size: 14px; }
+  .gauge { right: 4px; width: 40px; top: 64px; bottom: auto; height: 40%; }
+  .gauge .lvl span { display: none; }
+  .gauge .here b { display: block; right: 34px; }
+  .stop .ev { display: none; }
+  .stop .into { font-size: 13px; }
+  .history { left: 10px; right: 10px; bottom: auto; top: 58%; }
+  body.deep .history { display: none; }
+  .cue { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .cue { animation: none; } .stop { transition: none; } }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <span class="eyebrow">Learning Systems</span>
-    <h1>Small worlds where behaviour <em>emerges</em> from local rules</h1>
-    <p class="lede">A collection of simulations for learning how living systems organise themselves: environments that select, nervous systems that wire and repair themselves, and populations that evolve. Each one runs in the browser and can be compared side by side.</p>
-    <ul class="principles">
-      <li>no global controller</li>
-      <li>only local rules</li>
-      <li>grounded in biology</li>
-      <li>compare, don't assume</li>
-    </ul>
-  </header>
-
-  <nav aria-label="How to learn here">
-    <ol class="path">
-      <li><a href="world/index.html#story"><b>Watch the story</b><span>A guided tour of one world, from the first chemistry to brains, one chapter at a time.</span></a></li>
-      <li><a href="labs/index.html"><b>Take a mechanism apart</b><span>Change one thing in a twin world and follow the effect across levels. Then make the call on new situations.</span><small id="path-labs"></small></a></li>
-      <li><a href="#env-h"><b>Explore and compare</b><span>Open any world below, change its settings and run it side by side with a twin.</span></a></li>
-    </ol>
+<header class="bar">
+  <a class="brand" href="index.html"><i></i><b>Learning Systems</b></a>
+  <div class="toggle" role="tablist" aria-label="View">
+    <button role="tab" id="tab-dive" aria-selected="true" aria-controls="dive">Dive</button>
+    <button role="tab" id="tab-log" aria-selected="false" aria-controls="log">List</button>
+  </div>
+  <nav class="ways" aria-label="Ways in">
+    <a href="world/index.html#story">Watch the story</a>
+    <a href="labs/index.html">Guided labs <small id="labs-done"></small></a>
   </nav>
+</header>
 
-  <section class="shelf" aria-labelledby="world-h">
-    <div class="shelf-head">
-      <h2 id="world-h">Start here</h2>
-      <p>One world you can fly through, from the first chemistry to ecosystems, with a guided story.</p>
-    </div>
-    <div class="cards">
-      <a class="card" href="world/index.html">
-        <div class="ph">Timeline of life · Early Earth › Cells › Bodies › Brains</div>
-        <div class="body">
-          <div class="tags"><span class="tag live">Available</span><span class="tag">first version</span></div>
-          <h3>World Viewer</h3>
-          <p>Travel the timeline of life on one stage. Drag and zoom from a whole coast down to molecules, follow a protocell, a colony or a creature, watch cells evolve clumps, bodies and nerve nets, and go inside its body, brain and cells. "Tell me the story" walks you through how this world was made, one component at a time.</p>
-          <span class="open">Enter the world →</span>
-        </div>
-      </a>
-      <a class="card" href="labs/index.html">
-        <div class="ph">Guided labs · Take it apart › Make the call</div>
-        <div class="body">
-          <div class="tags"><span class="tag live">Available</span><span class="tag">5 labs</span></div>
-          <h3>Guided labs</h3>
-          <p>Take one mechanism apart across levels. Each lab builds a twin world with one thing changed, walks you from the world down to cells or molecules and back up, and waits until the world shows you the effect. Then make the call on situations you haven't seen.</p>
-          <span class="open">Start a lab →</span>
-        </div>
-      </a>
-    </div>
-  </section>
+<main class="dive" id="dive" role="tabpanel" aria-labelledby="tab-dive">
+  <div class="sim" id="sim-a"><canvas aria-hidden="true"></canvas><span class="status" hidden></span></div>
+  <div class="sim" id="sim-b"><canvas aria-hidden="true"></canvas><span class="status" hidden></span></div>
+  <canvas id="globe" aria-hidden="true"></canvas>
+  <canvas id="glow" aria-hidden="true"></canvas>
+  <canvas id="hit" tabindex="0" aria-label="The dive. Scroll, swipe or use the arrow keys to go deeper or back up. On the planet, drag to turn it and click a light to dive straight to that system."></canvas>
+  <div class="cue" id="cue">Scroll to dive</div>
+  <section class="stop" id="stop" aria-live="polite"></section>
+  <div class="history" id="history" aria-label="The age of the planet">
+    <div class="label"><span>Age of the planet<button id="today" type="button" hidden>Back to today</button></span><b id="age">Today</b></div>
+    <div class="strip" id="strip"></div>
+  </div>
+  <nav class="gauge" id="gauge" aria-label="Depth"></nav>
+  <div class="label-tip" id="tip" hidden></div>
+</main>
 
-  <section class="shelf" aria-labelledby="env-h">
-    <div class="shelf-head">
-      <h2 id="env-h">Environments</h2>
-      <p>Worlds with resources, hazards and change. The environment is the problem a living system has to solve.</p>
-    </div>
-    <div class="cards">
-      <a class="card" href="environments/early-earth/index.html">
-        <canvas id="earth-preview" width="640" height="360" aria-label="Preview of Early Earth"></canvas>
-        <div class="body">
-          <div class="tags"><span class="tag live">Available</span><span class="tag">Chapter 0</span></div>
-          <h3>Early Earth</h3>
-          <p>A young coast with no life yet: sun, tides, hot vents and currents drive a made-up chemistry. Chains form in drying tide pools, copiers arise and spread, and oily bubbles trap them and split. Fly over the map, zoom down to molecules, and keep a field journal of what emerges.</p>
-          <span class="open">Explore the coast →</span>
-        </div>
-      </a>
-      <a class="card" href="environments/first-cells/index.html">
-        <div class="ph">Chapter 1 · drifting → swimming → steering</div>
-        <div class="body">
-          <div class="tags"><span class="tag live">Available</span><span class="tag">Chapter 1</span><span class="tag">Guided lab</span></div>
-          <h3>First cells: learning to move</h3>
-          <p>Cells on the Early Earth coast start with no working motor and drift with the currents. Watch motors, steering toward food and an eyespot for light evolve, compare coasts where one is switched off, and zoom in to see each cell's flagellum and eyespot.</p>
-          <span class="open">Watch them learn to move →</span>
-        </div>
-      </a>
-      <a class="card" href="environments/first-bodies/index.html">
-        <div class="ph">Chapter 3 · stick → squeeze → squeeze together</div>
-        <div class="body">
-          <div class="tags"><span class="tag live">Available</span><span class="tag">Chapter 3</span><span class="tag">Guided lab</span></div>
-          <h3>Bodies: the first muscles</h3>
-          <p>Cells that stick together take roles, and some become contracting cells that squeeze to push their body along. Compare bodies whose cells fall into one rhythm with bodies whose cells beat on their own, and see why muscle has to beat together.</p>
-          <span class="open">Watch them squeeze →</span>
-        </div>
-      </a>
-      <a class="card" href="environments/forager-worlds/index.html">
-        <canvas id="forager-preview" width="640" height="360" aria-label="Preview of Forager Worlds"></canvas>
-        <div class="body">
-          <div class="tags"><span class="tag live">Available</span><span class="tag">W4 + W5</span></div>
-          <h3>Forager Worlds</h3>
-          <p>Green and violet plants are food or poison, and the meaning can swap with the seasons. Species with different brain sizes, hunters and prey share worlds of living plants on drifting soil. Compare instincts with learning brains, watch evolution tune how brains are built, then zoom into any creature, its brain and single cells.</p>
-          <span class="open">Open the worlds →</span>
-        </div>
-      </a>
-    </div>
-  </section>
-
-  <section class="shelf" aria-labelledby="ns-h">
-    <div class="shelf-head">
-      <h2 id="ns-h">Nervous systems</h2>
-      <p>Brains as living tissue: neurons and glia that grow, compete for resources, prune and repair.</p>
-    </div>
-    <div class="cards">
-      <a class="card" href="nervous-systems/tissue-lab/index.html">
-        <canvas id="tissue-preview" width="640" height="360" aria-label="Preview of the Tissue Lab"></canvas>
-        <div class="body">
-          <div class="tags"><span class="tag live">Available</span><span class="tag">first version</span></div>
-          <h3>Tissue Lab</h3>
-          <p>A slice of brain tissue where neurons are the organisms. They wire themselves, compete for growth factor and energy, get pruned by astrocytes and microglia, and are replaced from a stem-cell niche. Damage a region and watch it repair, then zoom into any single cell.</p>
-          <span class="open">Open the lab →</span>
-        </div>
-      </a>
-    </div>
-  </section>
-
-  <section class="shelf" aria-labelledby="road-h">
-    <div class="shelf-head">
-      <h2 id="road-h">Roadmap</h2>
-      <p>The brain-in-a-world track, from plain instincts to ecosystems.</p>
-    </div>
-    <div class="roadmap">
-      <div class="step done"><b>W1</b><span>Worlds with plants and creatures driven by inherited reflexes</span><small>done</small></div>
-      <div class="step done"><b>W2</b><span>Spiking brains that wire themselves and learn food from poison</span><small>done</small></div>
-      <div class="step done"><b>W3</b><span>Evolution tunes how brains grow, not what they know</span><small>done</small></div>
-      <div class="step done"><b>W4</b><span>Brains of living tissue: glia, competition and newborn neurons in changing worlds</span><small>done</small></div>
-      <div class="step done"><b>W5</b><span>Predators and creatures that change their world</span><small>done</small></div>
-    </div>
-  </section>
-
-  <footer>Shared code lives in <code>lib/</code>; each product is a self-contained folder that opens straight in the browser.</footer>
-</div>
+<main class="log" id="log" role="tabpanel" aria-labelledby="tab-log" hidden></main>
 
 <script src="lib/lab-catalogue.js"></script>
-<script>
-// Labs done so far, kept in this browser only (lib/learn.js).
-(function () {
-  let p = {};
-  try { p = JSON.parse(localStorage.getItem('learning-systems.labs')) || {}; } catch (e) { /* not kept */ }
-  const labs = window.LabCatalogue || [], n = labs.filter((l) => p[l.id] && p[l.id].done).length;
-  if (n) document.getElementById('path-labs').textContent = n + ' of ' + labs.length + ' labs done';
-})();
-</script>
-<script src="lib/earth.js"></script>
-<script src="lib/chemistry.js"></script>
-<script src="environments/early-earth/draw.js"></script>
-<script src="lib/brain.js"></script>
-<script src="environments/forager-worlds/engine.js"></script>
-<script src="nervous-systems/tissue-lab/engine.js"></script>
-<script src="nervous-systems/tissue-lab/draw.js"></script>
-<script>
-// Early Earth preview: the coast with its currents, running live.
-(function () {
-  'use strict';
-  const cv = document.getElementById('earth-preview');
-  if (!cv || !window.ChemSim || !window.EarthDraw) return;
-  const world = window.ChemSim.makeWorld('full', 3);
-  for (let i = 0; i < 360; i++) world.step();
-  const painter = new window.EarthDraw.MapPainter(world);
-  const ctx = cv.getContext('2d');
-  const cam = { cx: 80, cy: 52, zoom: 1.6 };
-  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const dish = getComputedStyle(document.documentElement).getPropertyValue('--dish').trim();
-  function draw() { window.EarthDraw.drawWorld(ctx, painter, cv.width, cv.height, cam, { background: dish }); }
-  function loop() {
-    if (!document.hidden) { world.step(); painter.moveTracers(1, 300); draw(); }
-    requestAnimationFrame(loop);
-  }
-  painter.moveTracers(1, 300);
-  draw();
-  if (!reduce) requestAnimationFrame(loop);
-})();
-
-(function () {
-  'use strict';
-  const cv = document.getElementById('forager-preview');
-  if (!cv || !window.WorldSim) return;
-  const world = new window.WorldSim.World({ seed: 7, seasonLength: 0, startCreatures: 30 });
-  for (let i = 0; i < 1200; i++) world.step();
-  const ctx = cv.getContext('2d');
-  const css = getComputedStyle(document.documentElement);
-  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  function draw() {
-    const W = cv.width, H = cv.height, k = W / world.p.size;
-    ctx.fillStyle = css.getPropertyValue('--dish').trim();
-    ctx.fillRect(0, 0, W, H);
-    const green = css.getPropertyValue('--green').trim(), violet = css.getPropertyValue('--violet').trim();
-    const offY = (world.p.size - H / k) / 2;
-    for (const pl of world.plants) {
-      ctx.fillStyle = world.plantColour(pl) === 0 ? green : violet;
-      ctx.beginPath(); ctx.arc(pl.x * k, (pl.y - offY) * k, 2.4, 0, Math.PI * 2); ctx.fill();
-    }
-    ctx.fillStyle = '#d9eadc';
-    for (const c of world.creatures) {
-      ctx.save();
-      ctx.translate(c.x * k, (c.y - offY) * k);
-      ctx.rotate(c.heading);
-      ctx.beginPath(); ctx.moveTo(8, 0); ctx.lineTo(-5, 5); ctx.lineTo(-2.5, 0); ctx.lineTo(-5, -5); ctx.closePath(); ctx.fill();
-      ctx.restore();
-    }
-  }
-  function loop() {
-    if (!document.hidden) { world.step(); world.step(); draw(); }
-    requestAnimationFrame(loop);
-  }
-  draw();
-  if (!reduce) requestAnimationFrame(loop);
-})();
-
-// Tissue Lab preview: a middle band of a tissue that has wired itself.
-(function () {
-  'use strict';
-  const cv = document.getElementById('tissue-preview');
-  if (!cv || !window.TissueSim || !window.TissueDraw) return;
-  const tissue = new window.TissueSim.Tissue({ seed: 3 });
-  for (let i = 0; i < 6000; i++) tissue.step();
-  const ctx = cv.getContext('2d');
-  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const s = getComputedStyle(document.documentElement);
-  const v = (n) => s.getPropertyValue(n).trim();
-  const col = {
-    dish: v('--dish'), exc: '#d9eadc', inh: '#e0705a', newborn: '#5cc46d', astro: '#d4ad45', micro: '#8aa2e6',
-    vessel: '#c0392b', tag: '#f0a050', debris: '#7d8a84', syn: '#9fb8b0', focus: '#ffffff',
-  };
-  const view = { x0: 0, y0: 0.2, size: 1 };
-  function draw() { window.TissueDraw.drawTissue(ctx, tissue, cv.width, cv.width, col, { view }); }
-  function loop() {
-    if (!document.hidden) { tissue.step(); tissue.step(); draw(); }
-    requestAnimationFrame(loop);
-  }
-  draw();
-  if (!reduce) requestAnimationFrame(loop);
-})();
-</script>
+<script src="lib/system-catalogue.js"></script>
+<script src="lib/planet.js"></script>
+<script src="lib/globe.js"></script>
+<script src="lib/previews.js"></script>
+<script src="home.js"></script>
 </body>
 </html>

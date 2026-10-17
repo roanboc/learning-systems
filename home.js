@@ -1,4 +1,4 @@
-// Deep Dive: the home page as a dive. A glowing planet floats in the dark;
+// The home page, as a dive. A glowing planet floats in the dark;
 // scroll, swipe, press the arrow keys or use the depth gauge to sink through
 // the levels of life, from an ecosystem down to the molecules life began
 // with. Every stop is the real simulation running full screen, and the next
@@ -8,7 +8,7 @@
 
   const C = window.SystemCatalogue;
   const $ = (s) => document.querySelector(s);
-  const ROOT = '../../';
+  const ROOT = '';             // where the catalogue's paths start: this page is at the site root
   const T0 = C.T_START;
   const TAU = Math.PI * 2, RAD = Math.PI / 180;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -56,7 +56,7 @@
   // ---------- The planet ----------
   const glc = $('#globe'), glow = $('#glow'), hit = $('#hit'), panel = $('#stop'), strip = $('#strip'), cue = $('#cue');
   const gx = glow.getContext('2d');
-  const globe = new Globe(hit, { lat: 22, lon: -45, spin: 4, wheel: false, minZoom: 1, maxZoom: 1.6 });
+  const globe = new Globe(hit, { lat: 22, lon: -45, spin: 4, minZoom: 1, maxZoom: 1.6 });
   const ZMAX = 9;              // how far the planet zooms in before a dive covers it
   const SUN = [-0.55, 0.45, 0.7];
 
@@ -198,7 +198,7 @@ void main() {
       globe.lat = clamp(s.lat, -globe.maxLat, globe.maxLat); globe.lon = s.lon;
       tr.view0 = { lat: globe.lat, lon: globe.lon };
     }
-    globe.fly = null; globe.vlon = globe.vlat = 0; globe.hold = true;
+    globe.vlon = globe.vlat = 0; globe.hold = true;
     state.age = null;
     state.tr = tr;
     state.dived = true;
@@ -819,7 +819,8 @@ void main() {
     }).join('');
     const chron = C.history().map((it) => `<li><time>${esc(cap(ago(it.t)))}</time><div><b>${esc(it.title)}</b> <span>${esc(it.text)}</span></div></li>`).join('');
     $('#log').innerHTML = `<div class="log-inner">
-      <header><h1>Every level of life</h1><p class="lede">Small simulated worlds where living systems organise themselves from local rules. Here they are as a plain list, from a whole ecosystem down to the chemistry life began with.</p></header>
+      <header><h1>Every level of life</h1><p class="lede">Small simulated worlds where living systems organise themselves from local rules. Here they are as a plain list, from a whole ecosystem down to the chemistry life began with.</p>
+        <ul class="principles"><li>no global controller</li><li>only local rules</li><li>grounded in biology</li><li>compare, don't assume</li></ul></header>
       <section><h2>Ways in</h2><div class="ways-list">
         <a href="${ROOT}world/index.html#story"><b>Watch the story</b><span>A guided tour of one world, chapter by chapter.</span></a>
         <a href="${ROOT}labs/index.html"><b>Take a mechanism apart</b><span>Guided labs: change one thing and follow the effect. ${done.length} of ${labs.length} done.</span></a>
@@ -832,7 +833,7 @@ void main() {
   }
 
   // ---------- Views ----------
-  const STORE = 'learning-systems.deep-view';
+  const STORE = 'learning-systems.home-view';
   function syncHash() {
     const h = state.view === 'log' ? '#list' : state.at ? '#' + STOPS[state.at].id : '';
     if (location.hash !== h) history.replaceState(null, '', h || location.pathname + location.search);
@@ -859,14 +860,25 @@ void main() {
   $('#log').addEventListener('click', (e) => {
     const b = e.target.closest('[data-dive]');
     if (!b) return;
-    const i = +b.dataset.dive;
-    if (state.tr) cancel();
-    arrive(i);
-    state.dived = true;
+    jump(+b.dataset.dive);
     setView('dive');
     scrollTo(0, 0);
   });
   $('#tab-log').addEventListener('click', () => setView('log'));
+  // Straight to a stop, with no dive on the way.
+  function jump(i) {
+    if (state.tr) cancel();
+    arrive(i);
+    state.dived = true;
+  }
+  // A link to #list or to a stop, opened while the page is already open.
+  addEventListener('hashchange', () => {
+    if (location.hash === '#list') { setView('log', true); return; }
+    const i = STOPS.findIndex((st) => st.i > 0 && '#' + st.id === location.hash);
+    if (i < 0) return;
+    setView('dive', true);
+    jump(i);
+  });
 
   // ---------- Frame ----------
   let last = performance.now(), slow = 0, lastDeep = null, lastCue = null;
@@ -913,5 +925,6 @@ void main() {
   else if (first > 0) startView = 'dive';
   if (startView === 'log') setView('log', true);
   requestAnimationFrame(frame);
-  window.Deep = { globe, state, go, STOPS, setView, slots };
+  // For tests and the console.
+  window.HomePage = { globe, state, go, STOPS, setView, slots };
 })();
