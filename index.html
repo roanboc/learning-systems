@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="lib/i18n.js"></script>
 <title>Learning Systems</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -69,6 +70,8 @@ body.listing .bar { position: sticky; background: linear-gradient(var(--abyss) 7
 .ways a { text-decoration: none; color: var(--ink); font-size: 13.5px; font-weight: 500; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; background: rgba(2, 11, 16, 0.5); backdrop-filter: blur(8px); }
 .ways a:hover { border-color: var(--glow); }
 .ways small { font: 11px var(--mono); color: var(--muted); }
+.bar .lang .lang-switch { --accent: var(--glow); --surface: var(--abyss); color: var(--ink); background: rgba(2, 11, 16, 0.5); backdrop-filter: blur(8px); border-color: var(--line); }
+.bar .lang .lang-switch a { padding: 6px 11px; }
 
 /* The stop: what you are looking at. */
 .stop {
@@ -199,6 +202,7 @@ body.deep .history, body.deep .cue { opacity: 0; pointer-events: none; }
     <a href="world/index.html#story">Watch the story</a>
     <a href="labs/index.html">Guided labs <small id="labs-done"></small></a>
   </nav>
+  <span class="lang" data-lang-switch></span>
 </header>
 
 <main class="dive" id="dive" role="tabpanel" aria-labelledby="tab-dive">

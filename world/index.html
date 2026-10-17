@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="../lib/i18n.js"></script>
 <title>World Viewer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -143,6 +144,7 @@ body.exploring .story { position: fixed; z-index: 30; right: 16px; bottom: 16px;
 .controls select { padding: 4px 6px; font-size: 13px; }
 .journal { display: grid; max-height: 280px; overflow: auto; }
 .journal:empty::before { content: "Nothing noted yet."; color: var(--muted); font-size: 13px; }
+:root[lang="es"] .journal:empty::before { content: "Aún no hay notas."; }
 .entry { display: grid; gap: 2px; padding: 7px 0; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: none; text-align: left; width: 100%; }
 .entry:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
 .entry small { font: 11px var(--mono); color: var(--muted); }
@@ -211,6 +213,7 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
     <span class="eyebrow">One world, seen across the history of life</span>
     <button class="primary" id="story-btn">Tell me the story</button>
     <span class="hint">Drag to move · scroll or pinch to zoom · click to look closer</span>
+    <span data-lang-switch></span>
   </div>
 
   <nav class="timeline" id="timeline" aria-label="Timeline of life"></nav>
