@@ -38,6 +38,10 @@
     ? require('../../lib/brain.js')
     : root.BrainSim;
   const { EXC, INH, BRAIN_DEFAULTS } = BrainSim;
+  // Neurons take glucose and lactate and pay upkeep by the shared cell rule.
+  const Cell = typeof module !== 'undefined' && module.exports
+    ? require('../../lib/cell.js')
+    : root.Cell;
 
   function mulberry32(a) {
     return function () {
@@ -389,12 +393,12 @@
         n.trophic += (takeB - n.trophic) * 0.05;
 
         const fuel = this.glucose[c] + this.lactate[c];
-        const take = fuel * p.uptake;
+        const take = fuel * Cell.uptake(p.uptake);
         const fromLac = Math.min(this.lactate[c], take);
         this.lactate[c] -= fromLac;
         this.glucose[c] = Math.max(0, this.glucose[c] - (take - fromLac));
         const spikes = n.spikes; n.spikes = 0;
-        n.energy = clamp(n.energy + take * 0.6 - p.basalCost - p.spikeCost * spikes, 0, 1);
+        n.energy = clamp(n.energy + take * 0.6 - Cell.upkeep(p.basalCost) - Cell.upkeep(p.spikeCost) * spikes, 0, 1);
       }
       for (let c = 0; c < this.lactate.length; c++) this.lactate[c] *= 0.97;
       this.diffuse(this.bdnf, 0.15, 1);
