@@ -134,6 +134,12 @@
     dropBlocks: 0.5,        // coast: blocks returned per unit of plant digested
     bodyBlocks: 2,          // coast: blocks returned where a creature dies
     huntDepth: 0,           // coast: water (metres) a hunter needs to swim; shallower water is a refuge for prey
+    // Body plans (Onto land): bodies become rows of segments with fins, legs
+    // or grasping arms, and the shape decides how a creature swims, walks on
+    // dry ground and bites (BODY_PLAN_GENES, plan()). Coast worlds only.
+    bodyPlan: false,
+    shoreMats: 0,           // coast: algal mats on wet ground the tide leaves, 0 = none, 1 = as rich as the best water
+    shoreHeight: 1.2,       // coast: ground (metres above mean sea level) up to which mats grow
     // Founders: the first creatures can descend from real organisms of an
     // earlier chapter instead of random genomes (lib/gaia.js graduate()).
     // A list of { genes, origin }: genes override the random genome, origin
@@ -189,6 +195,24 @@
     meat: { wAnimal: [1, 2], orientAnimal: [0.3, 0.4], fleeAnimal: [0, 0.05], biteAnimal: [0.5, 0.6] },
     plants: { wAnimal: [-1, 0], orientAnimal: [0, 0.05], fleeAnimal: [0.1, 0.2], biteAnimal: [0, 0.05] },
   };
+  // Body-plan genes (bodyPlan worlds only). A body is a row of segments. The
+  // head can carry grasping arms; the trunk carries limb pairs, all of one
+  // type set by `limbs` (0 none, 1 fins, 2 legs: a mutation that crosses a
+  // boundary changes every limb at once, as Hox mutations do); the tail
+  // carries a fin. Rounded genes (segments, pairs, limbs) change in whole
+  // steps, like a segment copied or lost.
+  const BODY_PLAN_GENES = {
+    segments:   { min: 3, max: 12,   init: [5, 7] },
+    limbs:      { min: 0, max: 2.99, init: [1.2, 1.8] },
+    pairs:      { min: 0, max: 6,    init: [1, 2.5] },
+    limbLength: { min: 0.1, max: 1.5, init: [0.3, 0.6] },
+    sturdy:     { min: 0, max: 1,    init: [0, 0.2] },     // how much weight a limb can carry
+    arms:       { min: 0, max: 1,    init: [0, 0.3] },     // grasping arms at the head above 0.5
+    tail:       { min: 0, max: 1,    init: [0.3, 0.7] },   // tail fin
+    air:        { min: 0, max: 1,    init: [0, 0.1] },     // a skin that keeps water in, a first lung
+  };
+  const PLAN_DIET_INIT = { meat: { arms: [0.6, 0.9] }, plants: {} };
+  const PLAN_GENE_NAMES = Object.keys(BODY_PLAN_GENES);
   const GENE_NAMES = Object.keys(GENES);
   const BRAIN_GENE_NAMES = Object.keys(BRAIN_GENES);
   const TISSUE_GENE_NAMES = Object.keys(TISSUE_GENES);
@@ -376,6 +400,12 @@
       if (this.coast) {
         if (!(x >= 0 && y >= 0 && x < this.p.size && y < this.H)) return 0;
         const i = this.cellAt(x, y);
+        if (this.p.shoreMats > 0 && this.earth.water[i] <= 0.05) {
+          // Mats on the low, damp ground the tide uncovers: sunlight is all
+          // they need (simplified: no building blocks on dry ground).
+          if (this.earth.ground[i] > this.p.shoreHeight) return 0;
+          return this.p.shoreMats * Math.min(1, this.dayLight[i] / this.p.lightFull);
+        }
         if (this.earth.water[i] <= 0.05 || this.earth.temp[i] > this.p.hotAt) return 0;
         const b = this.coast.f.blocks[i];
         return Math.min(1, this.dayLight[i] / this.p.lightFull) * b / (b + this.p.nutrientHalf);
@@ -418,7 +448,7 @@
         if (this.coast && plant.growth > 0) {
           // Growing takes building blocks out of the water.
           const b = this.coast.f.blocks, i = this.cellAt(plant.x, plant.y);
-          b[i] = Math.max(0, b[i] - plant.growth * p.plantBlocks);
+          if (!(p.shoreMats > 0 && this.earth.water[i] <= 0.05)) b[i] = Math.max(0, b[i] - plant.growth * p.plantBlocks);
         }
         if (plant.size <= 0) { plant.dead = true; plant.death = 'starved'; continue; }
         if (plant.age > plant.lifespan) {
@@ -467,7 +497,7 @@
 
     geneSpec(k) {
       return GENES[k] || BRAIN_GENES[k] || TISSUE_GENES[k] || REFLEX_ANIMAL_GENES[k] || BRAIN_ANIMAL_GENES[k]
-        || (this.p.body ? BodySim().BODY_GENES[k] : undefined);
+        || (this.p.body ? BodySim().BODY_GENES[k] : undefined) || (this.p.bodyPlan ? BODY_PLAN_GENES[k] : undefined);
     }
 
     geneNames(mind) {
@@ -475,12 +505,13 @@
       let names = brainy ? GENE_NAMES.concat(BRAIN_GENE_NAMES) : GENE_NAMES;
       if (mind === 'tissue' || mind === 'any') names = names.concat(TISSUE_GENE_NAMES);
       if (this.p.body) names = names.concat(Object.keys(BodySim().BODY_GENES));
+      if (this.p.bodyPlan) names = names.concat(PLAN_GENE_NAMES);
       if (!this.animalSight) return names;
       return names.concat(Object.keys(brainy ? BRAIN_ANIMAL_GENES : REFLEX_ANIMAL_GENES));
     }
 
     randomGenome(sp) {
-      const init = Object.assign({}, this.animalSight ? DIET_INIT[sp.diet] : null, this.p.geneInit, sp.geneInit);
+      const init = Object.assign({}, this.animalSight ? DIET_INIT[sp.diet] : null, this.p.bodyPlan ? PLAN_DIET_INIT[sp.diet] : null, this.p.geneInit, sp.geneInit);
       const fixed = Object.assign({}, this.p.fixed, sp.fixed);
       const g = {};
       for (const k of this.geneNames(sp.mind)) {
@@ -494,7 +525,7 @@
       const g = {}, fixed = Object.assign({}, this.p.fixed, sp.fixed);
       for (const k of this.geneNames(sp.mind)) {
         const spec = this.geneSpec(k);
-        const size = GENES[k] || REFLEX_ANIMAL_GENES[k] || (this.p.body && BodySim().BODY_GENES[k]) ? this.p.mutation : this.p.brainMutation;
+        const size = GENES[k] || REFLEX_ANIMAL_GENES[k] || (this.p.body && BodySim().BODY_GENES[k]) || (this.p.bodyPlan && BODY_PLAN_GENES[k]) ? this.p.mutation : this.p.brainMutation;
         g[k] = k in fixed ? fixed[k]
           : clamp(parent[k] + gauss(this.rng) * size * (spec.max - spec.min), spec.min, spec.max);
       }
@@ -676,6 +707,38 @@
       return c.body ? c.g.senseRange * c.body.sightFactor() : c.g.senseRange;
     }
 
+    // Body plan (bodyPlan worlds): what a plant eater's shape does for it,
+    // computed once from its genes. Grasping arms only cost.
+    //   swim   speed factor in water: long bodies and a tail fin are
+    //          streamlined, fins add a little thrust, legs and arms add drag
+    //   walk   speed factor on dry ground: only legs walk, and only as well as
+    //          they hold the body up (pairs x sturdiness against its weight,
+    //          the number of segments). Only legs step out of the water; fins
+    //          can flop back from a pool that dried around them
+    //   upkeep energy per step for limbs, arms, tail, segments and air skin
+    plan(c) {
+      if (c._plan) return c._plan;
+      const g = c.g;
+      const segs = Math.round(g.segments), type = Math.floor(g.limbs);
+      const pairs = type ? Math.min(Math.round(g.pairs), segs - 2) : 0, arms = g.arms > 0.5;
+      const elong = (segs - 3) / 9, weight = segs / 6, len = Math.min(1, g.limbLength);
+      let drag = 0, thrust = 1;
+      if (type === 2) drag += 0.12 * pairs * g.limbLength * (0.6 + g.sturdy);
+      if (type === 1) { drag += 0.02 * pairs * g.limbLength; thrust = Math.min(1.1, 1 + 0.04 * pairs * len); }
+      const hold = type === 2 ? Math.min(1, 1.5 * pairs * g.sturdy / weight) : 0;
+      const swim = (0.9 + 0.15 * elong) * (1 + 0.1 * g.tail) * thrust / (1 + drag);
+      // Hunters stay in deep water and pay nothing for their shape: with
+      // upkeep on them too, they died out in 4 of 5 test seeds.
+      if (c.meat) return (c._plan = { segs, type, pairs, arms, hold: 0, swim, walk: 0, upkeep: 0 });
+      return (c._plan = {
+        segs, type, pairs, arms, hold,
+        swim,
+        walk: type === 2 ? 0.9 * (0.5 + 0.5 * len) * (0.3 + 0.7 * hold) : type === 1 ? 0.12 : 0,
+        upkeep: 0.001 * (segs - 3) + (pairs ? 0.002 * pairs * g.limbLength * (1 + g.sturdy) : 0)
+          + (arms ? 0.002 : 0) + 0.001 * g.tail + 0.008 * g.air,
+      });
+    }
+
     // Energy as the rest of the world sees it. A body that has lost too many cells dies.
     bodyEnergy(c) {
       c.energy = c.body.failed() ? 0 : c.body.total();
@@ -758,7 +821,17 @@
         }
         // With a body, speed comes from the muscle cells that are alive and fed.
         const speed = c.body ? g.speed * c.body.speedFactor() : g.speed;
-        if (this.coast) {
+        if (this.coast && p.bodyPlan) {
+          // Body plans: swim in water, walk on dry ground if the body can.
+          // Hunters still need deep water (huntDepth).
+          const i = this.cellAt(c.x, c.y), e = this.earth, pl = this.plan(c);
+          const wet = e.water[i] > 0.05, v = speed * (wet ? pl.swim : pl.walk);
+          const nx = c.x + Math.cos(c.heading) * v + e.vx[i] * this.sx * p.drift;
+          const ny = c.y + Math.sin(c.heading) * v + e.vy[i] * this.sx * p.drift;
+          const inside = nx >= 0 && ny >= 0 && nx < p.size && ny < this.H;
+          const ok = inside && (this.swimmable(nx, ny, c) || (!c.meat && pl.type === 2 && pl.walk > 0) || (!wet && pl.walk > 0));
+          if (ok) { c.x = nx; c.y = ny; } else c.heading += Math.PI * (0.5 + this.rng());
+        } else if (this.coast) {
           // Swim, and be carried by the current. Dry ground stops a creature,
           // which turns away.
           const i = this.cellAt(c.x, c.y), e = this.earth;
@@ -816,7 +889,20 @@
           c.body.step(c.brainCost);
           this.bodyEnergy(c);
         } else c.energy -= p.basalCost + p.moveCost * g.speed * g.speed + p.senseCost * g.senseRange + c.brainCost;
-        if (this.coast) {
+        if (p.bodyPlan && this.coast) {
+          // Body parts cost upkeep; out of water a creature dries out, less
+          // with an air skin. `dry` remembers how much of its life is on land.
+          const pl = this.plan(c), i = this.cellAt(c.x, c.y), out = this.earth.water[i] <= 0.05;
+          this.hurt(c, pl.upkeep);
+          c.dry = (c.dry || 0) * 0.995 + (out ? 0.005 : 0);
+          if (out) { this.hurt(c, p.strandDamage * (1 - 0.95 * g.air)); if (c.energy <= 0) c.diedOf = 'stranded'; }
+          else if (this.earth.temp[i] > p.hotAt) { this.hurt(c, p.heatDamage); if (c.energy <= 0) c.diedOf = 'cooked'; }
+          if (c.gut > 0) {
+            const d = c.gut * p.dungRate;
+            c.gut -= d;
+            this.release(c.x, c.y, d * p.dropBlocks);
+          }
+        } else if (this.coast) {
           const i = this.cellAt(c.x, c.y), e = this.earth;
           if (e.water[i] <= 0.05) { this.hurt(c, p.strandDamage); if (c.energy <= 0) c.diedOf = 'stranded'; }
           else if (e.temp[i] > p.hotAt) { this.hurt(c, p.heatDamage); if (c.energy <= 0) c.diedOf = 'cooked'; }
@@ -952,6 +1038,40 @@
       c.heading += p.turnGain * (c.motorL - c.motorR);
     }
 
+    // Body plans in the population, for plant eaters at sea and on the shore
+    // (a creature is "shore" when it has spent over a tenth of its recent
+    // life on dry ground). Disparity: the summed variance of the shape genes,
+    // each scaled to its range, a teaching version of morphological
+    // disparity. Layouts: distinct (segments, limb type, pairs, arms) plans.
+    planStats() {
+      const groups = { sea: [], shore: [] };
+      let hunters = 0, arms = 0;
+      for (const c of this.creatures) {
+        if (c.meat) { hunters++; if (this.plan(c).arms) arms++; continue; }
+        groups[(c.dry || 0) > 0.1 ? 'shore' : 'sea'].push(c);
+      }
+      const prey = groups.sea.concat(groups.shore), out = { shoreShare: prey.length ? groups.shore.length / prey.length : null, huntersArms: hunters ? arms / hunters : null };
+      const mean = (list, f) => (list.length ? list.reduce((a, c) => a + f(c), 0) / list.length : null);
+      for (const [name, list] of [['', prey], ['sea', groups.sea], ['shore', groups.shore]]) {
+        const key = (k) => (name ? name + k[0].toUpperCase() + k.slice(1) : k);
+        out[key('legs')] = mean(list, (c) => (this.plan(c).type === 2 ? 1 : 0));
+        out[key('fins')] = mean(list, (c) => (this.plan(c).type === 1 ? 1 : 0));
+        for (const k of ['segments', 'pairs', 'limbLength', 'sturdy', 'air', 'tail']) out[key(k)] = mean(list, (c) => c.g[k]);
+        out[key('hold')] = mean(list, (c) => this.plan(c).hold);
+        let disp = null;
+        if (list.length > 2) {
+          disp = 0;
+          for (const k of PLAN_GENE_NAMES) {
+            const s = BODY_PLAN_GENES[k], r = s.max - s.min, m = mean(list, (c) => c.g[k]);
+            disp += mean(list, (c) => ((c.g[k] - m) / r) ** 2);
+          }
+        }
+        out[key('disparity')] = disp;
+        out[key('layouts')] = new Set(list.map((c) => { const q = this.plan(c); return [q.segs, q.type, q.pairs, q.arms].join(); })).size;
+      }
+      return out;
+    }
+
     // 0.5 = bites food and poison alike, 1 = bites only food, 0 = only poison.
     pickiness() {
       if (this.lipFood < 20 || this.lipPoison < 20) return null;
@@ -996,7 +1116,7 @@
       for (const pl of this.plants) { if (pl.poison) poison++; else food++; }
       // Preference for whichever colour is currently food, minus the poison colour.
       const foodPref = this.foodColour === GREEN ? mean.wGreen - mean.wViolet : mean.wViolet - mean.wGreen;
-      this.history.push({
+      const rec = {
         t: this.t,
         population: n,
         food,
@@ -1034,7 +1154,9 @@
         gut: bodies ? mean.gut : null,
         skin: bodies ? mean.skin : null,
         renew: bodies ? mean.renew : null,
-      });
+      };
+      if (this.p.bodyPlan) Object.assign(rec, this.planStats());
+      this.history.push(rec);
       this.intervalBirths = 0;
       this.intervalDeaths = 0;
       this.intervalFoodMeals = 0;
@@ -1047,7 +1169,7 @@
     }
   }
 
-  const api = { World, DEFAULTS, GENES, GENE_NAMES, BRAIN_GENES, BRAIN_GENE_NAMES, TISSUE_GENES, GREEN, VIOLET };
+  const api = { World, DEFAULTS, GENES, GENE_NAMES, BRAIN_GENES, BRAIN_GENE_NAMES, TISSUE_GENES, BODY_PLAN_GENES, GREEN, VIOLET };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.WorldSim = api;
 })(typeof self !== 'undefined' ? self : this);

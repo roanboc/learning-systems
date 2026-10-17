@@ -24,6 +24,7 @@
   const LADDER = [
     { id: 'planet' },
     { id: 'ecosystems', into: 'Many creatures sharing one sea floor.' },
+    { id: 'onto-land', into: 'Where the sea meets the land: bodies with legs.' },
     { id: 'brains', into: 'One of those creatures, and the small brain that steers it.' },
     { id: 'tissue', into: 'Inside a brain: a slice of living tissue.' },
     { id: 'nerve-nets', into: 'Simpler and older: nerves with no brain.' },

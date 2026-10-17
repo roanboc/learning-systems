@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="../../lib/i18n.js"></script>
+<title>Onto Land</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: as Colonies. Toolbar and comparison chart on top, the two coasts below, then the science. */
+:root {
+  --bg: #f1f3f0;
+  --surface: #fbfcfa;
+  --ink: #1b2420;
+  --muted: #5b6862;
+  --line: #d3dad5;
+  --accent: #2a6f73;
+  --dish: #0f1613;
+  --danger: #b4412b;
+  --green: #3f9a4a; --violet: #8a56c2;
+  --s1: #2a6f73; --s2: #c0532a; --s3: #a07a12;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111614; --surface: #19201d; --ink: #e2e9e4; --muted: #95a39c; --line: #2b3531;
+    --accent: #6db6b8; --dish: #0b100e; --danger: #e07a62;
+    --green: #6cc777; --violet: #b18ae6;
+    --s1: #6db6b8; --s2: #e8875c; --s3: #d4ad45;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111614; --surface: #19201d; --ink: #e2e9e4; --muted: #95a39c; --line: #2b3531;
+  --accent: #6db6b8; --dish: #0b100e; --danger: #e07a62;
+  --green: #6cc777; --violet: #b18ae6;
+  --s1: #6db6b8; --s2: #e8875c; --s3: #d4ad45;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--sans); padding-inline: 16px; padding-block: 20px 40px; }
+.wrap { max-width: 1400px; margin: 0 auto; display: grid; gap: 18px; }
+header { display: grid; gap: 6px; }
+h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+h2 { margin: 0; font-size: 17px; font-weight: 600; }
+h3 { margin: 6px 0 0; font-size: 14px; font-weight: 600; }
+.sub { color: var(--muted); max-width: 78ch; margin: 0; }
+.eyebrow { font: 500 11px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.back { font-size: 13px; color: var(--accent); text-decoration: none; justify-self: start; }
+.back:hover { text-decoration: underline; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button, select { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; }
+button { cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, select:focus-visible, canvas:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button.primary { background: var(--accent); color: var(--surface); border-color: var(--accent); font-weight: 600; min-width: 84px; }
+.clock { font: 500 13px var(--mono); color: var(--muted); margin-left: auto; font-variant-numeric: tabular-nums; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.chart-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 12px; padding: 4px 9px; border-radius: 999px; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 12px; height: 3px; border-radius: 2px; display: inline-block; }
+#chart { width: 100%; height: 180px; display: block; }
+.chart-note { font-size: 12px; color: var(--muted); margin: 0; }
+.worlds { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(560px, 100%), 1fr)); }
+.world { display: grid; gap: 10px; align-content: start; grid-template-columns: minmax(0, 1fr); }
+.world-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.world-head .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.world-head b { flex: 1 1 10ch; }
+.world-head small { color: var(--muted); font-size: 12px; flex-basis: 100%; }
+.mapbox { position: relative; }
+canvas.map { width: 100%; aspect-ratio: 900 / 560; display: block; background: var(--dish); border-radius: 6px; cursor: pointer; touch-action: none; }
+.zoom { position: absolute; right: 8px; top: 8px; display: flex; flex-direction: column; gap: 4px; }
+.zoom button { width: 30px; height: 30px; padding: 0; background: color-mix(in srgb, var(--surface) 85%, transparent); font-weight: 600; }
+.hud { position: absolute; left: 8px; bottom: 8px; font: 500 11px var(--mono); color: #e6efe9; background: rgba(10,16,14,0.6); border-radius: 4px; padding: 3px 7px; pointer-events: none; }
+.stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.stat { display: grid; gap: 2px; }
+.stat b { font: 500 15px var(--mono); font-variant-numeric: tabular-nums; }
+.stat small { font-size: 11px; color: var(--muted); }
+.inspect { font: 12px/1.6 var(--mono); color: var(--muted); min-height: 3.2em; overflow-wrap: anywhere; }
+.inspect b { color: var(--ink); font-weight: 500; }
+.inspect button { font: 12px var(--sans); padding: 2px 8px; margin-left: 6px; }
+.plans { display: grid; gap: 6px; }
+.plans-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.plan { display: grid; justify-items: center; gap: 2px; font: 11px var(--mono); color: var(--muted); width: 74px; }
+.plan canvas { width: 64px; height: 44px; background: var(--dish); border-radius: 6px; }
+.key { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--muted); }
+.key i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; vertical-align: -1px; margin-right: 5px; box-shadow: 0 0 0 1px var(--line); }
+.speed { display: inline-flex; gap: 6px; align-items: center; font-size: 12px; color: var(--muted); }
+details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+.explain { display: grid; gap: 8px; font-size: 13px; color: var(--muted); max-width: 90ch; }
+.explain p { margin: 0; }
+.explain b { color: var(--ink); }
+.tag { font: 500 11px var(--mono); border: 1px solid var(--line); border-radius: 999px; padding: 0 6px; white-space: nowrap; color: var(--ink); }
+table { border-collapse: collapse; font-size: 13px; width: 100%; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; }
+td.num { font: 13px var(--mono); font-variant-numeric: tabular-nums; }
+.table-wrap { overflow-x: auto; }
+.refs { display: grid; gap: 8px; font-size: 13px; color: var(--muted); max-width: 100ch; }
+.refs ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.refs a { color: var(--accent); overflow-wrap: anywhere; }
+.refs b { color: var(--ink); font-weight: 500; }
+@media (max-width: 620px) { .stats { grid-template-columns: repeat(3, 1fr); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../../index.html">← Learning Systems</a>
+  <header>
+    <span class="eyebrow">Timeline of life · Chapter 7</span>
+    <h1>Onto land: body plans</h1>
+    <p class="sub">The Ecosystems coast, about 430 to 375 million years ago. Every grazer's body is now a row of <b>segments</b>. Its trunk carries pairs of <b>fins</b> or <b>legs</b>, its tail a fin, and its genes say how many, how long and how sturdy. In water, slender bodies with fins swim fastest. On dry ground only legs walk, and only if they can hold the body up. Left: green <b>mats</b> grow on the damp ground the tide uncovers. Right: the same coast with nothing to eat on land. Watch which bodies evolve on each.</p>
+  </header>
+
+  <div class="toolbar">
+    <button class="primary" id="play">Pause</button>
+    <label class="speed">Speed
+      <select id="speed">
+        <option value="1">Slow</option>
+        <option value="2" selected>Normal</option>
+        <option value="6">Fast</option>
+        <option value="ff">Fast-forward</option>
+      </select>
+    </label>
+    <button id="restart">Start again</button>
+    <span class="clock" id="clock">Day 0</span>
+  </div>
+
+  <section class="panel" aria-labelledby="chart-h">
+    <div class="chart-head">
+      <b id="chart-h">Compare the two coasts</b>
+      <div class="chips" id="metrics" role="group" aria-label="What to chart"></div>
+    </div>
+    <canvas id="chart" aria-label="Chart comparing the two coasts over time"></canvas>
+    <div class="legend" id="legend"></div>
+    <p class="chart-note" id="chart-note"></p>
+  </section>
+
+  <div class="key" aria-label="Colours">
+    <span><i style="background:#e9c27a"></i>Grazer with legs</span>
+    <span><i style="background:#bfe1ec"></i>Grazer with fins</span>
+    <span><i style="background:#e8efe9"></i>Grazer with no limbs</span>
+    <span><i style="background:var(--danger)"></i>Hunter</span>
+    <span><i style="background:var(--green)"></i>Seaweed and mats (food)</span>
+    <span><i style="background:var(--violet)"></i>Poisonous</span>
+  </div>
+
+  <section class="worlds" id="worlds" aria-label="Coasts"></section>
+
+  <details class="panel">
+    <summary>How a body works here</summary>
+    <div class="explain">
+      <p><b>Segments.</b> A body has 3 to 12 segments. Longer bodies are more streamlined and swim faster, but they weigh more on land.</p>
+      <p><b>Limbs.</b> One gene sets the kind of limb for the whole trunk: none, fins or legs. A mutation that crosses from fins to legs changes every pair at once, as a mutation in a Hox gene can turn one kind of appendage into another. Other genes set the number of pairs, their length and how sturdy they are.</p>
+      <p><b>In water.</b> Fins add a little thrust, legs add drag, and a tail fin pushes.</p>
+      <p><b>On dry ground.</b> Only legs step out of the water. Walking speed depends on how well the legs hold the body up: pairs × sturdiness against the body's weight (its segments). A body its legs can't hold drags itself along.</p>
+      <p><b>Air.</b> Out of water a creature dries out and loses energy every step. An air skin (one gene for a tougher skin and a first lung) slows that, and costs a little upkeep.</p>
+      <p><b>Hunters</b> need water at least a metre deep, so the shallows and the shore are a refuge. Their shape evolves too and sets how fast they swim, but their body parts cost them nothing.</p>
+    </div>
+  </details>
+
+  <section class="panel" aria-labelledby="science-h">
+    <h2 id="science-h">Was shaping more creative on land?</h2>
+    <div class="explain">
+      <p>Only partly. <b>Almost every animal body plan</b>, and the first legs, arms, antennae and fins, appeared <b>in the sea</b> during the Cambrian explosion, about 539 to 515 million years ago <span class="tag">well supported</span>. Groups reach their widest range of shapes early in their history <span class="tag">well supported</span>.</p>
+      <p><b>The tools for shaping were ready before land.</b> The same genes lay out fish fins, insect legs, worm paddles and sea-urchin tube feet (Hox genes along the body, Distal-less where an outgrowth grows), so their common ancestor already had them, in the sea <span class="tag">well supported</span>.</p>
+      <p><b>Legs began in water.</b> Tiktaalik, 375 million years ago, was a fish with sturdy, wrist-like fins in shallow water. Early four-limbed animals such as Acanthostega had toes and still lived in water. Footprints on a tidal flat in Poland are about 395 million years old <span class="tag">well supported</span>.</p>
+      <p><b>Crossing to land did not widen the range of limb shapes</b>: fins just before and limbs just after show a similar spread <span class="tag">debated</span> (one study).</p>
+      <p><b>Where the idea holds.</b> Land rebuilt old parts for new jobs: fins into legs that carry weight, gill supports into ear bones and, later, wings. And land lineages split into new species faster, which is why most species today live on land <span class="tag">well supported</span>. So the sea invented the body plans, and land remodelled them and multiplied species <span class="tag">debated</span> as a summary of "more creative".</p>
+      <p><b>The systems idea: modularity.</b> A body built from repeated parts can change by copying a part or switching what a whole region grows. That lets evolution try many shapes quickly <span class="tag">debated</span> in real animals, strong in models.</p>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="found-h">
+    <h2 id="found-h">What we found</h2>
+    <div class="explain" id="found">
+      <p>Six seeds, 10,000 steps (about 14 days) each, three coasts per seed: shore mats, the twin with nothing on land, and mats with no hunters. Averages over the last 2,000 steps, with the range across seeds. Details are in the README.</p>
+      <p><b>Shape follows place.</b> With mats, legs spread to over a quarter of the grazers in 4 of 6 seeds; on the twin, in none. Legged grazers gathered on the shore, and their legs held more of their weight.</p>
+      <p><b>What did not happen.</b> The sturdiness and air-skin genes rose on both coasts alike: they cost little, so they drift. Longer bodies did not carry sturdier legs. Hunters survived on only 2 of 6 seeds, on both coasts.</p>
+      <p><b>The open question.</b> Disparity rose about tenfold on all three coasts and was not clearly higher with food on land. Here land changed which shapes won more than how varied they were, much like the fossil study of fins and limbs. Without hunters, legs spread on only 1 of 6 seeds, so hunters may help push grazers ashore (an early sign).</p>
+    </div>
+    <div class="table-wrap">
+      <table id="results">
+        <thead><tr><th>Measure</th><th>Shore mats</th><th>Kept in the sea</th><th>Mats, no hunters</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <details class="panel">
+    <summary>What is real here, and what is simplified</summary>
+    <div class="explain">
+      <p><b>Grounded.</b> Bodies built from repeated segments, one limb type per body region, weight support as the main problem on land, drying out, and food on land before animals: plants and microbial mats reached land before animals did, and the first land animals ate plants and debris.</p>
+      <p><b>Simplified.</b> Three regions instead of real Hox domains, one gene for skin and lungs together, mats that need only sunlight, and costs and speeds chosen so the trade-offs show. Drying out is gentler here than on the other coasts (damp ground). Hunters pay nothing for their shape: when they did, they died out in four of five test seeds. Even so they survive on only two of six seeds (Ecosystems: three of four). The page runs seed 1, where they survive.</p>
+    </div>
+  </details>
+
+  <section class="panel refs" aria-labelledby="refs-h">
+    <h2 id="refs-h">References</h2>
+    <h3>Studies and papers</h3>
+    <ul>
+      <li>Hughes, M., Gerber, S. and Wills, M. A. (2013). Clades reach highest morphological disparity early in their evolution. <i>PNAS</i> 110: 13875–13879. <a href="https://doi.org/10.1073/pnas.1302642110">doi:10.1073/pnas.1302642110</a>. Shape range peaks early; the disparity measure. <b>well supported</b></li>
+      <li>Grosberg, R. K., Vermeij, G. J. and Wainwright, P. C. (2012). Biodiversity in water and on land. <i>Current Biology</i> 22: R900–R903. <a href="https://doi.org/10.1016/j.cub.2012.09.050">doi:10.1016/j.cub.2012.09.050</a>. The sea holds more body plans, land more species. <b>well supported</b></li>
+      <li>Wiens, J. J. (2015). Faster diversification on land than sea helps explain global biodiversity patterns among habitats and animal phyla. <i>Ecology Letters</i> 18: 1234–1241. <a href="https://doi.org/10.1111/ele.12503">doi:10.1111/ele.12503</a>. Land multiplies species. <b>well supported</b></li>
+      <li>Panganiban, G. et al. (1997). The origin and evolution of animal appendages. <i>PNAS</i> 94: 5162–5166. <a href="https://doi.org/10.1073/pnas.94.10.5162">doi:10.1073/pnas.94.10.5162</a>. One gene marks all appendages; one limb type per region. <b>well supported</b></li>
+      <li>Shubin, N., Tabin, C. and Carroll, S. (2009). Deep homology and the origins of evolutionary novelty. <i>Nature</i> 457: 818–823. <a href="https://doi.org/10.1038/nature07891">doi:10.1038/nature07891</a>. The shared toolkit predates land. <b>well supported</b></li>
+      <li>Daeschler, E. B., Shubin, N. H. and Jenkins, F. A. (2006). A Devonian tetrapod-like fish and the evolution of the tetrapod body plan. <i>Nature</i> 440: 757–763. <a href="https://doi.org/10.1038/nature04639">doi:10.1038/nature04639</a>. Tiktaalik; the date and place of this chapter. <b>well supported</b></li>
+      <li>Coates, M. I. and Clack, J. A. (1990). Polydactyly in the earliest known tetrapod limbs. <i>Nature</i> 347: 66–69. <a href="https://doi.org/10.1038/347066a0">doi:10.1038/347066a0</a>. Limbs with toes on animals that lived in water. <b>well supported</b></li>
+      <li>Niedźwiedzki, G., Szrek, P., Narkiewicz, K., Narkiewicz, M. and Ahlberg, P. E. (2010). Tetrapod trackways from the early Middle Devonian period of Poland. <i>Nature</i> 463: 43–48. <a href="https://doi.org/10.1038/nature08623">doi:10.1038/nature08623</a>. Four-limbed animals on a tidal flat about 395 million years ago. <b>well supported</b>; who made the tracks is debated.</li>
+      <li>Ruta, M. and Wills, M. A. (2016). Comparable disparity in the appendicular skeleton across the fish–tetrapod transition, and the morphological gap separating fins from limbs. <i>Palaeontology</i> 59: 249–267. <a href="https://doi.org/10.1111/pala.12227">doi:10.1111/pala.12227</a>. No burst of limb shapes at the move to land. <b>debated</b> (one study)</li>
+      <li>Wilson, H. M. and Anderson, L. I. (2004). Morphology and taxonomy of Paleozoic millipedes from Scotland. <i>Journal of Paleontology</i> 78: 169–184. <a href="https://doi.org/10.1666/0022-3360(2004)078%3C0169:MATOPM%3E2.0.CO;2">doi:10.1666/0022-3360(2004)078&lt;0169:MATOPM&gt;2.0.CO;2</a>. Pneumodesmus, among the oldest land animals, about 425 million years ago. <b>well supported</b></li>
+      <li>Wagner, G. P. and Altenberg, L. (1996). Complex adaptations and the evolution of evolvability. <i>Evolution</i> 50: 967–976. <a href="https://doi.org/10.1111/j.1558-5646.1996.tb02339.x">doi:10.1111/j.1558-5646.1996.tb02339.x</a>. Modularity and evolvability, the systems idea. <b>debated</b> in real animals</li>
+      <li>Clune, J., Mouret, J.-B. and Lipson, H. (2013). The evolutionary origins of modularity. <i>Proceedings of the Royal Society B</i> 280: 20122863. <a href="https://doi.org/10.1098/rspb.2012.2863">doi:10.1098/rspb.2012.2863</a>. Why modular designs evolve. <b>debated</b></li>
+    </ul>
+    <h3>Books</h3>
+    <ul>
+      <li>Erwin, D. H. and Valentine, J. W. (2013). <i>The Cambrian Explosion: The Construction of Animal Biodiversity</i>. Roberts and Company. Nearly all body plans arose in the Cambrian sea. <b>well supported</b></li>
+      <li>Clack, J. A. (2012). <i>Gaining Ground: The Origin and Evolution of Tetrapods</i>, 2nd ed. Indiana University Press. Fins to limbs; holding the body up on land. <b>well supported</b></li>
+      <li>Carroll, S. B., Grenier, J. K. and Weatherbee, S. D. (2005). <i>From DNA to Diversity</i>, 2nd ed. Blackwell. Hox genes and body regions. <b>well supported</b></li>
+      <li>Shubin, N. (2008). <i>Your Inner Fish</i>. Pantheon. A readable account of Tiktaalik and deep homology.</li>
+    </ul>
+    <h3>Simulations we took inspiration from</h3>
+    <ul>
+      <li>Sims, K. (1994). Evolving virtual creatures. <i>SIGGRAPH '94</i>, 15–22. <a href="https://doi.org/10.1145/192161.192167">doi:10.1145/192161.192167</a>. Bodies built from repeated parts, evolved for swimming and walking. We put the shapes in an ecosystem on a coast with tides and food instead of a race.</li>
+      <li>Dawkins, R. (1986). <i>The Blind Watchmaker</i> (Biomorphs). A few developmental genes shape what evolution can reach. Here the shapes matter for survival.</li>
+      <li>Spore (Maxis, 2008). Creatures designed by the player. Here nobody designs; shapes evolve.</li>
+    </ul>
+    <p>Checked on 2026-10-17.</p>
+  </section>
+</div>
+
+<template id="world-tpl">
+  <article class="world panel">
+    <div class="world-head">
+      <span class="dot"></span>
+      <b class="name"></b>
+      <small class="what"></small>
+    </div>
+    <div class="mapbox">
+      <canvas class="map" tabindex="0"></canvas>
+      <div class="zoom">
+        <button class="zin" aria-label="Zoom in">+</button>
+        <button class="zout" aria-label="Zoom out">−</button>
+        <button class="zfit" aria-label="Show whole map">⤢</button>
+      </div>
+      <div class="hud"></div>
+    </div>
+    <div class="stats"></div>
+    <div class="inspect">Click a grazer to see its body plan.</div>
+    <div class="plans">
+      <b>Most common body plans</b>
+      <div class="plans-row"></div>
+    </div>
+  </article>
+</template>
+
+<script src="../../lib/earth.js"></script>
+<script src="../../lib/chemistry.js"></script>
+<script src="../../lib/brain.js"></script>
+<script src="../forager-worlds/engine.js"></script>
+<script src="../../lib/gaia.js"></script>
+<script src="../early-earth/draw.js"></script>
+<script src="../../lib/creature-draw.js"></script>
+<script src="results.js"></script>
+<script src="app.js"></script>
+<script src="../../lib/learn.js"></script>
+<script src="labs.js"></script>
+<script src="../../lib/nav.js"></script>
+</body>
+</html>
