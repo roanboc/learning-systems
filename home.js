@@ -30,6 +30,7 @@
     { id: 'bodies', into: 'Before nerves: cells that squeeze together.' },
     { id: 'colonies', into: 'Before bodies: cells that stick together.' },
     { id: 'first-cells', into: 'Before colonies: single cells on their own.' },
+    { id: 'first-genes', into: 'Before cells: protocells whose genes make their own skin.' },
     { id: 'early-earth', into: 'Before life: molecules in a young sea.' },
   ];
 

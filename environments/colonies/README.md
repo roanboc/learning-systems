@@ -1,6 +1,6 @@
 # Colonies: sharers and cheats
 
-Chapter 2 of the timeline of life, as its own lab page. Open `index.html` in a browser. No build step.
+Chapter 3 of the timeline of life, as its own lab page. Open `index.html` in a browser. No build step.
 
 It reuses the First cells page (`../first-cells/app.js` and `draw.js`) with `data-stage="colonies"`, so the engine is `lib/life.js` at stage `colonies` with its opt-in `goods` setting switched on. Nothing changes for other pages or the World Viewer: with `goods` off, every world draws the same random numbers and gives the same results as before.
 

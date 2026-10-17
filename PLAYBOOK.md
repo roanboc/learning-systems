@@ -14,6 +14,9 @@ Short lessons, each with the product it came from. Add one when something surpri
 - **A behaviour can be useless until the world lets it pay.** Steering toward food did nothing while cells felt the full current; at 25% drift it evolved (First cells).
 - **Selection is weak when food caps the population.** Specialisation and nerve genes rose only modestly; say so rather than over-tune (Colonies, Nerve nets).
 - **Night crashes look like a bug.** Boom and bust at night came from food running out; low upkeep and a prey-scaled predator cap fixed it (cell chapters).
+- **Chance only selects when numbers are small.** Protocells holding about 150 copier molecules split them so evenly that parasites won everywhere (working genes 3%). With about 15 molecules per protocell, daughters differ enough for selection between protocells to keep working genes at 52–63% (First genes).
+- **A full world selects nothing if splits are blocked.** Bubbles that could not split at the cap froze evolution. Letting random ones break up when the sea is full (so fast splitters replace others) brought selection back (First genes).
+- **What organisms leave behind changes the test.** Broken protocells left their oils in the water, so after about 6,000 steps protocells without skin-makers recovered. Report results by time window, not only at the end (First genes).
 - **Seaweed starved until its light and nutrient thresholds matched the coast** (0.15, not 0.5 and 0.3; Gaia PR #16).
 
 ## Honesty

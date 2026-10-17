@@ -1,6 +1,6 @@
 # Proposal: First genes (a self-making protocell), and reproduction across Gaia
 
-Status: **proposal, waiting for Rodrigo's confirmation** (AGENTS.md stage 5). No code yet.
+Status: **confirmed by Rodrigo on 2026-10-17 and built.** Results are in [README.md](README.md).
 
 Asked by Rodrigo on 2026-10-17: "include the genes milestone, how genes started their journey with the first organisms that developed them and what was the purpose. We haven't touched the reproduction mechanism either. It would be good to have an autopoiesis module."
 
@@ -142,6 +142,6 @@ All links and details to be re-checked on the date the page is written.
 | Date | Decision |
 |---|---|
 | 2026-10-17 | Rodrigo asked for a genes milestone, reproduction and an autopoiesis module, built inside Gaia. |
-| 2026-10-17 | Proposed: one chapter, First genes, that carries all three (genes as copiers with a job, protocell reproduction, closure meter). Sex as a separate second step. **Waiting for confirmation.** |
-| pending | Move Early Earth to about 4.4 billion years ago, or keep it at 4.0 and give First genes a debated range. |
-| pending | Sex later in Bodies (recommended) or in Brains creatures. |
+| 2026-10-17 | Proposed: one chapter, First genes, that carries all three (genes as copiers with a job, protocell reproduction, closure meter). Sex as a separate second step. |
+| 2026-10-17 | Rodrigo confirmed the recommendations: build First genes as the autopoiesis module, linking the related milestones; move Early Earth to about 4.4 billion years ago; sex later in Bodies. |
+| 2026-10-17 | Built. Chapters after Early Earth are renumbered (First cells is now chapter 2). The "Linked genes" world copies genes as one chain as well as passing them on together. Claims 1 and 4 failed as written; see README. |

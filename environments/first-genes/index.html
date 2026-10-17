@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="../../lib/i18n.js"></script>
+<title>First Genes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a map you can fly over. Toolbar and comparison chart on top, one map per world below, each with its own journal. */
+:root {
+  --bg: #f1f3f0;
+  --surface: #fbfcfa;
+  --ink: #1b2420;
+  --muted: #5b6862;
+  --line: #d3dad5;
+  --accent: #2a6f73;
+  --dish: #0f1613;
+  --danger: #b4412b;
+  --s1: #2a6f73; --s2: #c0532a; --s3: #a07a12;
+  --energy: #b8901a; --blocks: #2f9c78; --chains: #c0662a; --copiers: #c0368a; --oils: #8a7d55;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111614; --surface: #19201d; --ink: #e2e9e4; --muted: #95a39c; --line: #2b3531;
+    --accent: #6db6b8; --dish: #0b100e; --danger: #e07a62;
+    --s1: #6db6b8; --s2: #e8875c; --s3: #d4ad45;
+    --energy: #ecc846; --blocks: #50d2a0; --chains: #f08c50; --copiers: #eb50aa; --oils: #f5ebc8;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111614; --surface: #19201d; --ink: #e2e9e4; --muted: #95a39c; --line: #2b3531;
+  --accent: #6db6b8; --dish: #0b100e; --danger: #e07a62;
+  --s1: #6db6b8; --s2: #e8875c; --s3: #d4ad45;
+  --energy: #ecc846; --blocks: #50d2a0; --chains: #f08c50; --copiers: #eb50aa; --oils: #f5ebc8;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--sans); padding-inline: 16px; padding-block: 20px 40px; }
+.wrap { max-width: 1400px; margin: 0 auto; display: grid; gap: 18px; }
+header { display: grid; gap: 6px; }
+h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+.sub { color: var(--muted); max-width: 78ch; margin: 0; }
+.eyebrow { font: 500 11px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.back { font-size: 13px; color: var(--accent); text-decoration: none; justify-self: start; }
+.back:hover { text-decoration: underline; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button, select { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; }
+button { cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button.primary { background: var(--accent); color: var(--surface); border-color: var(--accent); font-weight: 600; min-width: 84px; }
+.clock { font: 500 13px var(--mono); color: var(--muted); margin-left: auto; font-variant-numeric: tabular-nums; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.chart-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 12px; padding: 4px 9px; border-radius: 999px; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 12px; height: 3px; border-radius: 2px; display: inline-block; }
+#chart { width: 100%; height: 180px; display: block; }
+.chart-note { font-size: 12px; color: var(--muted); margin: 0; }
+
+.worlds { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(560px, 100%), 1fr)); }
+.world { display: grid; gap: 10px; align-content: start; grid-template-columns: minmax(0, 1fr); }
+.world-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.world-head .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.world-head b { flex: 1 1 10ch; }
+.icon-btn { padding: 2px 8px; font-size: 12px; color: var(--muted); }
+.mapbox { position: relative; }
+canvas.map { width: 100%; aspect-ratio: 16 / 10; display: block; background: var(--dish); border-radius: 6px; cursor: grab; touch-action: none; }
+canvas.map.dragging { cursor: grabbing; }
+canvas.map.tool { cursor: crosshair; }
+.zoom { position: absolute; right: 8px; top: 8px; display: flex; flex-direction: column; gap: 4px; }
+.zoom button { width: 30px; height: 30px; padding: 0; background: color-mix(in srgb, var(--surface) 85%, transparent); font-weight: 600; }
+.hud { position: absolute; left: 8px; bottom: 8px; font: 500 11px var(--mono); color: #e6efe9; background: rgba(10,16,14,0.6); border-radius: 4px; padding: 3px 7px; pointer-events: none; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 12px; color: var(--muted); }
+.controls label { display: inline-flex; gap: 6px; align-items: center; }
+.controls select { padding: 4px 6px; font-size: 13px; }
+.stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.stat { display: grid; gap: 2px; }
+.stat b { font: 500 15px var(--mono); font-variant-numeric: tabular-nums; }
+.stat small { font-size: 11px; color: var(--muted); }
+.inspect { font: 12px/1.6 var(--mono); color: var(--muted); min-height: 1.6em; overflow-wrap: anywhere; }
+.inspect b { color: var(--ink); font-weight: 500; }
+.inspect .follow { font: 12px var(--sans); padding: 2px 8px; margin-left: 6px; }
+.journal { display: grid; gap: 0; max-height: 260px; overflow: auto; border-top: 1px solid var(--line); }
+.journal:empty::before { content: "Nothing noted yet. Watch the tide pools and the vents."; color: var(--muted); font-size: 13px; padding: 8px 0; }
+:root[lang="es"] .journal:empty::before { content: "Aún no hay notas. Observa las pozas de marea y las fuentes."; }
+.entry { display: grid; gap: 2px; padding: 8px 0; border-bottom: 1px solid var(--line); text-align: left; background: none; border-radius: 0; border-inline: 0; border-top: 0; width: 100%; }
+.entry:hover { border-color: var(--line); background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.entry small { font: 11px var(--mono); color: var(--muted); }
+.entry b { font-weight: 600; font-size: 13px; }
+.entry span { font-size: 13px; color: var(--muted); }
+.key { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--muted); }
+.key i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; vertical-align: -1px; margin-right: 5px; }
+details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+.explain { display: grid; gap: 8px; font-size: 13px; color: var(--muted); max-width: 90ch; }
+.explain p { margin: 0; }
+.explain b { color: var(--ink); }
+@media (max-width: 520px) { .stats { grid-template-columns: repeat(3, 1fr); } }
+h2 { margin: 0; font-size: 16px; font-weight: 600; }
+h3 { margin: 6px 0 0; font-size: 13px; font-weight: 600; color: var(--ink); }
+.explain a, .milestones a { color: var(--accent); }
+.explain ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.milestones { margin: 0; padding-left: 20px; display: grid; gap: 10px; font-size: 13px; color: var(--muted); max-width: 90ch; }
+.milestones li > a, .milestones li > b { font-weight: 600; color: var(--accent); }
+.milestones li > b { color: var(--ink); }
+.milestones small { font: 11px var(--mono); margin-left: 6px; }
+.milestones span { display: block; }
+.milestones span b { color: var(--ink); }
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; font-size: 13px; min-width: 520px; }
+th, td { text-align: left; padding: 6px 10px 6px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; }
+td { color: var(--muted); }
+.journal:empty::before { content: "Nothing noted yet. Give the protocells a few days."; }
+:root[lang="es"] .journal:empty::before { content: "Aún no hay notas. Dale unos días a las protocélulas."; }
+</style>
+</head>
+<body data-stage="genes">
+<div class="wrap">
+  <a class="back" href="../../index.html">← Learning Systems</a>
+  <header>
+    <span class="eyebrow">Timeline of life · Chapter 1</span>
+    <h1>First genes: a protocell that makes itself</h1>
+    <p class="sub">The same coast as Early Earth, now with protocells: bubbles holding copiers that do a job. <b>Skin-makers</b> turn raw molecules into oils for the bubble's own skin, <b>block-makers</b> make its building blocks, and <b>plain copiers</b> only copy, faster than the rest, like parasites. A protocell whose genes work grows and splits, and its genes are shared between the daughters by chance. Green protocells are rich in working genes, pink ones are full of parasites; a thick golden skin means the protocell makes most of itself.</p>
+  </header>
+
+  <div class="toolbar">
+    <button class="primary" id="play">Pause</button>
+    <label class="controls">Speed
+      <select id="speed">
+        <option value="1">Slow</option>
+        <option value="3" selected>Normal</option>
+        <option value="8">Fast</option>
+        <option value="ff">Fast-forward</option>
+      </select>
+    </label>
+    <label class="controls">Add a world
+      <select id="add">
+        <option value="">Choose…</option>
+      </select>
+    </label>
+    <span class="clock" id="clock">Day 0 · 00:00</span>
+  </div>
+
+  <section class="panel" aria-labelledby="chart-h">
+    <div class="chart-head">
+      <b id="chart-h">Compare worlds</b>
+      <div class="chips" id="metrics" role="group" aria-label="What to chart"></div>
+    </div>
+    <canvas id="chart" aria-label="Chart comparing worlds over time"></canvas>
+    <div class="legend" id="legend"></div>
+    <p class="chart-note"><b>Makes itself</b>: the share of a protocell's skin and building blocks that its own genes made, rather than taken from the water, averaged over protocells. <b>Working genes</b>: skin-makers and block-makers as a share of all copiers inside protocells.</p>
+  </section>
+
+  <section class="worlds" id="worlds" aria-label="Worlds"></section>
+
+  <details class="panel">
+    <summary>How this world works</summary>
+    <div class="explain">
+      <p><b>Not real chemistry.</b> The coast, sun, tides, vents and molecules are the ones from <a href="../early-earth/index.html">Early Earth</a>. What is new is inside the bubbles.</p>
+      <p><b>Copiers with a job.</b> A copier is a chain that helps make more of itself from building blocks. Here a few copiers also do something: <b>skin-makers</b> turn raw molecules from the water into oils that become the bubble's skin, and <b>block-makers</b> turn raw molecules and energy into building blocks inside. Both jobs cost the bubble energy. These copiers are the first genes: copied molecules whose work keeps their own protocell going. This is the RNA world idea, in which the first genes were RNA that both copied and catalysed (<b>debated</b>, but the leading working hypothesis).</p>
+      <p><b>Parasites.</b> Working genes copy 10% slower than plain copiers, and now and then a copy comes out broken, as a plain copier. Inside one protocell, plain copiers always win. They do no work, so a protocell taken over by them can no longer make its skin; it shrinks and breaks up.</p>
+      <p><b>Reproduction and the stochastic corrector.</b> A protocell splits in two when its skin has doubled. Each kind of gene is shared between the daughters by chance, molecule by molecule, so some daughters get more working genes than others. Daughters with more working genes grow and split sooner. That selection between protocells keeps working genes going against parasites (Szathmáry and Demeter 1987; <b>well supported</b> in models and RNA experiments). The sea has room for only so many protocells; when it is full, random ones break up.</p>
+      <p><b>Makes itself</b> is a measure of closure: how much of the protocell is produced by its own network rather than taken from outside. It goes from 0 to 100% and can rise or fall, which is how researchers now use the old idea of autopoiesis (Moreno and Mossio 2015). Our number is a teaching proxy, not a measurement from nature.</p>
+      <p><b>Worlds to compare.</b> <b>Leaky skin</b>: what genes make leaks into the water and helps every bubble nearby, so working genes no longer pay their own protocell. <b>No skin-makers</b>: protocells must take all their oils from the water. <b>Linked genes</b>: all genes are joined in one chain, a first chromosome, copied together and passed on together, at a cost in copying speed.</p>
+    </div>
+  </details>
+
+  <section class="panel" aria-labelledby="closure-h">
+    <h2 id="closure-h">Autopoiesis along the timeline</h2>
+    <div class="explain">
+      <p>Autopoiesis (Maturana and Varela, 1974) says a living thing is a network that keeps producing the parts that produce it, inside a boundary it makes itself. Today most researchers keep the core idea but treat it as a matter of degree, under the name <b>organizational closure</b>, and add what the original left out: evolution and reproduction. Here is how the idea shows up in each chapter of Gaia.</p>
+    </div>
+    <ol class="milestones">
+      <li><a href="../early-earth/index.html">Early Earth</a> <small>about 4.4 billion years ago</small><span>Bubbles form from vent oils, grow and split, but nothing inside them makes anything. Their order is kept by a flow of matter and energy, like a flame. <b>No closure.</b> Order from a flow is necessary for life, not sufficient (<b>well supported</b>).</span></li>
+      <li><b>First genes</b> <small>before 4.2 billion years ago</small><span>Genes make the skin and the blocks, and are kept inside the skin they make. Closure rises from zero and is passed on at each split. Metabolism, genes and a boundary that make each other possible: Gánti's chemoton (<b>well supported</b> as a model; how it happened on Earth is <b>debated</b>).</span></li>
+      <li><a href="../first-cells/index.html">First cells</a> <small>about 3.8 billion years ago</small><span>Cells eat, move toward food and divide, and every ability comes from their own genes. The last common ancestor of all life, about 4.2 billion years ago, already had a genome of about 2,600 proteins (Moody et al. 2024, <b>debated</b>).</span></li>
+      <li><a href="../colonies/index.html">Colonies</a> <small>about 3.5 billion years ago</small><span>A helper molecule feeds everyone nearby, and cheats use it without paying: the parasite problem again, one level up. Staying together with your family keeps sharing alive, as the skin does for genes (<b>well supported</b>).</span></li>
+      <li><a href="../first-bodies/index.html">Bodies</a> <small>about 1.5 billion to 600 million years ago</small><span>A body keeps itself going with cells that each do one job; only germ cells reproduce. Closure now spans many cells (<b>debated</b> as to how far the idea stretches).</span></li>
+      <li><a href="../../world/index.html#brains">Brains</a> <small>about 540 million years ago</small><span>Creatures keep themselves going by what they do: sensing, moving and learning. Enactivist researchers extend closure to behaviour, sensorimotor autonomy (Di Paolo, Buhrmann and Barandiaran 2017, <b>debated</b>).</span></li>
+    </ol>
+  </section>
+
+  <section class="panel" aria-labelledby="repro-h">
+    <h2 id="repro-h">How Gaia reproduces</h2>
+    <div class="explain">
+      <p>Every chapter reproduces, each in its own way. Sex, two parents mixing their genes, is still missing; its oldest clear fossil is the red alga <i>Bangiomorpha</i>, 1.047 billion years ago (Gibson et al. 2018, <b>well supported</b>). It is planned for the Bodies chapter.</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Chapter</th><th>How it reproduces here</th><th>Real counterpart</th></tr></thead>
+        <tbody>
+          <tr><td>Early Earth</td><td>Bubbles split when big; contents shared by chance</td><td>Fatty-acid vesicles that grow and divide (Zhu and Szostak 2009)</td></tr>
+          <tr><td>First genes</td><td>The same, now passing on genes that remake the skin</td><td>Protocells; the stochastic corrector</td></tr>
+          <tr><td>First cells</td><td>Splitting in two, genes copied with small mistakes</td><td>Bacteria and archaea</td></tr>
+          <tr><td>Colonies</td><td>Daughters stay stuck to their mother</td><td>Algae and yeast that form clumps under predation</td></tr>
+          <tr><td>Bodies, Nerve nets</td><td>Germ cells release a single seed cell</td><td>Animals and plants start from one cell</td></tr>
+          <tr><td>Brains, Ecosystems</td><td>Creatures breed alone, copying their genes with mutations</td><td>Clonal reproduction</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="when-h">
+    <h2 id="when-h">When did this happen?</h2>
+    <div class="explain">
+      <p><b>Before about 4.2 billion years ago.</b> No gene has left a fossil. The last common ancestor of all life already had a full genetic system, and gene-tree dating puts it at about 4.2 billion years ago (4.09 to 4.33; Moody et al. 2024, <b>debated</b>: other studies give younger or older dates). Liquid oceans existed by 4.4 billion years ago, shown by zircon crystals from Jack Hills, Western Australia (Wilde et al. 2001, <b>well supported</b>). So genes began somewhere between the two.</p>
+    </div>
+  </section>
+
+  <section class="panel references" aria-labelledby="refs-h">
+    <h2 id="refs-h">References</h2>
+    <div class="explain">
+      <p>Checked on 2026-10-17.</p>
+      <h3>Studies and papers</h3>
+      <ul>
+        <li>Joyce, G. F. and Szostak, J. W. (2018). Protocells and RNA self-replication. <i>Cold Spring Harbor Perspectives in Biology</i> 10: a034801. <a href="https://doi.org/10.1101/cshperspect.a034801">doi:10.1101/cshperspect.a034801</a>. The overall picture of first genes in protocells. <b>debated</b> (RNA world).</li>
+        <li>Szathmáry, E. and Demeter, L. (1987). Group selection of early replicators and the origin of life. <i>Journal of Theoretical Biology</i> 128: 463–486. <a href="https://doi.org/10.1016/S0022-5193(87)80191-1">doi:10.1016/S0022-5193(87)80191-1</a>. Genes shared by chance at a split keep working genes against parasites. <b>well supported</b> (model).</li>
+        <li>Eigen, M. (1971). Selforganization of matter and the evolution of biological macromolecules. <i>Naturwissenschaften</i> 58: 465–523. <a href="https://doi.org/10.1007/BF00623322">doi:10.1007/BF00623322</a>. Copying errors and the parasite problem. <b>well supported</b>.</li>
+        <li>Takeuchi, N. and Hogeweg, P. (2009). Multilevel selection in models of prebiotic evolution II. <i>PLoS Computational Biology</i> 5: e1000542. <a href="https://doi.org/10.1371/journal.pcbi.1000542">doi:10.1371/journal.pcbi.1000542</a>. Compartments against parasites; the model closest to ours. <b>well supported</b> (model).</li>
+        <li>Bansho, Y., Furubayashi, T., Ichihashi, N. and Yomo, T. (2016). Host–parasite oscillation dynamics and evolution in a compartmentalized RNA replication system. <i>PNAS</i> 113: 4045–4050. <a href="https://doi.org/10.1073/pnas.1524404113">doi:10.1073/pnas.1524404113</a>. Compartments keep RNA replicators alive against parasites, in the lab. <b>well supported</b>.</li>
+        <li>Mizuuchi, R., Furubayashi, T. and Ichihashi, N. (2022). Evolutionary transition from a single RNA replicator to a multiple replicator network. <i>Nature Communications</i> 13: 1460. <a href="https://doi.org/10.1038/s41467-022-29113-x">doi:10.1038/s41467-022-29113-x</a>. One replicator diversifies into hosts and parasites in compartments. <b>well supported</b>.</li>
+        <li>Zhu, T. F. and Szostak, J. W. (2009). Coupled growth and division of model protocell membranes. <i>Journal of the American Chemical Society</i> 131: 5705–5713. <a href="https://doi.org/10.1021/ja900919c">doi:10.1021/ja900919c</a>. Protocells grow, divide and pass RNA to their daughters. <b>well supported</b>.</li>
+        <li>Chen, I. A., Roberts, R. W. and Szostak, J. W. (2004). The emergence of competition between model protocells. <i>Science</i> 305: 1474–1476. <a href="https://doi.org/10.1126/science.1100757">doi:10.1126/science.1100757</a>. Bubbles with more RNA inside grow faster. <b>well supported</b>.</li>
+        <li>Varela, F. J., Maturana, H. R. and Uribe, R. (1974). Autopoiesis: the organization of living systems, its characterization and a model. <i>BioSystems</i> 5: 187–196. <a href="https://doi.org/10.1016/0303-2647(74)90031-8">doi:10.1016/0303-2647(74)90031-8</a>. The original idea of autopoiesis. <b>debated</b> as a definition of life.</li>
+        <li>Maynard Smith, J. and Szathmáry, E. (1993). The origin of chromosomes I. Selection for linkage. <i>Journal of Theoretical Biology</i> 164: 437–446. <a href="https://doi.org/10.1006/jtbi.1993.1165">doi:10.1006/jtbi.1993.1165</a>. The linked genes world. <b>well supported</b> (theory).</li>
+        <li>Moody, E. R. R. et al. (2024). The nature of the last universal common ancestor and its impact on the early Earth system. <i>Nature Ecology &amp; Evolution</i> 8: 1654–1666. <a href="https://doi.org/10.1038/s41559-024-02461-1">doi:10.1038/s41559-024-02461-1</a>. The age of the last common ancestor and its genome. <b>debated</b>.</li>
+        <li>Wilde, S. A., Valley, J. W., Peck, W. H. and Graham, C. M. (2001). Evidence from detrital zircons for the existence of continental crust and oceans on the Earth 4.4 Gyr ago. <i>Nature</i> 409: 175–178. <a href="https://doi.org/10.1038/35051550">doi:10.1038/35051550</a>. Oceans by 4.4 billion years ago. <b>well supported</b>.</li>
+        <li>Gibson, T. M. et al. (2018). Precise age of <i>Bangiomorpha pubescens</i> dates the origin of eukaryotic photosynthesis. <i>Geology</i> 46: 135–138. <a href="https://doi.org/10.1130/G39829.1">doi:10.1130/G39829.1</a>. The oldest fossil evidence of sex. <b>well supported</b>.</li>
+      </ul>
+      <h3>Books</h3>
+      <ul>
+        <li>Gánti, T. (2003). <i>The Principles of Life</i>. Oxford University Press (first published 1971). The chemoton: metabolism, genes and a skin that make each other. <b>well supported</b> as a model.</li>
+        <li>Moreno, A. and Mossio, M. (2015). <i>Biological Autonomy: A Philosophical and Theoretical Enquiry</i>. Springer. <a href="https://doi.org/10.1007/978-94-017-9837-2">doi:10.1007/978-94-017-9837-2</a>. Closure as a matter of degree: the "makes itself" measure. <b>debated</b>.</li>
+        <li>Maynard Smith, J. and Szathmáry, E. (1995). <i>The Major Transitions in Evolution</i>. Oxford University Press. Genes in compartments, chromosomes and the later split between DNA and proteins as major transitions. <b>well supported</b>.</li>
+        <li>Di Paolo, E., Buhrmann, T. and Barandiaran, X. (2017). <i>Sensorimotor Life</i>. Oxford University Press. Closure extended to behaviour. <b>debated</b>.</li>
+        <li>Lane, N. (2022). <i>Transformer: The Deep Chemistry of Life and Death</i>. Profile Books. The metabolism-first, vent alternative to the RNA world. <b>debated</b>.</li>
+      </ul>
+      <h3>Simulations</h3>
+      <ul>
+        <li>Ray, T. (1991). Tierra. <a href="https://tomray.me/tierra/">tomray.me/tierra</a>. Parasites appear among digital self-copiers. We use chemistry and skins instead of code that copies itself.</li>
+        <li>McMullin, B. (2004). Thirty years of computational autopoiesis: a review. <i>Artificial Life</i> 10: 277–295. <a href="https://doi.org/10.1162/1064546041255548">doi:10.1162/1064546041255548</a>. The self-repairing membrane model; we add genes and evolution, which it lacks.</li>
+        <li>Hutton, T. J. (2002). Evolvable self-replicating molecules in an artificial chemistry. <i>Artificial Life</i> 8: 341–356. <a href="https://doi.org/10.1162/106454602321202417">doi:10.1162/106454602321202417</a>. Squirm3. We place the idea on the timeline of one shared world.</li>
+      </ul>
+    </div>
+  </section>
+</div>
+
+<template id="world-tpl">
+  <article class="world panel">
+    <div class="world-head">
+      <span class="dot"></span>
+      <b class="name"></b>
+      <span class="badge"></span>
+      <button class="icon-btn reseed" title="Same rules, new random coast">New seed</button>
+      <button class="icon-btn remove" title="Remove this world">Remove</button>
+    </div>
+    <div class="mapbox">
+      <canvas class="map"></canvas>
+      <div class="zoom">
+        <button class="zin" aria-label="Zoom in">+</button>
+        <button class="zout" aria-label="Zoom out">−</button>
+        <button class="zfit" aria-label="Show whole map">⤢</button>
+      </div>
+      <div class="hud"></div>
+    </div>
+    <div class="controls">
+      <label>Show <select class="layer"></select></label>
+      <label>Click to <select class="tool">
+        <option value="look">Look</option>
+        <option value="blocks">Pour building blocks</option>
+        <option value="oils">Pour oils</option>
+        <option value="vent">Add a vent</option>
+      </select></label>
+    </div>
+    <div class="key">
+      <span><i style="background:var(--energy)"></i>energy</span>
+      <span><i style="background:var(--blocks)"></i>blocks</span>
+      <span><i style="background:var(--chains)"></i>chains</span>
+      <span><i style="background:var(--copiers)"></i>copiers</span>
+      <span><i style="background:var(--oils)"></i>oils</span>
+      <span><i style="background:#50d2a0"></i>protocell with working genes</span>
+      <span><i style="background:var(--copiers)"></i>protocell full of parasites</span>
+      <span>golden skin: makes itself</span>
+    </div>
+    <div class="stats"></div>
+    <div class="inspect">Click the map to look at a spot or a bubble.</div>
+    <div>
+      <b>Field journal</b>
+      <div class="journal"></div>
+    </div>
+  </article>
+</template>
+
+<script src="../../lib/earth.js"></script>
+<script src="../../lib/chemistry.js"></script>
+<script src="../early-earth/draw.js"></script>
+<script src="../early-earth/app.js"></script>
+<script src="../../lib/learn.js"></script>
+<script src="labs.js"></script>
+<script src="../../lib/nav.js"></script>
+</body>
+</html>

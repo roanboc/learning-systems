@@ -1,6 +1,6 @@
 # Bodies: the first muscles
 
-Chapter 3 of the timeline of life, as its own lab page. Open `index.html` in a browser. No build step.
+Chapter 4 of the timeline of life, as its own lab page. Open `index.html` in a browser. No build step.
 
 It reuses the First cells page (`../first-cells/app.js` and `draw.js`) with `data-stage="bodies"`, so the engine is `lib/life.js` at stage `bodies`. Cells that stay stuck after dividing form bodies. Cells in a body can take a role (gene `specialise`): **contracting cells** squeeze in a rhythm, pull their neighbours closer (shorter bonds) and push the body along the lead cell's heading; germ cells make new bodies.
 
