@@ -38,7 +38,8 @@
   for (const k of C.KINDS) KCOL[k.id] = css.getPropertyValue('--k-' + k.id).trim();
   const GLOW = css.getPropertyValue('--glow').trim() || '#4ff0e0';
   const SANS = css.getPropertyValue('--sans').trim();
-  const LCOL = { sun: '#ffd36b', currents: '#8fc8ff', heat: '#ff5c8a', life: '#7dffb0' };
+  const MONO = css.getPropertyValue('--mono').trim();
+  const LCOL = { plates: '#ff5c8a', currents: '#8fc8ff' };
   const STOPS = LADDER.map((l, i) => {
     const s = i ? C.system(l.id) : null;
     return Object.assign({ i, s, kind: s ? C.kind(s.kind) : null, color: s ? KCOL[s.kind] : GLOW, name: s ? s.title.split(':')[0] : 'Surface' }, l);
@@ -49,7 +50,8 @@
 
   const state = {
     at: 0, tr: null, t: 0, age: null, view: 'dive', shown: -1, dived: false, hover: null,
-    layers: new Set(), show: { sun: 0, currents: 0, heat: 0, life: 0 },
+    layers: new Set(), show: { plates: 0, currents: 0 },
+    pick: null,   // with the plates lit up: the plate or edge under the pointer
   };
   const appear = (t) => clamp((t - state.t) / 4e7 + 1, 0, 1);
 
@@ -62,9 +64,11 @@
 
   const FRAG = `
 uniform vec3 u_sun;
-uniform vec4 u_show;      // sunlight, heat, life, (unused)
-uniform float u_lifeSea;  // 0 before the first cells, 1 after
-uniform float u_fade;     // 1 hides the planet once a dive covers it
+uniform float u_plates;       // the tectonic plates layer, 0 to 1
+uniform float u_plateHover;   // id of the plate under the pointer, or -1
+uniform sampler2D u_plateIds; // lib/plates.js: which plate is where
+uniform float u_lifeSea;      // 0 before the first cells, 1 after
+uniform float u_fade;         // 1 hides the planet once a dive covers it
 const vec3 GLOW = vec3(0.31, 0.94, 0.88);
 
 vec3 lava(vec3 w) {
@@ -105,23 +109,25 @@ void main() {
     c = mix(c, ground, land);
     // Coasts glow.
     c += GLOW * (exp(-abs(hgt) / (aa * 1.6 + 0.004)) * 0.8 + exp(-abs(hgt) / (aa * 6.5 + 0.01)) * 0.1);
-    // Life: glowing plankton at sea, a green glow on land.
-    float lf = f.a * mix(u_lifeSea, u_green, land);
+    // Life, faintly: plankton twinkling at sea once there are cells, a green glow on land once there are plants.
+    float lf = mix(u_lifeSea, u_green * 0.6, land);
     float tw = noise3(w * 140.0 + vec3(0.0, u_time * 0.4, u_time * 0.25));
-    float lifeGlow = pow(lf, 1.4) * (0.12 + 0.95 * u_show.z) * (0.4 + 1.1 * smoothstep(0.6, 0.92, tw));
-    c += mix(vec3(0.12, 0.85, 0.95), vec3(0.55, 1.0, 0.35), land) * lifeGlow * 0.75;
-    // Heat from below: ridges, hot spots and vents.
+    c += mix(vec3(0.12, 0.85, 0.95), vec3(0.55, 1.0, 0.35), land) * lf * 0.035 * (0.4 + 1.1 * smoothstep(0.6, 0.92, tw));
+    // Heat from below: ridges and rifts where plates pull apart, hot spots and vents.
     float pulse = 0.75 + 0.25 * sin(u_time * 1.7 + f.b * 14.0);
-    c += vec3(1.0, 0.36, 0.54) * pow(f.b, 1.6) * (0.05 + 1.15 * u_show.y) * pulse;
+    c += vec3(1.0, 0.36, 0.54) * pow(f.b, 1.6) * (0.05 + 0.9 * u_plates) * pulse;
+    // The plate under the pointer.
+    if (u_plateHover > 0.0) {
+      float id = floor(texture2D(u_plateIds, uvOf(w)).r * 255.0 + 0.5);
+      c += vec3(1.0, 0.62, 0.42) * 0.08 * u_plates * (1.0 - step(0.5, abs(id - u_plateHover)));
+    }
     // Ice, and the molten young planet.
     float ice = iceAt(w, land);
     c = mix(c, vec3(0.42, 0.78, 0.88) * (0.45 + 0.35 * grain), ice * 0.8);
     if (u_molten > 0.001) c = mix(c, lava(w), u_molten);
-    // Sunlight: a soft day side, or a bright one with a glowing dawn line when shown.
-    float diffuse = dot(n, normalize(u_sun));
-    float day = smoothstep(-0.2, 0.45, diffuse);
-    c *= mix(0.72 + 0.4 * day, 0.3 + 1.2 * day, u_show.x);
-    c += vec3(1.0, 0.75, 0.4) * (1.0 - smoothstep(0.0, 0.04, abs(diffuse))) * u_show.x * 0.6;
+    // A soft day side.
+    float day = smoothstep(-0.2, 0.45, dot(n, normalize(u_sun)));
+    c *= 0.72 + 0.4 * day;
     // Rim light.
     c += halo * pow(1.0 - n.z, 3.0) * 0.55;
     float edge = smoothstep(1.0, 1.0 - 1.5 * pix, d);
@@ -138,6 +144,11 @@ void main() {
     if (gl) { gl.texture(p.texture()); gl.texture(p.fine(), 'u_fine'); }
     seedDots();
     seedCurrents();
+  }).catch((e) => console.error(e));
+  let plateMap = null;
+  Plates.load().then((m) => {
+    plateMap = m;
+    if (gl) gl.texture(m.texture(), 'u_plateIds');
   }).catch((e) => console.error(e));
 
   // ---------- Layout ----------
@@ -202,7 +213,7 @@ void main() {
     state.age = null;
     state.tr = tr;
     state.dived = true;
-    tip(null);
+    unpick();
     return tr;
   }
   function arrive(i) {
@@ -373,7 +384,8 @@ void main() {
       gl.draw(Object.assign(Globe.lookUniforms(look), {
         u_res: [glc.width, glc.height], u_center: [globe.cx * k, globe.cy * k], u_radius: globe.radius * k,
         u_rot: globe.matrix(), u_time: sec, u_sun: SUN,
-        u_show: [state.show.sun, state.show.heat, state.show.life, 0], u_lifeSea: state.t <= 3.8e9 ? 1 : 0,
+        u_plates: state.show.plates, u_plateHover: state.pick && state.pick.plate ? state.pick.plate.id : -1,
+        u_lifeSea: state.t <= 3.8e9 ? 1 : 0,
         u_fade: smooth(0.8, 1, v.u),
       }));
     } else if (planet) {
@@ -485,15 +497,221 @@ void main() {
     gx.globalAlpha = 1;
   }
 
-  // Beacons: where each system's oldest evidence was found.
+  // ---------- Tectonic plates ----------
+  // The plates as they are today (lib/plates.js): their edges, coloured by what
+  // they do, with teeth on the plate that rides on top where one sinks under
+  // the other; arrows for which way and how fast the plates drift; their names.
+  const PCOL = { s: '#ff5c8a', u: '#ffb35c', c: '#ffb35c', t: '#efe3c8' };
+  const ARROW = '#ffe2c8';
+  // How each kind of edge is drawn: rifts like ridges, pushing at sea like on land.
+  const edgeStyle = (k) => (k === 'r' ? 's' : k === 'o' ? 'c' : k);
+  const PB = Plates.BOUNDARIES, NPT = Plates.LATLON.length / 2;
+  // Every edge point as a unit vector, and where it is on screen this frame: x, y and how much it faces us.
+  const PW = new Float32Array(NPT * 3), PS = new Float32Array(NPT * 3);
+  for (let j = 0; j < NPT; j++) {
+    const la = Plates.LATLON[2 * j] * RAD, lo = Plates.LATLON[2 * j + 1] * RAD;
+    PW[3 * j] = Math.cos(la) * Math.sin(lo); PW[3 * j + 1] = Math.sin(la); PW[3 * j + 2] = Math.cos(la) * Math.cos(lo);
+  }
+  function projectPlates() {
+    const M = globe.matrix(), r = globe.radius;
+    for (let j = 0; j < PS.length; j += 3) {
+      const x = PW[j], y = PW[j + 1], z = PW[j + 2];
+      PS[j] = globe.cx + (M[0] * x + M[1] * y + M[2] * z) * r;
+      PS[j + 1] = globe.cy - (M[3] * x + M[4] * y + M[5] * z) * r;
+      PS[j + 2] = M[6] * x + M[7] * y + M[8] * z;
+    }
+  }
+  // The edge from step i0 to i1 of boundary b (only its steps of one kind, if
+  // given), as a path, broken where it goes round the back. Points closer than
+  // a pixel and a half to the last one drawn are skipped.
+  function edgePath(path, b, i0, i1, kind) {
+    let open = false, skipped = false, lx = 0, ly = 0, px = 0, py = 0;
+    const close = () => { if (skipped) path.lineTo(px, py); open = skipped = false; };
+    for (let i = i0; i <= i1; i++) {
+      const j = 3 * (b.at + i);
+      if ((kind && edgeStyle(b.kinds[i]) !== kind) || PS[j + 2] < 0 || PS[j + 5] < 0) { close(); continue; }
+      if (!open) { path.moveTo(lx = PS[j], ly = PS[j + 1]); open = true; }
+      px = PS[j + 3]; py = PS[j + 4];
+      skipped = (px - lx) ** 2 + (py - ly) ** 2 < 2.25;
+      if (!skipped) path.lineTo(lx = px, ly = py);
+    }
+    close();
+  }
+  function drawPlates(a, names) {
+    projectPlates();
+    gx.lineCap = gx.lineJoin = 'round';
+    for (const k of ['t', 'c', 'u', 's']) {
+      const path = new Path2D();
+      for (const b of PB) edgePath(path, b, 0, b.n - 2, k);
+      gx.strokeStyle = PCOL[k];
+      if (k === 't') {
+        // Sliding past: a thin dashed line.
+        gx.globalAlpha = a * 0.75; gx.lineWidth = 1.1; gx.setLineDash([3, 3]);
+        gx.stroke(path);
+        gx.setLineDash([]);
+        continue;
+      }
+      // A soft glow and a bright core. Ridges glow wider from the planet itself.
+      for (const [w, al] of [[4, 0.2], [k === 'c' ? 2.2 : 1.3, 0.9]]) {
+        gx.globalAlpha = a * al; gx.lineWidth = w;
+        gx.stroke(path);
+      }
+    }
+    // Teeth along a line where one plate sinks, on the plate that rides on top.
+    const teeth = new Path2D(), gap = 14, th = narrow ? 3.5 : 4.5;
+    for (const b of PB) {
+      if (!b.top) continue;
+      const side = b.top === 'L' ? 1 : -1;
+      let since = gap / 2;   // distance along the line since the last tooth
+      for (let i = 0; i < b.n - 1; i++) {
+        const j = 3 * (b.at + i);
+        if (b.kinds[i] !== 'u' || PS[j + 2] < 0.05 || PS[j + 5] < 0.05) { since = gap / 2; continue; }
+        const x0 = PS[j], y0 = PS[j + 1], dx = PS[j + 3] - x0, dy = PS[j + 4] - y0, len = Math.hypot(dx, dy);
+        if (len < 1e-6) continue;
+        // Along the line, and across it to its left as we see it (screen y points down).
+        const ux = dx / len, uy = dy / len, nx = uy * side, ny = -ux * side;
+        let t = gap - since;
+        for (; t <= len; t += gap) {
+          const px = x0 + ux * t, py = y0 + uy * t;
+          teeth.moveTo(px - ux * th * 0.65, py - uy * th * 0.65);
+          teeth.lineTo(px + nx * th, py + ny * th);
+          teeth.lineTo(px + ux * th * 0.65, py + uy * th * 0.65);
+          teeth.closePath();
+        }
+        since = len - (t - gap);
+      }
+    }
+    gx.fillStyle = PCOL.u; gx.globalAlpha = a * 0.9;
+    gx.fill(teeth);
+    // The stretch of edge under the pointer.
+    const e = state.pick && state.pick.edge;
+    if (e) {
+      const path = new Path2D();
+      edgePath(path, e.b, e.i0, e.i1);
+      gx.strokeStyle = '#ffffff';
+      for (const [w, al] of [[9, 0.12], [2.2, 0.9]]) { gx.globalAlpha = a * al; gx.lineWidth = w; gx.stroke(path); }
+    }
+    gx.globalAlpha = 1;
+    // The names of the big plates, across them, in capitals like on a map.
+    gx.font = `500 ${narrow ? 9.5 : 10.5}px ${MONO}`;
+    for (const code of Plates.NAMED) {
+      const p = Plates.plate(code), q = globe.project(p.label[0], p.label[1]);
+      if (q.z < 0.35) continue;
+      const text = p.name.toUpperCase();
+      names.push({ key: 'p' + code, x: q.x, y: q.y, w: gx.measureText(text).width, h: 13, center: true, plate: true, text, a: a * 0.8 * Math.min(1, (q.z - 0.35) * 4), rank: q.z - 2 });
+    }
+  }
+
+  // Drift arrows on an even spread of places (a Fibonacci sphere), each with its
+  // plate's velocity there; more of them on a bigger globe.
+  const arrowSets = {};
+  function arrowSet(n) {
+    if (arrowSets[n] || !plateMap) return arrowSets[n] || null;
+    const out = [], turn = Math.PI * (3 - Math.sqrt(5));
+    for (let i = 0; i < n; i++) {
+      const lat = Math.asin(1 - (2 * i + 1) / n) / RAD, lon = Globe.wrap(i * turn / RAD);
+      const p = plateMap.at(lat, lon), k = 2.5 / Math.max(0.25, Math.cos(lat * RAD));
+      // None right at an edge, where the arrow would cross into the next plate.
+      if (!p || [[2.5, 0], [-2.5, 0], [0, k], [0, -k]].some(([dl, dn]) => plateMap.at(lat + dl, lon + dn) !== p)) continue;
+      const [e, nn] = Plates.drift(p, lat, lon), la = lat * RAD, lo = lon * RAD, sa = Math.sin(la), ca = Math.cos(la);
+      // Place and velocity (mm a year) in the globe's frame: x towards 90° E, y north, z towards 0° E.
+      out.push({
+        x: ca * Math.sin(lo), y: sa, z: ca * Math.cos(lo),
+        vx: Math.cos(lo) * e - sa * Math.sin(lo) * nn, vy: ca * nn, vz: -Math.sin(lo) * e - sa * Math.cos(lo) * nn,
+      });
+    }
+    return (arrowSets[n] = out);
+  }
+  function drawArrows(a) {
+    const set = arrowSet(globe.radius < 220 ? 150 : 300);
+    if (!set) return;
+    const M = globe.matrix(), r = globe.radius, k = r / 500, max = r * 0.18, boxes = placeLabels.boxes;
+    const shafts = new Path2D(), heads = new Path2D();
+    for (const p of set) {
+      if (M[6] * p.x + M[7] * p.y + M[8] * p.z < 0.25) continue;
+      const sx = globe.cx + (M[0] * p.x + M[1] * p.y + M[2] * p.z) * r, sy = globe.cy - (M[3] * p.x + M[4] * p.y + M[5] * p.z) * r;
+      let dx = (M[0] * p.vx + M[1] * p.vy + M[2] * p.vz) * k, dy = -(M[3] * p.vx + M[4] * p.vy + M[5] * p.vz) * k, len = Math.hypot(dx, dy);
+      if (len < 2) continue;
+      if (len > max) { dx *= max / len; dy *= max / len; len = max; }
+      const x0 = sx - dx / 2, y0 = sy - dy / 2, x1 = sx + dx / 2, y1 = sy + dy / 2;
+      // Never across a name or a light.
+      const bx0 = Math.min(x0, x1) - 3, bx1 = Math.max(x0, x1) + 3, by0 = Math.min(y0, y1) - 3, by1 = Math.max(y0, y1) + 3;
+      if (boxes.some((b) => bx1 > b[0] && bx0 < b[2] && by1 > b[1] && by0 < b[3])) continue;
+      const ux = dx / len, uy = dy / len, h = Math.min(4.5, 1.5 + len * 0.3);
+      shafts.moveTo(x0, y0); shafts.lineTo(x1 - ux * h * 0.6, y1 - uy * h * 0.6);
+      heads.moveTo(x1, y1);
+      heads.lineTo(x1 - ux * h - uy * h * 0.6, y1 - uy * h + ux * h * 0.6);
+      heads.lineTo(x1 - ux * h + uy * h * 0.6, y1 - uy * h - ux * h * 0.6);
+      heads.closePath();
+    }
+    gx.strokeStyle = gx.fillStyle = ARROW;
+    gx.lineCap = 'round';
+    gx.globalAlpha = a * 0.85; gx.lineWidth = 1.4;
+    gx.stroke(shafts);
+    gx.fill(heads);
+    gx.globalAlpha = 1;
+  }
+
+  // What the pointer is on while the plates are lit up: an edge, within a few
+  // pixels, or else a plate.
+  function plateAt(x, y, touch) {
+    if (x == null || !state.layers.has('plates') || state.show.plates < 0.5 || !plateMap || state.at !== 0 || state.tr) return null;
+    const ll = globe.pick(x, y);
+    if (!ll) return null;
+    const tol = touch ? 14 : 7;
+    let best = null, bd = tol * tol;
+    for (const b of PB) {
+      for (let i = 0; i < b.n - 1; i++) {
+        const j = 3 * (b.at + i);
+        if (PS[j + 2] < 0.05 || PS[j + 5] < 0.05) continue;
+        const ax = PS[j], ay = PS[j + 1], ex = PS[j + 3] - ax, ey = PS[j + 4] - ay, l2 = ex * ex + ey * ey;
+        const t = l2 ? clamp(((x - ax) * ex + (y - ay) * ey) / l2, 0, 1) : 0;
+        const d = (ax + ex * t - x) ** 2 + (ay + ey * t - y) ** 2;
+        if (d < bd) { bd = d; best = { b, i }; }
+      }
+    }
+    if (best) {
+      // The whole stretch of that edge that does the same thing.
+      const { b, i } = best, k = b.kinds[i];
+      let i0 = i, i1 = i;
+      while (i0 > 0 && b.kinds[i0 - 1] === k) i0--;
+      while (i1 < b.n - 2 && b.kinds[i1 + 1] === k) i1++;
+      return { edge: { b, i, i0, i1 }, lat: ll.lat, lon: ll.lon };
+    }
+    const plate = plateMap.at(ll.lat, ll.lon);
+    return plate ? { plate, lat: ll.lat, lon: ll.lon } : null;
+  }
+  const COMPASS = ['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest'];
+  // "7 cm", or "4 mm" when slower than a centimetre.
+  const rate = (mm) => (mm >= 9.5 ? Math.round(mm / 10) + ' cm' : Math.max(1, Math.round(mm)) + ' mm');
+  // What happens at each kind of edge. Where one plate sinks, {a} is the one that goes under.
+  const EDGE = {
+    s: ['The {a} and the {b} pull apart', 'About {r} a year. Hot rock wells up and makes new sea floor.'],
+    r: ['The {a} and the {b} pull apart', 'About {r} a year. A continent is slowly splitting.'],
+    u: ['The {a} sinks under the {b}', 'About {r} a year. Deep trenches, earthquakes and volcanoes.'],
+    c: ['The {a} and the {b} push together', 'About {r} a year. The crust crumples into mountains.'],
+    o: ['The {a} and the {b} push together', 'About {r} a year. The sea floor buckles, with earthquakes.'],
+    t: ['The {a} and the {b} slide past each other', 'About {r} a year. Earthquakes along the fault.'],
+  };
+  // The title and line under it for what the pointer is on.
+  function plateTip(h) {
+    if (h.plate) {
+      const [e, n] = Plates.drift(h.plate, h.lat, h.lon), d = COMPASS[Math.round((Math.atan2(e, n) / RAD + 360) / 45) % 8];
+      return [h.plate.name, `Drifts ${d}, about ${rate(Math.hypot(e, n))} a year`];
+    }
+    const { b, i } = h.edge, k = b.kinds[i];
+    const v1 = Plates.drift(b.left, h.lat, h.lon), v2 = Plates.drift(b.right, h.lat, h.lon);
+    const L = Plates.plate(b.left).name, R = Plates.plate(b.right).name;
+    const o = k === 'u' && b.top === 'L' ? { a: R, b: L } : { a: L, b: R };
+    o.r = rate(Math.hypot(v1[0] - v2[0], v1[1] - v2[1]));
+    return EDGE[k].map((t) => t.replace(/\{(\w)\}/g, (m, x) => o[x]));
+  }
+
+  // Beacons: where each system's oldest evidence was found. Their names go in names.
   const placeLabels = Globe.labels();
-  function drawBeacons(v, now) {
-    const fade = 1 - smooth(0, 0.35, v.g);
-    if (fade <= 0.01 || !planet) return;
+  function drawBeacons(v, now, fade, names) {
+    if (fade <= 0.01) return;
     gx.font = `600 ${narrow ? 11 : 12.5}px ${SANS}`;
-    gx.textBaseline = 'middle';
-    gx.textAlign = 'left';
-    const names = [];
     for (const st of STOPS) {
       if (!st.s) continue;
       const p = globe.project(st.s.lat, st.s.lon);
@@ -519,15 +737,26 @@ void main() {
         gx.beginPath(); gx.arc(p.x, p.y, r + 1, 0, TAU); gx.stroke();
         gx.setLineDash([]);
       }
-      if (p.z > 0.3) names.push({ key: st.i, x: p.x, y: p.y, w: gx.measureText(st.name).width, h: 15, pad: r + 7, hot, a: a * (hot ? 1 : 0.85), name: st.name, rank: (hot ? 2 : 0) + p.z });
+      if (p.z > 0.3) names.push({ key: st.i, x: p.x, y: p.y, w: gx.measureText(st.name).width, h: 15, pad: r + 7, hot, a: a * (hot ? 1 : 0.85), text: st.name, rank: (hot ? 2 : 0) + p.z });
     }
-    // Names last, the nearest first, so none covers another.
+    gx.globalAlpha = 1;
+  }
+  // Names are placed after every light is drawn, the most important first
+  // (the lights', nearest first, then the plates'), so none covers another.
+  function placeNames(names) {
     names.sort((p, q) => q.rank - p.rank);
-    for (const n of placeLabels(names, { bounds: [4, W - gauge.offsetWidth - 10] })) {
+    placeLabels(names, { bounds: [4, W - gauge.offsetWidth - 10] });
+  }
+  function writeNames(names) {
+    gx.textBaseline = 'middle';
+    gx.textAlign = 'left';
+    const lightFont = `600 ${narrow ? 11 : 12.5}px ${SANS}`, plateFont = `500 ${narrow ? 9.5 : 10.5}px ${MONO}`;
+    for (const n of names) {
       if (!n.side) continue;
+      gx.font = n.plate ? plateFont : lightFont;
       gx.globalAlpha = n.a;
-      gx.fillStyle = n.hot ? '#ffffff' : '#d9f6f4';
-      gx.fillText(n.name, n.lx, n.y);
+      gx.fillStyle = n.plate ? '#ffd9c2' : n.hot ? '#ffffff' : '#d9f6f4';
+      gx.fillText(n.text, n.lx, n.y);
     }
     gx.globalAlpha = 1;
   }
@@ -556,8 +785,14 @@ void main() {
     gx.clearRect(0, 0, W, H);
     drawSnow(v, dt);
     if (v.outer === 0 && planet) {
-      drawCurrents(state.show.currents * (1 - smooth(0, 0.35, v.g)), dt);
-      drawBeacons(v, now);
+      // The layers and lights fade as a dive begins.
+      const fade = 1 - smooth(0, 0.35, v.g), pa = state.show.plates * fade, names = [];
+      drawCurrents(state.show.currents * fade, dt);
+      if (pa > 0.01) drawPlates(pa, names);
+      drawBeacons(v, now, fade, names);
+      placeNames(names);
+      if (pa > 0.01) drawArrows(pa);
+      writeNames(names);
     }
     drawRings(v);
   }
@@ -573,6 +808,7 @@ void main() {
         <h1>Dive into a <em>living planet</em></h1>
         <p>Small simulated worlds where life organises itself. Scroll down to sink from a whole ecosystem to the molecules life began with. Every stop is a live simulation.</p>
         <div class="chips" role="group" aria-label="Light up on the planet"><span class="lab">Light up</span>${chips}</div>
+        ${plateKey()}
         <div class="acts"><button class="main" data-go="1">Start the dive ↓</button><a href="${ROOT}world/index.html#story">Watch the story</a></div>`;
       return;
     }
@@ -590,6 +826,19 @@ void main() {
       <p class="ev">${esc(s.evidence)}</p>
       <div class="acts">${links}</div>
       <div class="steps"><button data-go="${i - 1}" aria-label="Up to ${esc(up.name)}">↑ ${esc(up.name)}</button>${down ? `<button data-go="${i + 1}" aria-label="Deeper: ${esc(down.name)}">↓ ${esc(down.name)}</button>` : ''}</div>`;
+  }
+  // The key to the plates layer, shown while it is lit up.
+  function plateKey() {
+    const line = (style) => `<svg viewBox="0 0 18 8" aria-hidden="true"><path d="M1 4h16" fill="none" stroke-linecap="round" ${style}/></svg>`;
+    return `<div class="key" id="plate-key"${state.layers.has('plates') ? '' : ' hidden'}>
+        <span class="key-title">Plates today <small>PB2002 model, Peter Bird 2003</small></span>
+        <span class="key-item">${line(`stroke="${PCOL.s}" stroke-width="2"`)}Pull apart</span>
+        <span class="key-item"><svg viewBox="0 0 18 8" aria-hidden="true"><path d="M1 7h16" stroke="${PCOL.u}" stroke-width="1.4"/><path d="M3 7l2-4.5 2 4.5zM11 7l2-4.5 2 4.5z" fill="${PCOL.u}"/></svg>One sinks under</span>
+        <span class="key-item">${line(`stroke="${PCOL.c}" stroke-width="2.6"`)}Push together</span>
+        <span class="key-item">${line(`stroke="${PCOL.t}" stroke-width="1.4" stroke-dasharray="3 3"`)}Slide past</span>
+        <span class="key-item"><svg viewBox="0 0 18 8" aria-hidden="true"><path d="M1 4h11" stroke="${ARROW}" stroke-width="1.4" stroke-linecap="round"/><path d="M17 4l-5.5-3.2v6.4z" fill="${ARROW}"/></svg>Drift: longer is faster</span>
+        <span class="key-hint">Point at a plate or an edge to see what it does.</span>
+      </div>`;
   }
   let panelTimer = 0;
   // The panel can change height after it is drawn (fonts, translation), so keep the lens clear of it.
@@ -614,6 +863,11 @@ void main() {
       const id = c.dataset.layer, on = !state.layers.has(id);
       on ? state.layers.add(id) : state.layers.delete(id);
       c.setAttribute('aria-pressed', String(on));
+      if (id === 'plates') {
+        const key = $('#plate-key');
+        if (key) key.hidden = !on;
+        if (!on) unpick();
+      }
     }
   });
   function easeShow(dt) {
@@ -718,12 +972,16 @@ void main() {
   }
 
   // ---------- Pointer, wheel and keys ----------
+  // The title is in a span of its own, so a translation matches it alone.
+  let tipNow = '';
   function tip(x, y, title, sub) {
     const el = $('#tip');
-    if (x == null) { el.hidden = true; return; }
+    if (x == null) { if (tipNow) { el.hidden = true; tipNow = ''; } return; }
+    const html = `<span>${esc(title)}</span>` + (sub ? `<small>${esc(sub)}</small>` : '');
+    if (html !== tipNow) { el.innerHTML = html; tipNow = html; }
     el.hidden = false;
-    el.innerHTML = esc(title) + (sub ? `<small>${esc(sub)}</small>` : '');
-    el.style.left = Math.round(clamp(x, 90, W - 90)) + 'px';
+    const half = el.offsetWidth / 2 + 6;
+    el.style.left = Math.round(clamp(x, half, W - half)) + 'px';
     el.style.top = Math.round(y) + 'px';
   }
   function beaconAt(x, y) {
@@ -738,21 +996,45 @@ void main() {
     }
     return best;
   }
-  globe.onhover = (x, y) => {
-    const b = beaconAt(x, y);
+  // A light under the mouse, or with the plates lit up, a plate or an edge.
+  // The planet turns under a still mouse, so this runs every frame.
+  let mouse = null, pointerType = 'mouse';
+  function hover() {
+    const x = mouse && mouse.x, y = mouse && mouse.y, b = beaconAt(x, y);
     state.hover = b ? b.st.i : null;
     hit.classList.toggle('over', !!b);
+    state.pick = b ? null : plateAt(x, y);
     if (b) tip(b.p.x, b.p.y - 10, b.st.s.title, `${b.st.kind.name}, ${b.st.s.when}. Click to dive in.`);
+    else if (state.pick) tip(x, y - 14, ...plateTip(state.pick));
     else tip(null);
+  }
+  globe.onhover = (x, y) => { mouse = x == null ? null : { x, y }; hover(); };
+  // On a touch screen a tap shows what is there and keeps it beside that place as the planet turns.
+  globe.ontap = (x, y) => {
+    const b = beaconAt(x, y);
+    if (b) { go(b.st.i); return; }
+    if (pointerType === 'mouse') return;
+    state.pick = plateAt(x, y, true);
+    if (state.pick) { state.pick.pinned = true; trackPick(); } else tip(null);
   };
-  globe.ontap = (x, y) => { const b = beaconAt(x, y); if (b) go(b.st.i); };
+  function unpick() { state.pick = null; tip(null); }
+  function trackPick() {
+    if (mouse) { hover(); return; }
+    const p = state.pick;
+    if (!p || !p.pinned) return;
+    const q = globe.project(p.lat, p.lon);
+    if (q.z < 0.1 || !plateAt(q.x, q.y, true)) { unpick(); return; }
+    tip(q.x, q.y - 14, ...plateTip(p));
+  }
 
   // On the planet a drag turns it; anywhere else a swipe dives.
   let swipe = null;
   hit.addEventListener('pointerdown', (e) => {
     const r = hit.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
     const onGlobe = state.at === 0 && !state.tr && Math.hypot(x - globe.cx, y - globe.cy) < globe.radius;
+    pointerType = e.pointerType;
     if (onGlobe) return;
+    if (state.pick && state.pick.pinned) unpick();
     e.stopImmediatePropagation();
     if (e.pointerType === 'mouse') return;
     swipe = { id: e.pointerId, last: y };
@@ -831,6 +1113,7 @@ void main() {
       <section><h2>The levels, from the top down</h2><ol class="levels">${levels}</ol></section>
       <section><h2>In order of time <small>years ago</small></h2><ol class="chron">${chron}</ol></section>
       <p class="foot">Places are where the oldest evidence was found, or a living example. Continents on the planet are today's, so places can be found.</p>
+      <p class="foot">Tectonic plates: the <a href="https://doi.org/10.1029/2001GC000252">PB2002 model</a> by Peter Bird (2003), in the version prepared by <a href="https://github.com/fraxen/tectonicplates">Hugo Ahlenius</a> under the Open Data Commons Attribution License. Drift is measured against the planet as a whole, as GPS sees it.</p>
     </div>`;
   }
 
@@ -898,6 +1181,7 @@ void main() {
     easeLens(dt);
     const v = view();
     if (v.outer === 0) aimGlobe(v, dt);
+    trackPick();
     porthole(v);
     const shown = state.tr ? (state.tr.f >= 0.5 ? state.tr.to : state.tr.from) : state.at;
     if (shown !== state.shown) showPanel(shown);
