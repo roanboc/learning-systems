@@ -173,3 +173,7 @@ const w = new World({ seed: 1, mind: 'brain', seasonLength: 3000 });
 for (let i = 0; i < 30000; i++) w.step();
 console.log(w.history.at(-1));
 ```
+
+## References
+
+The studies, papers and books this simulation draws on, with what each supports and how firm the claim is, are listed at the end of the page. They live in `lib/references.js`.

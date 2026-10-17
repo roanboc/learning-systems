@@ -18,3 +18,7 @@ Worlds side by side: free to evolve, linked rhythm (sync fixed at 1), each cell 
 ## Simplified
 
 Real early animal muscle (as in Hydra) is epitheliomuscular: skin cells with contractile fibres, coupled by gap junctions and later paced by nerves. Here a cell either contracts or not, the beat is a made-up oscillator, and genes are numbers.
+
+## References
+
+The studies, papers and books this simulation draws on, with what each supports and how firm the claim is, are listed at the end of the page. They live in `lib/references.js`.

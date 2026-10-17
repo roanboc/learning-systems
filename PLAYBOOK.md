@@ -6,6 +6,7 @@ Short lessons, each with the product it came from. Add one when something surpri
 
 - **Opt-in, never edit defaults.** New behaviour arrives as a setting that is off by default, and a fixed-seed script shows the old worlds are identical (Tissue Lab hooks, Forager `coast`, `founders`).
 - **Hand organisms up, don't evolve everything in one run.** Going from chemistry to brains in one run would take far too long. Chapters hand real organisms to the next level instead: Nerve nets bodies graduate into the first Brains creatures (Gaia, PR #19).
+- **Share a rule without changing results.** `lib/cell.js` multiplies each level's own amounts by shared knobs that default to 1; multiplying by 1 is exact, so every world stayed identical (Gaia G3).
 - **Scale is part of the model.** Hunters died out on the coast at 600 units wide because too few prey fit: they boomed, emptied the sea and starved. A wider world plus a shallow-water refuge gave coexistence (PR #17). Check population sizes before tuning behaviour.
 
 ## Getting emergence to show

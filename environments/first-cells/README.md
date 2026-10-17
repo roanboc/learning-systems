@@ -21,3 +21,7 @@ Worlds side by side: free to evolve, start with strong motors, no motors, no eye
 ## Simplified
 
 One map cell is far bigger than a real cell, the chemistry is made up, cells feel a quarter of the current (as if near the floor), and genes are numbers. Real eyespots belong to later single cells (algae); bacteria sense light with simpler pigments. Muscle came much later, in animals: see the Bodies and Nerve nets chapters of the World Viewer.
+
+## References
+
+The studies, papers and books this simulation draws on, with what each supports and how firm the claim is, are listed at the end of the page. They live in `lib/references.js`.
