@@ -29,6 +29,7 @@
     {
       key: 'colonies', title: 'Colonies', era: 'about 3.5 billion years ago', live: true, stage: 'colonies',
       text: 'Predators arrive: big cells that swallow anything small. Daughters may stay stuck to their mother. A clump of four is too big to swallow, but clumps compete for the same food. Watch whether sticking together spreads.',
+      lab: '../environments/colonies/index.html',
       lenses: ['Coast', 'Colonies up close', 'One colony'],
     },
     {

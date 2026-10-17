@@ -13,7 +13,7 @@
     raw: [150, 170, 190],
   };
   // How much of each chemical gives a clearly visible tint.
-  const CHEM_SCALE = { raw: 2, energy: 0.3, blocks: 0.6, chains: 0.3, copiers: 0.3, oils: 0.6 };
+  const CHEM_SCALE = { raw: 2, energy: 0.3, blocks: 0.6, chains: 0.3, copiers: 0.3, oils: 0.6, helper: 0.3 };
 
   const LAYERS = [
     { key: 'nature', label: 'Nature' },
@@ -69,7 +69,11 @@
         else if (layer === 'temp') { const c = heat(e.temp[i]); r = c[0]; g = c[1]; b = c[2]; if (!wet) { r *= 0.6; g *= 0.6; b *= 0.6; } }
         else if (layer !== 'nature' && layer !== 'mix') {
           if (!wet) { const v = 40 + e.ground[i] * 6; r = v; g = v; b = v; }
-          else { const v = w.f[layer][i]; const c = ramp(v / (v + CHEM_SCALE[layer])); r = c[0]; g = c[1]; b = c[2]; }
+          else {
+            // The helper molecule (sharers and cheats) is a field of the coast, not of the chemistry.
+            const v = (w.f[layer] || e.field(layer))[i];
+            const c = ramp(v / (v + CHEM_SCALE[layer])); r = c[0]; g = c[1]; b = c[2];
+          }
         } else {
           if (!wet) {
             // Bare young rock and wet sand; no plants yet.
