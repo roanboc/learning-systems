@@ -50,13 +50,9 @@
     },
     {
       key: 'ecosystems', title: 'Ecosystems', era: 'the Cambrian, 520 million years ago', live: true,
-      text: 'Hunters chase and bite plant eaters, which can see them and learn to flee. Cycles, chases and extinctions emerge from nothing but local rules.',
+      text: 'Hunters chase and bite plant eaters on the same coast, and the plant eaters can see them and learn to flee. Hunters are bigger and need deeper water, so the shallows are a refuge. What the creatures leave behind goes back into the water as building blocks for the seaweed. Cycles, chases and extinctions emerge from nothing but local rules.',
       lab: '../environments/forager-worlds/index.html',
-      lenses: ['World', 'Creature', 'Body, brain and cells'],
-      // Still in the open arena: on the coast, hunters die out so far (see the Gaia plan).
-      world: { seed: 1, seasonLength: 0, plantMode: 'living', species: [
-        { name: 'Prey', mind: 'brain', count: 50 },
-        { name: 'Hunters', mind: 'brain', count: 10, diet: 'meat' }] },
+      lenses: ['Coast', 'Creature', 'Body, brain and cells'], gaia: true,
     },
   ];
 

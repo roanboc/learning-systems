@@ -60,13 +60,18 @@ Step N1 of the nested worlds plan: a creature is made of cells, not a point with
 
 `coast` takes a `lib/chemistry.js` world, and the creatures then live on its `lib/earth.js` coast instead of the open arena. `lib/gaia.js` builds these worlds (`Gaia.make({ era: 'brains' })`), and the World Viewer's Brains chapter uses it.
 
-- The world is `size` wide and as tall as the coast allows (600 × 375 for the 160 × 100 coast). It has edges, not a torus.
+- The world is `size` wide and as tall as the coast's shape allows (Gaia uses 900, so 900 × 562 for the 160 × 100 coast). It has edges, not a torus.
 - Creatures swim only in water, are carried by the current (`drift`), turn away from dry ground, and lose energy out of water (`strandDamage`) or in water hotter than `hotAt` (`heatDamage`).
 - Plants are seaweed: they grow from sunlight averaged over the day (`lightFull`) and the water's building blocks (`nutrientHalf`), and take blocks from the water as they grow (`plantBlocks`).
 - Droppings (`dropBlocks`), dead seaweed and dead creatures (`bodyBlocks`) give blocks back to the water, so the coast's chemistry and the creatures feed each other.
 - The world steps the coast itself, as `lib/life.js` does.
+- Hunters can be made bigger than prey: they need water at least `huntDepth` metres deep, so the shallows are a refuge for prey.
 
-Results (seeds 1 to 3, 6,000 steps, two brain species): creatures survive in 3 of 3 seeds, at 35 to 80 creatures (about 100 in the arena), with 300 to 450 seaweed. In the Ecosystems setup, hunters die out by step 4,000 to 5,000 in every seed and variant tried (longer reach, higher meat efficiency, more prey, slower currents, less harm out of water), while they live on in the arena. Every other world gives exactly the same results as before (checked with fixed seeds).
+Results, Gaia's settings (`lib/gaia.js`):
+- Brains (two brain species, seeds 1 to 3, 6,000 steps): 120 to 146 creatures and about 800 to 1,000 seaweed, close to the arena.
+- Ecosystems (`huntDepth: 1`, seeds 1 to 4, 10,000 steps): hunters and prey live together with cycles in 3 of 4 seeds (prey 80 to 165, hunters swinging between 2 and 41); in seed 3 hunters die out after step 6,000. The arena keeps hunters in 3 of 3 seeds over 6,000 steps.
+- What it took: at 600 units wide, too few prey fit on the coast, so hunters boomed, emptied the sea and starved, in every seed. A wider scale (900) alone kept hunters in 1 of 3 seeds over 6,000 steps; adding the refuge kept them in all 3. Longer reach (12) made it worse: hunters emptied the sea faster.
+- Every other world gives exactly the same results as before (checked with fixed seeds).
 
 ## Living ecosystem
 Set with `plantMode: 'living'` and `species`.
