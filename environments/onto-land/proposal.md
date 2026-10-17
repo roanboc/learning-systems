@@ -133,5 +133,6 @@ All links and details to be re-checked on the date the page is written.
 | Date | Decision |
 |---|---|
 | 2026-10-17 | Rodrigo asked for a body-shaping milestone with limbs and other body parts, wondering whether shaping was more creative on land. |
-| 2026-10-17 | Proposed: one chapter, Onto land, with shape genes that matter (segments, appendage type per region, legs that must hold the body up), shore food, and a "Keep them in the sea" lab. The land question is shown as an open question and measured, not assumed. **Waiting for confirmation.** |
-| pending | One chapter covering both the Cambrian sea and the move to land (recommended), or two chapters (Cambrian body plans, then Onto land). |
+| 2026-10-17 | Proposed: one chapter, Onto land, with shape genes that matter (segments, appendage type per region, legs that must hold the body up), shore food, and a "Keep them in the sea" lab. The land question is shown as an open question and measured, not assumed. |
+| 2026-10-17 | Confirmed ("Continue all threads"): build it as one chapter, Onto land, chapter 7. |
+| 2026-10-17 | Built with changes from this plan: hunters pay nothing for their shape and their arms do nothing (with full body plans they died out in 4 of 5 seeds); only legs may step onto dry ground; drying out is 0.25 per step on this coast. Results and what failed are in the [README](README.md). |
