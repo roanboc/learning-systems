@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="../../lib/i18n.js"></script>
 <title>Forager Worlds</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -383,7 +384,7 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
       form: root.querySelector('form'),
     };
     el.sw.style.background = `var(--s${entry.slot + 1})`;
-    el.name.value = entry.name;
+    el.name.value = window.I18N ? I18N.t(entry.name) : entry.name;
     el.name.addEventListener('input', () => { entry.name = el.name.value || 'World'; drawLegend(); });
     for (const [k] of PARAMS) el.form.elements[k].value = entry.params[k];
     el.form.elements.mind.value = entry.params.mind || 'reflex';

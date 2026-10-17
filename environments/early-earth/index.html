@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="../../lib/i18n.js"></script>
 <title>Early Earth</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -93,6 +94,7 @@ canvas.map.tool { cursor: crosshair; }
 .inspect .follow { font: 12px var(--sans); padding: 2px 8px; margin-left: 6px; }
 .journal { display: grid; gap: 0; max-height: 260px; overflow: auto; border-top: 1px solid var(--line); }
 .journal:empty::before { content: "Nothing noted yet. Watch the tide pools and the vents."; color: var(--muted); font-size: 13px; padding: 8px 0; }
+:root[lang="es"] .journal:empty::before { content: "Aún no hay notas. Observa las pozas de marea y las fuentes."; }
 .entry { display: grid; gap: 2px; padding: 8px 0; border-bottom: 1px solid var(--line); text-align: left; background: none; border-radius: 0; border-inline: 0; border-top: 0; width: 100%; }
 .entry:hover { border-color: var(--line); background: color-mix(in srgb, var(--accent) 6%, transparent); }
 .entry small { font: 11px var(--mono); color: var(--muted); }

@@ -592,6 +592,8 @@ void main() {
       <div class="steps"><button data-go="${i - 1}" aria-label="Up to ${esc(up.name)}">↑ ${esc(up.name)}</button>${down ? `<button data-go="${i + 1}" aria-label="Deeper: ${esc(down.name)}">↓ ${esc(down.name)}</button>` : ''}</div>`;
   }
   let panelTimer = 0;
+  // The panel can change height after it is drawn (fonts, translation), so keep the lens clear of it.
+  if (window.ResizeObserver) new ResizeObserver(() => aimLens()).observe(panel);
   function showPanel(i) {
     state.shown = i;
     clearTimeout(panelTimer);
