@@ -15,6 +15,10 @@ Open `index.html` for the home page, or visit the live site at https://roanboc.g
 | Environments | [Forager Worlds](environments/forager-worlds/) | Available (W5, tissue brains, bodies of cells) |
 | Nervous systems | [Tissue Lab](nervous-systems/tissue-lab/) | Available (first version) |
 
+## Adding a simulation
+
+Follow [AGENTS.md](AGENTS.md): every new scenario is built inside the same world, placed on the history timeline, and its page ends with a References section. Lessons so far are in [PLAYBOOK.md](PLAYBOOK.md). Agents can use the skills in `.claude/skills/` (`new-simulation`, `systems-idea-page`).
+
 ## Layout
 
 - `index.html` and `home.js`: the home page. A glowing planet you dive into, level by level, from an ecosystem down to the chemistry life began with; every stop runs the real simulation. The List tab shows every system as a plain list with links to its pages, its guided lab and the history of life.
