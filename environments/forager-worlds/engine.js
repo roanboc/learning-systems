@@ -116,6 +116,23 @@
     // then paid by those cells instead of basalCost, moveCost and senseCost.
     body: null,
     bodyParams: null,       // overrides for lib/body.js defaults
+    // Gaia, one world: a lib/chemistry.js world (on its lib/earth.js coast) to
+    // live in instead of the open arena. Creatures then swim on the same coast
+    // as the first cells, carried by its currents and harmed by dry ground and
+    // hot vents; plants are seaweed that grows from sunlight and the water's
+    // building blocks; droppings and dead bodies go back into the water as
+    // blocks. The world is size wide and as tall as the coast's shape allows.
+    // Plants are always 'living' here. lib/gaia.js builds these worlds.
+    coast: null,
+    drift: 0.5,             // coast: share of the current that carries a creature
+    strandDamage: 1,        // coast: energy lost per step out of water
+    heatDamage: 1,          // coast: energy lost per step in water hotter than hotAt
+    hotAt: 55,              // coast: degrees C
+    nutrientHalf: 0.15,     // coast: building blocks at which seaweed grows half as fast
+    lightFull: 0.15,        // coast: daylight (averaged over the day) that is full light for seaweed
+    plantBlocks: 1,         // coast: blocks seaweed takes from the water to grow one full size
+    dropBlocks: 0.5,        // coast: blocks returned per unit of plant digested
+    bodyBlocks: 2,          // coast: blocks returned where a creature dies
   };
 
   // Heritable genes. Ranges keep evolution inside a plausible body plan.
@@ -188,12 +205,20 @@
       this.intervalPoisonMeals = 0;
       this.lipFood = this.biteFood = this.lipPoison = this.bitePoison = 0;
       this.extinctAt = null;
+      if (this.p.coast) this._initCoast();
       this.gridN = Math.ceil(this.p.size / CELL);
       this.grid = new Array(this.gridN * this.gridN);
 
       this.patchList = [];
       this.soil = [];
-      if (this.p.plantMode === 'living') {
+      if (this.coast) {
+        // Seaweed starts wherever the water is sunny and rich enough.
+        const want = this.p.plantCapacity * this.p.soilSpots * 0.5;
+        for (let k = 0; k < want * 20 && this.plants.length < want; k++) {
+          const x = this.rng() * this.p.size, y = this.rng() * this.H;
+          if (this.rng() < this.fertility(x, y)) this.addPlant(x, y, this.rng() < this.p.poisonFraction).size = 0.3 + 0.7 * this.rng();
+        }
+      } else if (this.p.plantMode === 'living') {
         // Fertile soil spots that drift, so the vegetation never stays put.
         for (let i = 0; i < this.p.soilSpots; i++) {
           this.soil.push({ x: this.rng() * this.p.size, y: this.rng() * this.p.size, dir: this.rng() * TAU });
@@ -230,13 +255,15 @@
 
     wrap(v) {
       const s = this.p.size;
+      if (this.coast) return v < 0 ? 0 : v >= s ? s - 1e-6 : v;
       return ((v % s) + s) % s;
     }
 
-    // Shortest signed difference on the torus.
+    // Shortest signed difference on the torus (plain difference on the coast).
     delta(a, b) {
       const s = this.p.size;
       let d = b - a;
+      if (this.coast) return d;
       if (d > s / 2) d -= s; else if (d < -s / 2) d += s;
       return d;
     }
@@ -273,8 +300,69 @@
       return plant;
     }
 
+    // ---------- Gaia: living on the coast ----------
+
+    _initCoast() {
+      const p = this.p, chem = p.coast, e = chem.earth;
+      this.coast = chem;
+      this.earth = e;
+      p.plantMode = 'living';
+      this.sx = p.size / e.cols;            // world units per map cell
+      this.H = e.rows * this.sx;
+      // Daylight averaged over about a day, so seaweed grows by day and lives
+      // through the night. Starts from today's light.
+      this.dayLight = new Float32Array(e.n);
+      const sun = Math.max(0.3, e.sun);
+      for (let i = 0; i < e.n; i++) this.dayLight[i] = e.light[i] / sun * 0.5;
+      this.coastDeaths = { stranded: 0, cooked: 0 };
+    }
+
+    cellAt(x, y) { return this.earth.cellAt(x / this.sx, y / this.sx); }
+
+    // Water a creature can swim in: inside the map, and not dry ground.
+    swimmable(x, y) {
+      return x >= 0 && y >= 0 && x < this.p.size && y < this.H && this.earth.water[this.cellAt(x, y)] > 0.05;
+    }
+
+    // A random spot of open, not too hot, water.
+    waterSpot() {
+      const e = this.earth;
+      for (let k = 0; k < 200; k++) {
+        const x = this.rng() * this.p.size, y = this.rng() * this.H, i = this.cellAt(x, y);
+        if (e.connected[i] && e.temp[i] < this.p.hotAt) return [x, y];
+      }
+      return [this.p.size / 2, this.H - 1];
+    }
+
+    // Give blocks back to the water (droppings, dead plants and bodies).
+    release(x, y, amount) {
+      const b = this.coast.f.blocks, i = this.cellAt(x, y);
+      if (this.earth.water[i] > 0.01) b[i] = Math.min(20, b[i] + amount);
+    }
+
+    // Damage from the place itself: a creature out of water dries out, one in
+    // a vent's hot water is cooked.
+    hurt(c, amount) {
+      if (c.body) { c.body.poison(amount); this.bodyEnergy(c); } else c.energy -= amount;
+    }
+
+    // The coast moves on with the world: tides, sun, currents and chemistry.
+    stepCoast() {
+      this.coast.step();
+      const e = this.earth, L = this.dayLight, k = 1 / e.p.dayLength;
+      for (let i = 0; i < e.n; i++) L[i] += (e.light[i] - L[i]) * k;
+    }
+
     // Soil fertility at a point, 0 to 1: the strongest nearby fertile spot.
+    // On the coast: sunlight through the water times the building blocks in it.
     fertility(x, y) {
+      if (this.coast) {
+        if (!(x >= 0 && y >= 0 && x < this.p.size && y < this.H)) return 0;
+        const i = this.cellAt(x, y);
+        if (this.earth.water[i] <= 0.05 || this.earth.temp[i] > this.p.hotAt) return 0;
+        const b = this.coast.f.blocks[i];
+        return Math.min(1, this.dayLight[i] / this.p.lightFull) * b / (b + this.p.nutrientHalf);
+      }
       let f = 0;
       const r2 = 2 * this.p.soilRadius * this.p.soilRadius;
       for (const s of this.soil) {
@@ -310,8 +398,17 @@
         const before = plant.size;
         plant.size = Math.min(1, plant.size + grow * (fert * light - 0.15));
         plant.fert = fert; plant.light = light; plant.growth = plant.size - before; plant.seeded = false;
+        if (this.coast && plant.growth > 0) {
+          // Growing takes building blocks out of the water.
+          const b = this.coast.f.blocks, i = this.cellAt(plant.x, plant.y);
+          b[i] = Math.max(0, b[i] - plant.growth * p.plantBlocks);
+        }
         if (plant.size <= 0) { plant.dead = true; plant.death = 'starved'; continue; }
-        if (plant.age > plant.lifespan) { plant.dead = true; plant.death = 'old'; continue; }
+        if (plant.age > plant.lifespan) {
+          plant.dead = true; plant.death = 'old';
+          if (this.coast) this.release(plant.x, plant.y, plant.size * p.plantBlocks);
+          continue;
+        }
         if (plant.size > 0.5 && this.rng() < (plant.poison ? p.toxinCost : 1) / p.seedEvery) {
           const a = this.rng() * TAU, r = p.seedRange * Math.abs(gauss(this.rng));
           // Toxicity is inherited with probability toxinHeredity, otherwise
@@ -324,7 +421,7 @@
       }
       // Rare seeds from outside keep both kinds of plant in play.
       if (this.rng() < p.plantSeeding) {
-        seeds.push([this.rng() * p.size, this.rng() * p.size, this.rng() < p.poisonFraction]);
+        seeds.push([this.rng() * p.size, this.rng() * (this.coast ? this.H : p.size), this.rng() < p.poisonFraction]);
       }
       // A seed only sprouts on fertile ground that is not already shaded.
       for (const [x, y, poison, parent] of seeds) {
@@ -377,6 +474,7 @@
 
     spawnCreature(genome, x, y, energy, gen, species) {
       const spIndex = species || 0, sp = this.speciesList[spIndex];
+      if (x === undefined && this.coast) [x, y] = this.waterSpot();
       const c = {
         id: this.nextId++,
         x: x === undefined ? this.rng() * this.p.size : x,
@@ -565,6 +663,7 @@
         this.foodColour = 1 - this.foodColour;
       }
 
+      if (this.coast) this.stepCoast();
       if (p.plantMode === 'living') {
         this.buildGrid();
         this.stepLivingPlants();
@@ -628,8 +727,17 @@
         }
         // With a body, speed comes from the muscle cells that are alive and fed.
         const speed = c.body ? g.speed * c.body.speedFactor() : g.speed;
-        c.x = this.wrap(c.x + Math.cos(c.heading) * speed);
-        c.y = this.wrap(c.y + Math.sin(c.heading) * speed);
+        if (this.coast) {
+          // Swim, and be carried by the current. Dry ground stops a creature,
+          // which turns away.
+          const i = this.cellAt(c.x, c.y), e = this.earth;
+          const nx = c.x + Math.cos(c.heading) * speed + e.vx[i] * this.sx * p.drift;
+          const ny = c.y + Math.sin(c.heading) * speed + e.vy[i] * this.sx * p.drift;
+          if (this.swimmable(nx, ny)) { c.x = nx; c.y = ny; } else c.heading += Math.PI * (0.5 + this.rng());
+        } else {
+          c.x = this.wrap(c.x + Math.cos(c.heading) * speed);
+          c.y = this.wrap(c.y + Math.sin(c.heading) * speed);
+        }
 
         // Eating is a choice. Reflex creatures bite a touched plant if their
         // instinct likes its colour; brains bite when the eat neuron fires.
@@ -677,6 +785,17 @@
           c.body.step(c.brainCost);
           this.bodyEnergy(c);
         } else c.energy -= p.basalCost + p.moveCost * g.speed * g.speed + p.senseCost * g.senseRange + c.brainCost;
+        if (this.coast) {
+          const i = this.cellAt(c.x, c.y), e = this.earth;
+          if (e.water[i] <= 0.05) { this.hurt(c, p.strandDamage); if (c.energy <= 0) c.diedOf = 'stranded'; }
+          else if (e.temp[i] > p.hotAt) { this.hurt(c, p.heatDamage); if (c.energy <= 0) c.diedOf = 'cooked'; }
+          if (c.gut > 0) {
+            // Droppings: digested plants go back into the water as blocks.
+            const d = c.gut * p.dungRate;
+            c.gut -= d;
+            this.release(c.x, c.y, d * p.dropBlocks);
+          }
+        }
         if (this.dungGrid && c.gut > 0) {
           // Droppings: digested plants return to the soil where the creature walks.
           const d = c.gut * p.dungRate;
@@ -704,6 +823,10 @@
       let w = 0;
       for (const c of this.creatures) {
         if (c.energy <= 0 || c.age > p.maxAge) {
+          if (this.coast) {
+            this.release(c.x, c.y, p.bodyBlocks);
+            if (c.diedOf && c.energy <= 0) this.coastDeaths[c.diedOf]++;
+          }
           if (this.dungGrid) {
             const n = this.dungN, k = p.dungCell;
             this.dungGrid[(Math.floor(c.y / k) % n) * n + (Math.floor(c.x / k) % n)] += p.carcass;

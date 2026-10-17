@@ -56,6 +56,18 @@ Step N1 of the nested worlds plan: a creature is made of cells, not a point with
 - **Starving body, starving brain:** with the blood supply cut to 5% or 0 for 4,000 steps, tissue neurons ran low on energy and some starved (0 supply: 10 to 13 neurons left vs 17 to 41 with normal supply, 3 seeds).
 - **Hunters do worse with bodies:** in "Hunters and prey" with bodies, hunters died out in 3 of 3 seeds by step 4,500 (without bodies they lasted 6,000 steps on 2 of 3). A bite now kills cells, prey crash early, and hunters then starve. Not tuned yet.
 
+## On the coast: Gaia (`coast` setting)
+
+`coast` takes a `lib/chemistry.js` world, and the creatures then live on its `lib/earth.js` coast instead of the open arena. `lib/gaia.js` builds these worlds (`Gaia.make({ era: 'brains' })`), and the World Viewer's Brains chapter uses it.
+
+- The world is `size` wide and as tall as the coast allows (600 × 375 for the 160 × 100 coast). It has edges, not a torus.
+- Creatures swim only in water, are carried by the current (`drift`), turn away from dry ground, and lose energy out of water (`strandDamage`) or in water hotter than `hotAt` (`heatDamage`).
+- Plants are seaweed: they grow from sunlight averaged over the day (`lightFull`) and the water's building blocks (`nutrientHalf`), and take blocks from the water as they grow (`plantBlocks`).
+- Droppings (`dropBlocks`), dead seaweed and dead creatures (`bodyBlocks`) give blocks back to the water, so the coast's chemistry and the creatures feed each other.
+- The world steps the coast itself, as `lib/life.js` does.
+
+Results (seeds 1 to 3, 6,000 steps, two brain species): creatures survive in 3 of 3 seeds, at 35 to 80 creatures (about 100 in the arena), with 300 to 450 seaweed. In the Ecosystems setup, hunters die out by step 4,000 to 5,000 in every seed and variant tried (longer reach, higher meat efficiency, more prey, slower currents, less harm out of water), while they live on in the arena. Every other world gives exactly the same results as before (checked with fixed seeds).
+
 ## Living ecosystem
 Set with `plantMode: 'living'` and `species`.
 

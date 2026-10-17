@@ -44,18 +44,16 @@
     },
     {
       key: 'brains', title: 'Brains', era: 'about 540 million years ago', live: true,
-      text: 'Creatures with an eye and a small spiking brain that wires itself and learns which plants are food. Species with small and large brains share living plants on drifting soil. Follow one, then zoom into its body, brain and single cells.',
+      text: 'The same coast, now with seaweed and swimming creatures. Each has an eye and a small spiking brain that wires itself and learns which seaweed is food. Seaweed grows from sunlight and the building blocks in the water; currents carry the creatures, dry ground and hot vents harm them. Follow one, then zoom into its body, brain and single cells.',
       lab: '../environments/forager-worlds/index.html',
-      lenses: ['World', 'Creature', 'Body, brain and cells'],
-      world: { seed: 1, seasonLength: 0, plantMode: 'living', species: [
-        { name: 'Small brains', mind: 'brain', count: 30, geneInit: { hidden: [6, 10] } },
-        { name: 'Large brains', mind: 'brain', count: 30, geneInit: { hidden: [28, 36] } }] },
+      lenses: ['Coast', 'Creature', 'Body, brain and cells'], gaia: true,
     },
     {
       key: 'ecosystems', title: 'Ecosystems', era: 'the Cambrian, 520 million years ago', live: true,
       text: 'Hunters chase and bite plant eaters, which can see them and learn to flee. Cycles, chases and extinctions emerge from nothing but local rules.',
       lab: '../environments/forager-worlds/index.html',
       lenses: ['World', 'Creature', 'Body, brain and cells'],
+      // Still in the open arena: on the coast, hunters die out so far (see the Gaia plan).
       world: { seed: 1, seasonLength: 0, plantMode: 'living', species: [
         { name: 'Prey', mind: 'brain', count: 50 },
         { name: 'Hunters', mind: 'brain', count: 10, diet: 'meat' }] },
@@ -100,6 +98,10 @@
       // Same coast and chemistry as Early Earth, with cells living in it.
       const L = window.LifeSim.makeLife(ch.stage, 3);
       s = { kind: 'life', w: L, painter: new window.EarthDraw.MapPainter(L.chem), size: [L.earth.cols, L.earth.rows], journalShown: 0 };
+    } else if (ch.gaia) {
+      // Gaia: plants and creatures on the same coast as the cells.
+      const g = window.Gaia.make({ era: ch.key, seed: 3 }), w = g.world;
+      s = { kind: 'forager', w, coast: g.chem, painter: new window.EarthDraw.MapPainter(g.chem), entry: { name: ch.title, world: w, params: w.p }, size: [w.p.size, w.H], journalShown: 0 };
     } else {
       const { World, DEFAULTS } = window.WorldSim;
       const params = Object.assign({}, DEFAULTS, ch.world);
@@ -468,15 +470,21 @@
 
   function drawForager(ctx, s, w, h) {
     const world = s.w, k = baseScale(s) * s.cam.zoom, size = s.size[0];
-    ctx.fillStyle = colours.dish; ctx.fillRect(0, 0, w, h);
+    if (s.coast) {
+      // The coast underneath, in its own map cells.
+      const sx = world.sx;
+      window.EarthDraw.drawWorld(ctx, s.painter, w, h, { cx: s.cam.cx / sx, cy: s.cam.cy / sx, zoom: s.cam.zoom }, { layer: 'nature', background: tok('--dish') });
+    } else { ctx.fillStyle = colours.dish; ctx.fillRect(0, 0, w, h); }
     ctx.save();
     ctx.translate(w / 2 - s.cam.cx * k, h / 2 - s.cam.cy * k);
     ctx.scale(k, k);
-    ctx.fillStyle = '#121a16'; ctx.fillRect(0, 0, size, size);
-    ctx.strokeStyle = colours.dishLine; ctx.lineWidth = 1 / k;
-    ctx.beginPath();
-    for (let i = 100; i < size; i += 100) { ctx.moveTo(i, 0); ctx.lineTo(i, size); ctx.moveTo(0, i); ctx.lineTo(size, i); }
-    ctx.stroke();
+    if (!s.coast) {
+      ctx.fillStyle = '#121a16'; ctx.fillRect(0, 0, size, size);
+      ctx.strokeStyle = colours.dishLine; ctx.lineWidth = 1 / k;
+      ctx.beginPath();
+      for (let i = 100; i < size; i += 100) { ctx.moveTo(i, 0); ctx.lineTo(i, size); ctx.moveTo(0, i); ctx.lineTo(size, i); }
+      ctx.stroke();
+    }
     for (const spot of world.soil || []) {
       const r = world.p.soilRadius * 2.2;
       const g = ctx.createRadialGradient(spot.x, spot.y, 0, spot.x, spot.y, r);
@@ -615,11 +623,15 @@
     }
     const st = s.w;
     const gens = st.creatures.reduce((m, c) => Math.max(m, c.gen), 0);
+    if (s.coast) {
+      const e = s.coast.earth, hh = e.dayPhase * 24;
+      return `Day ${e.day} · ${String(Math.floor(hh)).padStart(2, '0')}:00 · ${st.creatures.length} creatures · ${st.plants.length} seaweed · generation ${gens}`;
+    }
     return `t ${st.t} · ${st.creatures.length} creatures · generation ${gens}`;
   }
 
   // Steps per frame for each kind of world at "Normal".
-  function stepsFor(s) { return s.kind === 'earth' ? 3 : s.kind === 'life' ? 2 : 5; }
+  function stepsFor(s) { return s.kind === 'earth' ? 3 : s.kind === 'life' || s.coast ? 2 : 5; }
 
   function advance(s, n) {
     for (let i = 0; i < n; i++) {
@@ -641,7 +653,7 @@
         carry += stepsFor(s) * +sp;
         const n = Math.floor(carry); carry -= n;
         advance(s, n);
-        if (s.kind !== 'forager') s.painter.moveTracers(n, 700);
+        if (s.painter) s.painter.moveTracers(n, 700);
       }
     }
     state.frame++;
