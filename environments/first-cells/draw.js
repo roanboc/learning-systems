@@ -7,6 +7,8 @@
   const ROLE_RGB = ['#8fe3a8', '#6cc4ee', '#f2c14e', '#ee6fb0', '#b59cff'];
   const PREDATOR_RGB = '#e8553f';
   const CONTRACT_RGB = '#ff8a2a';
+  // Helper gene from 0 (cheat) to 1 (generous sharer), in five steps.
+  const HELPER_RGB = ['#c77dff', '#b9a3f0', '#a9c6d8', '#9cd8b8', '#7fe39a'];
 
   // cam: { cx, cy, zoom }; w, h: canvas size in CSS pixels.
   function drawCells(ctx, L, w, h, cam, opts) {
@@ -49,7 +51,16 @@
     }
     // Cells, one colour per role (batched). Contracting cells flash orange
     // and shrink a little while they squeeze.
-    for (let role = 0; role < ROLE_RGB.length; role++) {
+    // With sharers and cheats, the colour says how much helper a cell makes
+    // instead: green for sharers, purple for cheats.
+    if (L.p.goods) {
+      for (let q = 0; q < HELPER_RGB.length; q++) {
+        ctx.fillStyle = HELPER_RGB[q];
+        ctx.beginPath();
+        for (const c of vis) if (!c.contracting && Math.min(HELPER_RGB.length - 1, Math.floor(c.g.helper * HELPER_RGB.length)) === q) { ctx.moveTo(c.x + r, c.y); ctx.arc(c.x, c.y, r, 0, Math.PI * 2); }
+        ctx.fill();
+      }
+    } else for (let role = 0; role < ROLE_RGB.length; role++) {
       ctx.fillStyle = ROLE_RGB[role];
       ctx.beginPath();
       for (const c of vis) if (c.role === role && !c.contracting) { ctx.moveTo(c.x + r, c.y); ctx.arc(c.x, c.y, r, 0, Math.PI * 2); }

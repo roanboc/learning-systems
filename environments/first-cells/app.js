@@ -1,4 +1,4 @@
-// Life pages (First cells, Bodies): Early Earth coasts with cells (lib/life.js), side by side.
+// Life pages (First cells, Colonies, Bodies): Early Earth coasts with cells (lib/life.js), side by side.
 (function () {
   'use strict';
 
@@ -36,6 +36,29 @@
       stats: (W, st) => [['Cells', st.cells], ['Generations', st.maxGen], ['Motor', fmt(st.speed)], ['Follows food', fmt(st.tumble)],
         ['Eyespot', fmt(st.eyespot)], ['Starved', W.sim.deathsBy.starved], ['Stranded', W.sim.deathsBy.stranded], ['Cooked', W.sim.deathsBy.cooked]],
       genes: (c) => `motor <b>${fmt(c.g.speed)}</b> · follows food <b>${fmt(c.g.tumble)}</b> · eyespot <b>${fmt(c.g.eyespot)}</b> · divides at ${fmt(c.g.divideAt)} · light here ${fmt(c.light)}`,
+    },
+    // Sharers and cheats: colonies with the helper molecule (lib/life.js `goods`).
+    colonies: {
+      start: 'together',
+      layers: [{ key: 'helper', label: 'Helper molecule' }],
+      presets: {
+        together: { label: 'Kin stay together', params: { goods: true, geneStart: { stick: [0.95, 0.95] }, fixed: ['stick'] } },
+        apart: { label: 'Daughters drift apart', params: { goods: true, geneStart: { stick: [0, 0] }, fixed: ['stick'] } },
+        cheats: { label: 'Together, starting as cheats', params: { goods: true, geneStart: { stick: [0.95, 0.95], helper: [0.05, 0.15] }, fixed: ['stick'] } },
+        wide: { label: 'Together, helper spreads far', params: { goods: true, goodSpread: 0.2, geneStart: { stick: [0.95, 0.95] }, fixed: ['stick'] } },
+        nohelp: { label: 'Nobody makes helper', params: { goods: true, geneStart: { stick: [0.95, 0.95], helper: [0, 0] }, fixed: ['stick', 'helper'] } },
+        free: { label: 'Free to evolve', params: { goods: true } },
+      },
+      metrics: [
+        { key: 'helper', label: 'Helper made', get: (s) => s.helper, min: 0.7, note: 'Average helper gene: how much helper molecule a cell makes (0 = a cheat). Most coasts start at about 0.55.' },
+        { key: 'cheats', label: 'Cheats', get: (s) => s.cheats, min: 0.3, note: 'Share of cells that make almost no helper (gene below 0.1).' },
+        { key: 'stick', label: 'Sticks', get: (s) => s.stick, min: 1, note: 'Average sticking gene: the chance that a daughter stays stuck to its mother. Fixed on most coasts here.' },
+        { key: 'cells', label: 'Cells', get: (s) => s.cells, min: 10, note: 'Number of cells. The coast holds at most 900.' },
+      ],
+      stats: (W, st) => [['Cells', st.cells], ['Generations', st.maxGen], ['Helper made', fmt(st.helper || 0)], ['Cheats', Math.round((st.cheats || 0) * 100) + '%'],
+        ['In clumps', Math.round(st.inClumps * 100) + '%'], ['Predators', st.predators], ['Starved', W.sim.deathsBy.starved], ['Sticks', fmt(st.stick)]],
+      genes: (c) => (c.clumpSize > 1 ? `colony of <b>${c.clumpSize}</b><br>` : '') +
+        `helper <b>${fmt(c.g.helper)}</b> (${c.g.helper < 0.1 ? 'a cheat' : 'a sharer'}) · sticks ${fmt(c.g.stick)} · shares energy ${fmt(c.g.share)}`,
     },
     bodies: {
       start: 'free',
@@ -116,7 +139,7 @@
   function wire(W) {
     const el = W.el, cv = $('canvas.map', el);
     const layerSel = $('.layer', el);
-    for (const l of LAYERS) layerSel.add(new Option(l.label, l.key));
+    for (const l of LAYERS.concat(CFG.layers || [])) layerSel.add(new Option(l.label, l.key));
     layerSel.onchange = () => { W.layer = layerSel.value; };
     $('.remove', el).onclick = () => { worlds.splice(worlds.indexOf(W), 1); el.remove(); refreshHeads(); renderLegend(); };
     $('.zin', el).onclick = () => zoomAt(W, 1.5);
