@@ -103,6 +103,13 @@ body.listing .bar { position: sticky; background: linear-gradient(var(--abyss) 7
 .chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px 4px 8px; background: rgba(255, 255, 255, 0.02); cursor: pointer; font-size: 12.5px; }
 .chip i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); box-shadow: 0 0 8px var(--c); }
 .chip[aria-pressed="true"] { border-color: var(--c); background: color-mix(in srgb, var(--c) 18%, transparent); }
+/* The key to the plates layer. */
+.stop .key { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; font-size: 12.5px; color: #c4dde3; border-top: 1px solid var(--line); padding-top: 9px; }
+.stop .key-title { flex-basis: 100%; font: 500 11px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); }
+.stop .key-title small { font: inherit; letter-spacing: 0; text-transform: none; color: var(--faint); margin-left: 6px; }
+.stop .key-item { display: inline-flex; align-items: center; gap: 6px; }
+.stop .key-item svg { width: 18px; height: 8px; flex: none; overflow: visible; }
+.stop .key-hint { flex-basis: 100%; font-size: 12px; color: var(--muted); }
 
 /* Depth gauge: the levels of life on a log scale of size. */
 .gauge { position: fixed; z-index: 6; right: max(18px, env(safe-area-inset-right, 0px)); top: 76px; bottom: 26px; width: 200px; pointer-events: none; }
@@ -133,8 +140,8 @@ body.deep .history, body.deep .cue { opacity: 0; pointer-events: none; }
 .cue { position: fixed; z-index: 4; left: 50%; top: 80%; transform: translateX(-50%); font: 12px var(--mono); color: var(--muted); display: grid; justify-items: center; gap: 3px; pointer-events: none; animation: bob 2.4s ease-in-out infinite; transition: opacity 300ms ease; }
 .cue::after { content: ""; width: 1px; height: 16px; background: linear-gradient(var(--glow), transparent); }
 @keyframes bob { 0%, 100% { transform: translate(-50%, 0); opacity: 0.85; } 50% { transform: translate(-50%, 6px); opacity: 0.5; } }
-.label-tip { position: fixed; z-index: 7; pointer-events: none; transform: translate(-50%, calc(-100% - 10px)); text-align: center; white-space: nowrap; background: rgba(2, 11, 16, 0.85); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; font-size: 13px; }
-.label-tip small { display: block; font: 11px var(--mono); color: var(--muted); }
+.label-tip { position: fixed; z-index: 7; pointer-events: none; transform: translate(-50%, calc(-100% - 10px)); text-align: center; width: max-content; max-width: min(320px, calc(100vw - 20px)); background: rgba(2, 11, 16, 0.85); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; font-size: 13px; line-height: 1.35; }
+.label-tip small { display: block; font: 11px/1.45 var(--mono); color: var(--muted); margin-top: 1px; }
 
 /* ---------- Log (list view) ---------- */
 .log { position: relative; padding: 8px max(20px, env(safe-area-inset-right, 0px)) 80px max(20px, env(safe-area-inset-left, 0px)); }
@@ -183,6 +190,8 @@ body.deep .history, body.deep .cue { opacity: 0; pointer-events: none; }
   .gauge .lvl span { display: none; }
   .gauge .here b { display: block; right: 34px; }
   .stop .ev { display: none; }
+  .stop .key { gap: 3px 10px; font-size: 12px; }
+  .stop .key-hint { display: none; }
   .stop .into { font-size: 13px; }
   .history { left: 10px; right: 10px; bottom: auto; top: 58%; }
   body.deep .history { display: none; }
@@ -225,6 +234,7 @@ body.deep .history, body.deep .cue { opacity: 0; pointer-events: none; }
 
 <script src="lib/lab-catalogue.js"></script>
 <script src="lib/system-catalogue.js"></script>
+<script src="lib/plates.js"></script>
 <script src="lib/planet.js"></script>
 <script src="lib/globe.js"></script>
 <script src="lib/previews.js"></script>
