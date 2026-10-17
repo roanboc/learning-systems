@@ -134,6 +134,13 @@
     dropBlocks: 0.5,        // coast: blocks returned per unit of plant digested
     bodyBlocks: 2,          // coast: blocks returned where a creature dies
     huntDepth: 0,           // coast: water (metres) a hunter needs to swim; shallower water is a refuge for prey
+    // Founders: the first creatures can descend from real organisms of an
+    // earlier chapter instead of random genomes (lib/gaia.js graduate()).
+    // A list of { genes, origin }: genes override the random genome, origin
+    // says where the creature came from. Used in turn by every species'
+    // first creatures (a species can carry its own `founders` list); repeats
+    // get a mutated copy. Genes a species sets in `geneInit` keep its range.
+    founders: null,
   };
 
   // Heritable genes. Ranges keep evolution inside a plausible body plan.
@@ -249,7 +256,14 @@
       this.dungGrid = this.p.dung > 0 ? new Float32Array(this.dungN * this.dungN) : null;
       this.cgrid = new Array(this.gridN * this.gridN);
       this.speciesList.forEach((sp, i) => {
-        for (let k = 0; k < sp.count; k++) this.spawnCreature(undefined, undefined, undefined, undefined, 0, i);
+        const F = sp.founders || this.p.founders;
+        for (let k = 0; k < sp.count; k++) {
+          if (!F || !F.length) { this.spawnCreature(undefined, undefined, undefined, undefined, 0, i); continue; }
+          const f = F[k % F.length];
+          let g = Object.assign(this.randomGenome(sp), this.keepFounderGenes(f.genes, sp));
+          if (k >= F.length) g = this.mutate(g, sp);
+          this.spawnCreature(g, undefined, undefined, undefined, 0, i, f.origin);
+        }
       });
       this.recordStats();
     }
@@ -439,6 +453,18 @@
       }
     }
 
+    // A founder's genes that this species has, held to their ranges and to
+    // the species' fixed genes.
+    keepFounderGenes(genes, sp) {
+      const out = {}, names = this.geneNames(sp.mind), fixed = Object.assign({}, this.p.fixed, sp.fixed);
+      for (const k in genes) {
+        if (!names.includes(k) || k in fixed || (sp.geneInit && k in sp.geneInit)) continue;
+        const spec = this.geneSpec(k);
+        out[k] = clamp(genes[k], spec.min, spec.max);
+      }
+      return out;
+    }
+
     geneSpec(k) {
       return GENES[k] || BRAIN_GENES[k] || TISSUE_GENES[k] || REFLEX_ANIMAL_GENES[k] || BRAIN_ANIMAL_GENES[k]
         || (this.p.body ? BodySim().BODY_GENES[k] : undefined);
@@ -475,7 +501,7 @@
       return g;
     }
 
-    spawnCreature(genome, x, y, energy, gen, species) {
+    spawnCreature(genome, x, y, energy, gen, species, origin) {
       const spIndex = species || 0, sp = this.speciesList[spIndex];
       if (x === undefined && this.coast) [x, y] = this.waterSpot();
       const c = {
@@ -501,6 +527,8 @@
         killedBy: null,
         body: null,
       };
+      // The founder this creature descends from (founders setting), if any.
+      if (origin) c.origin = origin;
       if (this.p.body === 'cells') {
         // The first creatures of a world arrive grown; children build their bodies.
         c.body = new (BodySim().Body)(c.g, c.energy, this.p.bodyParams, !gen);
@@ -813,12 +841,12 @@
           if (c.energy > g.reproEnergy && c.body.canReproduce(c.energy / 2) && this.creatures.length + newborns.length < p.maxCreatures) {
             const share = c.body.give(c.energy / 2);
             this.bodyEnergy(c);
-            newborns.push([this.mutate(g, this.speciesList[c.sp]), c.x, c.y, share, c.gen + 1, c.sp]);
+            newborns.push([this.mutate(g, this.speciesList[c.sp]), c.x, c.y, share, c.gen + 1, c.sp, c.origin]);
           }
         } else if (c.energy > g.reproEnergy && this.creatures.length + newborns.length < p.maxCreatures) {
           const share = c.energy / 2;
           c.energy -= share;
-          newborns.push([this.mutate(g, this.speciesList[c.sp]), c.x, c.y, share - 5, c.gen + 1, c.sp]);
+          newborns.push([this.mutate(g, this.speciesList[c.sp]), c.x, c.y, share - 5, c.gen + 1, c.sp, c.origin]);
         }
       }
 

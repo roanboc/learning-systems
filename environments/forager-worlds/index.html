@@ -195,7 +195,7 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
   <div class="key">
     <span><i class="dot" style="background:var(--green)"></i> green plant</span>
     <span><i class="dot" style="background:var(--violet)"></i> violet plant</span>
-    <span>Creature colour shows which plant colour it prefers: its instincts, or what its brain has learned to bite. Click a creature to inspect it, then zoom in (or double-click) to explore its senses, brain and cells. In living worlds, click near a plant to see its life and zoom into it (or double-click it), and each species has its own body shape.</span>
+    <span>Creature colour shows which plant colour it prefers: its instincts, or what its brain has learned to bite. Click a creature to inspect it, then zoom in (or double-click) to explore its senses, brain and cells. In living worlds, click near a plant to see its life and zoom into it (or double-click it), and body shape follows the genes: fast swimmers are slender, big brains make big heads, creatures without a brain are flat ribbed ovals, and hunters have grasping arms.</span>
   </div>
 
   <div class="worlds" id="worlds"></div>
@@ -206,6 +206,7 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
 <script src="tissue-brain.js"></script>
 <script src="../../lib/body.js"></script>
 <script src="engine.js"></script>
+<script src="../../lib/creature-draw.js"></script>
 <script src="explorer.js"></script>
 <script src="plant-explorer.js"></script>
 <script>
@@ -474,28 +475,6 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
     return [g, v];
   }
 
-  // One body shape per species, so species stay apart in a shared world:
-  // arrow, slim dart, round body with a beak.
-  function bodyPath(ctx, sp, sz) {
-    ctx.beginPath();
-    if (sp === 1) {
-      ctx.moveTo(sz * 1.9, 0); ctx.lineTo(-sz, sz * 0.55); ctx.lineTo(-sz, -sz * 0.55);
-    } else if (sp === 2) {
-      ctx.arc(0, 0, sz * 0.95, 0.5, Math.PI * 2 - 0.5); ctx.lineTo(sz * 1.7, 0);
-    } else {
-      ctx.moveTo(sz * 1.6, 0); ctx.lineTo(-sz, sz); ctx.lineTo(-sz * 0.5, 0); ctx.lineTo(-sz, -sz);
-    }
-    ctx.closePath();
-  }
-  function shapeIcon(sp) {
-    const paths = [
-      'M13 7 L2 1 L5 7 L2 13 Z',
-      'M14 7 L1 3 L1 11 Z',
-      'M13 7 L9 4.2 A4.5 4.5 0 1 0 9 9.8 Z',
-    ];
-    return `<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="${paths[sp % 3]}" fill="currentColor"/></svg>`;
-  }
-
   function prefColour(c) {
     if (c.meat) return colours.danger;   // hunters
     // Mix green to violet by which colour the creature favours.
@@ -572,13 +551,7 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
     let picked = null;
     for (const c of world.creatures) {
       const sz = 4 + Math.min(4, c.energy / 40);
-      ctx.save();
-      ctx.translate(c.x * k, c.y * k);
-      ctx.rotate(c.heading);
-      ctx.fillStyle = prefColour(c);
-      bodyPath(ctx, c.sp, sz);
-      ctx.fill();
-      ctx.restore();
+      CreatureDraw.draw(ctx, c, c.x * k, c.y * k, sz, prefColour(c), { px: 1 });
       if (c.id === entry.picked) picked = c;
     }
 
@@ -635,7 +608,7 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
 
     if (world.speciesList.length > 1) {
       el.species.innerHTML = world.speciesList.map((sp, i) =>
-        `<span>${shapeIcon(i)}${sp.name} <b>${h.species[i]}</b></span>`).join('');
+        `<span>${CreatureDraw.icon(sp, sp.diet === 'meat' ? colours.danger : '#e8efe9')}${sp.name} <b>${h.species[i]}</b></span>`).join('');
     } else el.species.innerHTML = '';
 
     const foodIsGreen = world.foodColour === GREEN;

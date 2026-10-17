@@ -358,11 +358,7 @@
       for (const c of world.creatures) {
         const [x, y] = rel(c);
         if (Math.abs(x) > w / 2 + 10 || Math.abs(y) > h / 2 + 10) continue;
-        ctx.save();
-        ctx.translate(x, y); ctx.rotate(c.heading);
-        ctx.fillStyle = '#e8efe9';
-        ctx.beginPath(); ctx.moveTo(9, 0); ctx.lineTo(-6, 6); ctx.lineTo(-3, 0); ctx.lineTo(-6, -6); ctx.closePath(); ctx.fill();
-        ctx.restore();
+        CreatureDraw.draw(ctx, c, x, y, 5, '#e8efe9');
       }
       // The plant itself.
       ctx.strokeStyle = '#ffffff';

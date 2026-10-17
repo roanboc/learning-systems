@@ -44,7 +44,7 @@
     },
     {
       key: 'brains', title: 'Brains', era: 'about 540 million years ago', live: true,
-      text: 'The same coast, now with seaweed and swimming creatures. Each has an eye and a small spiking brain that wires itself and learns which seaweed is food. Seaweed grows from sunlight and the building blocks in the water; currents carry the creatures, dry ground and hot vents harm them. Follow one, then zoom into its body, brain and single cells.',
+      text: 'The same coast, now with seaweed and swimming creatures. The first ones grew from Nerve nets bodies: contracting cells became muscle, and the bodies with the most nerve cells founded the large-brained line. Each has an eye and a small spiking brain that wires itself and learns which seaweed is food. Seaweed grows from sunlight and the building blocks in the water; currents carry the creatures, dry ground and hot vents harm them. Follow one, then zoom into its body, brain and single cells.',
       lab: '../environments/forager-worlds/index.html',
       lenses: ['Coast', 'Creature', 'Body, brain and cells'], gaia: true,
     },
@@ -96,7 +96,10 @@
       s = { kind: 'life', w: L, painter: new window.EarthDraw.MapPainter(L.chem), size: [L.earth.cols, L.earth.rows], journalShown: 0 };
     } else if (ch.gaia) {
       // Gaia: plants and creatures on the same coast as the cells.
-      const g = window.Gaia.make({ era: ch.key, seed: 3 }), w = g.world;
+      // Brains descend from the Nerve nets bodies, from the chapter's own
+      // world when it has been visited (else Gaia grows one).
+      const nerves = state.sims.nerves;
+      const g = window.Gaia.make({ era: ch.key, seed: 3, from: ch.key === 'brains' && nerves ? nerves.w : undefined }), w = g.world;
       s = { kind: 'forager', w, coast: g.chem, painter: new window.EarthDraw.MapPainter(g.chem), entry: { name: ch.title, world: w, params: w.p }, size: [w.p.size, w.H], journalShown: 0 };
     } else {
       const { World, DEFAULTS } = window.WorldSim;
@@ -292,7 +295,8 @@
     if (c && s.w.creatures.includes(c)) {
       const sp = s.w.speciesList ? s.w.speciesList[c.sp].name : '';
       box.innerHTML = `<b>Creature #${c.id}</b> · ${sp}<br>generation ${c.gen} · age ${c.age} · energy ${fmt(c.energy, 0)}<br>ate ${c.eaten} food, ${c.poisoned} poison` +
-        (c.brain ? ` · ${c.brain.synapseCount()} synapses` : '');
+        (c.brain ? ` · ${c.brain.synapseCount()} synapses` : '') +
+        (c.origin ? `<br>Descends from Nerve nets body #${c.origin.body}: ${c.origin.cells} cells (${c.origin.movers} contracting, ${c.origin.germ} germ, ${c.origin.nerve} nerve)` : '');
       setActions('c' + c.id, [
         [s.follow ? 'Stop following' : 'Follow it', () => { s.follow = !s.follow; if (s.follow && s.cam.zoom < 4) s.cam.zoom = 4; renderSide(); }],
         ['Zoom into its body →', () => enterCreature(s)],
@@ -456,14 +460,6 @@
     for (let i = 0; i < 160; i++) { ctx.beginPath(); ctx.arc(rnd() * w, rnd() * h, rnd() * 1.4, 0, Math.PI * 2); ctx.fill(); }
   }
 
-  function bodyPath(ctx, sp, sz) {
-    ctx.beginPath();
-    if (sp === 1) { ctx.moveTo(sz * 1.9, 0); ctx.lineTo(-sz, sz * 0.55); ctx.lineTo(-sz, -sz * 0.55); }
-    else if (sp === 2) { ctx.arc(0, 0, sz * 0.95, 0.5, Math.PI * 2 - 0.5); ctx.lineTo(sz * 1.7, 0); }
-    else { ctx.moveTo(sz * 1.6, 0); ctx.lineTo(-sz, sz); ctx.lineTo(-sz * 0.5, 0); ctx.lineTo(-sz, -sz); }
-    ctx.closePath();
-  }
-
   function drawForager(ctx, s, w, h) {
     const world = s.w, k = baseScale(s) * s.cam.zoom, size = s.size[0];
     if (s.coast) {
@@ -497,10 +493,7 @@
     ctx.globalAlpha = 1;
     for (const c of world.creatures) {
       const sz = 4 + Math.min(4, c.energy / 40);
-      ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.heading);
-      ctx.fillStyle = c.meat ? colours.danger : (c.sp === 1 ? '#f0d58c' : '#e8efe9');
-      bodyPath(ctx, c.sp, sz); ctx.fill();
-      ctx.restore();
+      window.CreatureDraw.draw(ctx, c, c.x, c.y, sz, c.meat ? colours.danger : (c.sp === 1 ? '#f0d58c' : '#e8efe9'), { px: k });
     }
     const c = s.selected;
     if (c && world.creatures.includes(c)) {

@@ -417,7 +417,7 @@
         if (o === c) continue;
         const dx = world.delta(c.x, o.x), dy = world.delta(c.y, o.y);
         if (Math.abs(dx) > view * 1.5 || Math.abs(dy) > view * 1.5) continue;
-        this.triangle(ctx, dx * k, dy * k, o.heading, 6, o.meat !== c.meat ? ANIMAL : '#8a9a93');
+        CreatureDraw.draw(ctx, o, dx * k, dy * k, 7, o.meat !== c.meat ? ANIMAL : '#8a9a93');
       }
       // Mouth reach and the body itself.
       ctx.strokeStyle = '#e8efe9';
@@ -426,24 +426,13 @@
       ctx.beginPath(); ctx.arc(0, 0, world.p.mouth * k, 0, Math.PI * 2); ctx.stroke();
       ctx.setLineDash([]);
       ctx.globalAlpha = 1;
-      this.triangle(ctx, 0, 0, c.heading, 11, '#f4f8f5');
+      CreatureDraw.draw(ctx, c, 0, 0, 12, '#f4f8f5');
       ctx.restore();
 
       ctx.fillStyle = '#b7c4be';
       ctx.font = '12px ' + this.font;
       ctx.textAlign = 'left';
       ctx.fillText(`energy ${c.energy.toFixed(0)} · sight ${g.senseRange.toFixed(0)} · field ${(g.fov * 180 / Math.PI).toFixed(0)}°`, 10, h - 10);
-    }
-
-    triangle(ctx, x, y, heading, sz, fill) {
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(heading);
-      ctx.fillStyle = fill;
-      ctx.beginPath();
-      ctx.moveTo(sz * 1.5, 0); ctx.lineTo(-sz, sz * 0.9); ctx.lineTo(-sz * 0.4, 0); ctx.lineTo(-sz, -sz * 0.9);
-      ctx.closePath(); ctx.fill();
-      ctx.restore();
     }
 
     // Recent firing of neuron i over the last `win` recorded steps (0..1).

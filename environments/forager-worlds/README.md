@@ -73,6 +73,12 @@ Results, Gaia's settings (`lib/gaia.js`):
 - What it took: at 600 units wide, too few prey fit on the coast, so hunters boomed, emptied the sea and starved, in every seed. A wider scale (900) alone kept hunters in 1 of 3 seeds over 6,000 steps; adding the refuge kept them in all 3. Longer reach (12) made it worse: hunters emptied the sea faster.
 - Every other world gives exactly the same results as before (checked with fixed seeds).
 
+**Founders** (`founders` setting). The first creatures can descend from real organisms instead of random genomes: a list of `{ genes, origin }`, used in turn by a species' first creatures (repeats get a mutated copy). A species can carry its own `founders`. Genes a species sets in `geneInit` keep its range. Each creature, and every descendant, keeps its founder's `origin`.
+
+`Gaia.make({ era: 'brains' })` uses it for graduation (`Gaia.graduate()` in `lib/gaia.js`): the bodies of a Nerve nets world with at least 6 cells, contracting cells and germ cells become the first creatures. A body's share of contracting and nerve cells, and how well they beat in step (`sync`), set its speed; how well its cells follow food (`tumble`) sets how far it senses; when they divide (`divideAt`) sets when it breeds. The bodies with the most nerve cells found Large brains and the rest Small brains. Without a Nerve nets world given (`from`), Gaia grows one for 100 steps on the same coast and the coast carries on from there; `from: false` turns graduation off.
+
+Results (seeds 1 to 3, 6,000 steps): 91 to 147 creatures, and both brain lines are still alive in all 3 seeds. Without graduation: 105 to 146 creatures, and Large brains die out in seed 3. Few seeds, so treat this as an early sign.
+
 ## Living ecosystem
 Set with `plantMode: 'living'` and `species`.
 
@@ -80,7 +86,7 @@ Set with `plantMode: 'living'` and `species`.
 
 **Drifting soil.** Fertile spots (`soilSpots`, `soilRadius`) wander slowly (`soilDrift`). Plants stay rooted, so the vegetation moves by dying where the soil gets poor and seeding where it gets rich. The dish shows soil as a brown glow. Click near a plant to see its life: stage, size, age, seeds dropped and soil fertility.
 
-**Several species in one world.** `species` is a list of `{ name, mind, count, geneInit, fixed }`. Each species keeps its own kind of mind, and its genes evolve inside the species. The presets use three species, each drawn with its own body shape:
+**Several species in one world.** `species` is a list of `{ name, mind, count, geneInit, fixed }`. Each species keeps its own kind of mind, and its genes evolve inside the species. The presets use three species. Body shape follows the genes (`lib/creature-draw.js`): fast swimmers are slender, big brains make big heads, creatures without a brain are flat ribbed ovals like Dickinsonia, and hunters have grasping arms like Anomalocaris:
 - Grazers: instincts only, no brain.
 - Small brains: starting with 4 to 8 interneurons.
 - Large brains: starting with 28 to 36 interneurons.
