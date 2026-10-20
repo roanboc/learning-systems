@@ -45,7 +45,7 @@ Against the claims in the proposal:
 
 ## Simplified
 
-Three made-up jobs stand in for real ribozymes; one molecule is a fixed amount of a continuous number; a map cell is far bigger than a protocell. Copiers inside a protocell do not mutate into new jobs, and the split between DNA (storage) and proteins (work) is not modelled. Sex is not here yet: it is planned for the Bodies chapter.
+Three made-up jobs stand in for real ribozymes; one molecule is a fixed amount of a continuous number; a map cell is far bigger than a protocell. Copiers inside a protocell do not mutate into new jobs, and the split between DNA (storage) and proteins (work) is not modelled. Sex is in the Bodies chapter (the Two parents world and the lab "Why two parents?").
 
 ## References
 

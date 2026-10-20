@@ -110,6 +110,10 @@ details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
 .journal:empty::before { content: "Nothing noted yet. Give the bodies a few days."; }
 :root[lang="es"] .journal:empty::before { content: "Aún no hay notas. Dale unos días a los cuerpos."; }
 .stats { grid-template-columns: repeat(4, 1fr); }
+h2 { margin: 0; font-size: 16px; font-weight: 600; }
+h3 { margin: 6px 0 0; font-size: 13px; font-weight: 600; color: var(--ink); }
+.explain a { color: var(--accent); }
+.explain ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
 @media (max-width: 520px) { .stats { grid-template-columns: repeat(2, 1fr); } }
 </style>
 </head>
@@ -162,6 +166,51 @@ details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
       <p><b>Simplified.</b> Contracting cells sit on the outside of a body and never divide. All of a body's contracting cells push the same way (the way its oldest cell is heading). Real early animals were bigger, softer and slower. The genes are numbers, not DNA.</p>
     </div>
   </details>
+
+  <section class="panel" aria-labelledby="sex-h">
+    <h2 id="sex-h">Two parents: the paradox of sex</h2>
+    <div class="explain">
+      <p>Almost every animal and plant starts from one cell that mixes the genes of two parents. Yet a clone needs no partner and passes on all its genes, not half. Two coasts let you weigh the two: <b>Clones</b> and <b>Two parents</b> (add them from "Add a world", or open the guided lab "Why two parents?").</p>
+      <p><b>The rules.</b> On both coasts, new bodies start only from a seed cell that a germ cell releases; daughters stay in their body and bodies do not break up. Each cell carries 10 genes that a copying mistake can break for good (5% of divisions); each broken gene makes it burn 15% more energy. On the Two parents coast, a germ cell needs a germ cell of another body within reach, and the seed takes each gene from one parent or the other, at random (free recombination). With no partner, no seed.</p>
+      <p><b>What theory says.</b> Clones can only gain broken genes, one click at a time: Muller's ratchet (Muller 1964, <b>well supported</b> as a model). Mixing lets two parents make a seed with fewer broken genes than either, and puts good genes from different lines together (Felsenstein 1974, <b>well supported</b> as a model). Experiments agree: yeast that mix their genes adapt faster and shed harmful mutations (McDonald, Rice and Desai 2016, <b>well supported</b>).</p>
+      <p><b>What we found.</b> Over five test runs of 8,000 steps, the Two parents coasts released a third to two thirds as many seeds as the Clones coasts (33 to 222, against 56 to 512): 39 to 65% of the time a ready germ cell found no partner. Broken genes per cell ended at 0.13 to 0.31 with two parents and 0.10 to 0.22 with clones; two parents ended lower on 2 coasts out of 5. Here, sex costs seeds and does not clean up the genes.</p>
+      <p><b>Why.</b> The costs of sex are paid every time; its benefits need conditions. They show in small populations over many generations, against parasites that keep changing, or when many genes must change together. This coast has hundreds of cells, only a few generations of bodies and no parasites. Why sex is so common is still an open question (Otto 2009, <b>debated</b>). Earlier versions of this model, with bodies that age and die, crashed populations to a few bodies, and clones and two parents both piled up broken genes.</p>
+      <p><b>Simplified.</b> No sexes, no egg and sperm, no meiosis: any germ cell can pair with any germ cell of another body. Genes are unlinked, and a broken gene is either broken or not.</p>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="when-h">
+    <h2 id="when-h">When did this happen?</h2>
+    <div class="explain">
+      <p><b>Bodies: about 1.5 billion to 600 million years ago.</b> Small many-celled bodies appear among the first complex cells, and the oldest known muscle fibres in an animal are in <i>Haootia</i>, a 560-million-year-old fossil from Newfoundland (Liu et al. 2014, <b>well supported</b>).</p>
+      <p><b>Two parents: by about 1.05 billion years ago.</b> The oldest clear fossil evidence of sex is the red alga <i>Bangiomorpha pubescens</i>, from the Hunting Formation on Somerset Island, Arctic Canada, with separate stages for spores and for sex cells (Butterfield 2000). Its rock was dated to 1.047 billion years ago (Gibson et al. 2018, <b>well supported</b>). Sex is probably older still: the last common ancestor of all complex cells already had the genes for it (Speijer, Lukeš and Eliáš 2015, <b>well supported</b>).</p>
+    </div>
+  </section>
+
+  <section class="panel references" aria-labelledby="refs-h">
+    <h2 id="refs-h">References</h2>
+    <div class="explain">
+      <p>Checked on 2026-10-20.</p>
+      <h3>Studies and papers</h3>
+      <ul>
+        <li>Liu, A. G., Matthews, J. J., Menon, L. R., McIlroy, D. and Brasier, M. D. (2014). <i>Haootia quadriformis</i> n. gen., n. sp., interpreted as a muscular cnidarian impression from the Late Ediacaran period (approx. 560 Ma). <i>Proceedings of the Royal Society B</i> 281: 20141202. <a href="https://doi.org/10.1098/rspb.2014.1202">doi:10.1098/rspb.2014.1202</a>. The oldest known muscle fibres. <b>well supported</b>.</li>
+        <li>Brunet, T. and Arendt, D. (2016). From damage response to action potentials: early evolution of neural and contractile modules in stem eukaryotes. <i>Philosophical Transactions of the Royal Society B</i> 371: 20150043. <a href="https://doi.org/10.1098/rstb.2015.0043">doi:10.1098/rstb.2015.0043</a>. Contraction began in single cells, long before muscles. <b>well supported</b>.</li>
+        <li>Butterfield, N. J. (2000). <i>Bangiomorpha pubescens</i> n. gen., n. sp.: implications for the evolution of sex, multicellularity, and the Mesoproterozoic/Neoproterozoic radiation of eukaryotes. <i>Paleobiology</i> 26: 386–404. <a href="https://doi.org/10.1666/0094-8373(2000)026%3C0386:BPNGNS%3E2.0.CO;2">doi:10.1666/0094-8373(2000)026&lt;0386:BPNGNS&gt;2.0.CO;2</a>. The oldest fossil with a sexual life cycle. <b>well supported</b>.</li>
+        <li>Gibson, T. M. et al. (2018). Precise age of <i>Bangiomorpha pubescens</i> dates the origin of eukaryotic photosynthesis. <i>Geology</i> 46: 135–138. <a href="https://doi.org/10.1130/G39829.1">doi:10.1130/G39829.1</a>. The date of 1.047 billion years. <b>well supported</b>.</li>
+        <li>Speijer, D., Lukeš, J. and Eliáš, M. (2015). Sex is a ubiquitous, ancient, and inherent attribute of eukaryotic life. <i>PNAS</i> 112: 8827–8834. <a href="https://doi.org/10.1073/pnas.1501725112">doi:10.1073/pnas.1501725112</a>. Sex is older than the first fossils that show it. <b>well supported</b>.</li>
+        <li>Muller, H. J. (1964). The relation of recombination to mutational advance. <i>Mutation Research</i> 1: 2–9. <a href="https://doi.org/10.1016/0027-5107(64)90047-8">doi:10.1016/0027-5107(64)90047-8</a>. Clones pile up broken genes: the rule that a broken gene never mends. <b>well supported</b> (model).</li>
+        <li>Felsenstein, J. (1974). The evolutionary advantage of recombination. <i>Genetics</i> 78: 737–756. <a href="https://doi.org/10.1093/genetics/78.2.737">doi:10.1093/genetics/78.2.737</a>. Why mixing genes can help. <b>well supported</b> (model).</li>
+        <li>Kondrashov, A. S. (1988). Deleterious mutations and the evolution of sexual reproduction. <i>Nature</i> 336: 435–440. <a href="https://doi.org/10.1038/336435a0">doi:10.1038/336435a0</a>. Sex as a way to purge harmful mutations. <b>debated</b>.</li>
+        <li>Otto, S. P. (2009). The evolutionary enigma of sex. <i>The American Naturalist</i> 174: S1–S14. <a href="https://doi.org/10.1086/599084">doi:10.1086/599084</a>. The paradox of sex is still open. <b>debated</b>.</li>
+        <li>McDonald, M. J., Rice, D. P. and Desai, M. M. (2016). Sex speeds adaptation by altering the dynamics of molecular evolution. <i>Nature</i> 531: 233–236. <a href="https://doi.org/10.1038/nature17143">doi:10.1038/nature17143</a>. In yeast, mixing genes speeds adaptation and sheds harmful mutations. <b>well supported</b>.</li>
+      </ul>
+      <h3>Books</h3>
+      <ul>
+        <li>Kuramoto, Y. (1984). <i>Chemical Oscillations, Waves, and Turbulence</i>. Springer. <a href="https://doi.org/10.1007/978-3-642-69689-3">doi:10.1007/978-3-642-69689-3</a>. The model of coupled rhythms behind the linking gene. <b>well supported</b> (model).</li>
+        <li>Maynard Smith, J. (1978). <i>The Evolution of Sex</i>. Cambridge University Press. The cost of sex: a clone passes on all its genes, a parent only half. <b>well supported</b>.</li>
+      </ul>
+    </div>
+  </section>
 </div>
 
 <template id="world-tpl">

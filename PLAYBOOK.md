@@ -18,6 +18,8 @@ Short lessons, each with the product it came from. Add one when something surpri
 - **A full world selects nothing if splits are blocked.** Bubbles that could not split at the cap froze evolution. Letting random ones break up when the sea is full (so fast splitters replace others) brought selection back (First genes).
 - **What organisms leave behind changes the test.** Broken protocells left their oils in the water, so after about 6,000 steps protocells without skin-makers recovered. Report results by time window, not only at the end (First genes).
 - **Seaweed starved until its light and nutrient thresholds matched the coast** (0.15, not 0.5 and 0.3; Gaia PR #16).
+- **A new route to reproduce does nothing if an older route does most of the work.** Two-parent seeds were 11–26 out of about 6,000 births, because loose daughters and fragments started most bodies. Count how often a mechanism actually fires before judging its effect (Bodies, two parents).
+- **Some textbook benefits need conditions a small world lacks.** Sex did not beat clones over a few generations of bodies in a crowded coast; making bodies die young crashed the population instead. When a well-known effect fails to appear, show it as the open question it is rather than tuning until it appears (Bodies, two parents).
 
 ## Honesty
 
