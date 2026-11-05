@@ -20,7 +20,7 @@ F.chapters.forEach((ch, i) => {
   md += `\n### ${i} · ${ch.title.en} · ${fmt(te.start)}–${fmt(te.end)}\n\n*${ch.title.es}*${ch.footage ? ` · footage: \`${ch.footage}\` (live, seed 3)` : ' · drawn scene'}\n\n`;
   md += '| English | Español |\n|---|---|\n';
   for (const ln of ch.lines) md += `| ${ln.en} | ${ln.es} |\n`;
-  if (ch.think) md += `\n**Pause and think.** ${ch.think.q.en} *(${ch.think.a.en})*\n\n**Pausa para pensar.** ${ch.think.q.es} *(${ch.think.a.es})*\n`;
+  if (ch.think) md += `\n**Pause and think.** ${ch.think.q.en} A fact: ${ch.think.fact.en}\n\n**Pausa para pensar.** ${ch.think.q.es} Un dato: ${ch.think.fact.es}\n`;
 });
 fs.writeFileSync(path.join(dir, 'script.md'), md);
 console.log('wrote', path.join(dir, 'script.md'));
