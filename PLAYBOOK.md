@@ -18,6 +18,8 @@ Short lessons, each with the product it came from. Add one when something surpri
 - **Chance only selects when numbers are small.** Protocells holding about 150 copier molecules split them so evenly that parasites won everywhere (working genes 3%). With about 15 molecules per protocell, daughters differ enough for selection between protocells to keep working genes at 52–63% (First genes).
 - **A full world selects nothing if splits are blocked.** Bubbles that could not split at the cap froze evolution. Letting random ones break up when the sea is full (so fast splitters replace others) brought selection back (First genes).
 - **What organisms leave behind changes the test.** Broken protocells left their oils in the water, so after about 6,000 steps protocells without skin-makers recovered. Report results by time window, not only at the end (First genes).
+- **Cheap genes drift on both coasts.** Sturdiness and air skin rose as much on the twin as with shore food; only the costly switch (fins to legs) followed the place. Read a gene against its twin, not against its start (Onto land).
+- **When prey shapes evolve, check the hunters.** Grazers that evolved faster bodies starved fixed-body hunters on 5 of 6 seeds; give hunters the same speed genes and a capped range (Onto land).
 - **Seaweed starved until its light and nutrient thresholds matched the coast** (0.15, not 0.5 and 0.3; Gaia PR #16).
 - **A new route to reproduce does nothing if an older route does most of the work.** Two-parent seeds were 11–26 out of about 6,000 births, because loose daughters and fragments started most bodies. Count how often a mechanism actually fires before judging its effect (Bodies, two parents).
 - **Some textbook benefits need conditions a small world lacks.** Sex did not beat clones over a few generations of bodies in a crowded coast; making bodies die young crashed the population instead. When a well-known effect fails to appear, show it as the open question it is rather than tuning until it appears (Bodies, two parents).
@@ -25,6 +27,7 @@ Short lessons, each with the product it came from. Add one when something surpri
 ## Honesty
 
 - **Report what failed.** README results list the variants that did not work, with seeds and steps.
+- **Pick the page seed honestly.** If the shown seed is a good one (Onto land runs seed 1, where hunters survive), say so on the page and give the count across seeds.
 - **Few seeds means an early sign.** Say "early sign" for results from three or four seeds.
 - **Don't rebuild arbitrary rules.** Rodrigo's 2009 and 2016 neurogenesis models are inspiration only; rules come from current neurobiology.
 - **Map layers need real data.** On the home planet, layers not based on real data (a guessed "Life today") were removed; a simplified map says so (PR #18).
