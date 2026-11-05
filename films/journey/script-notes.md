@@ -1,8 +1,9 @@
 ## How the film is made
 
+- **Structure.** After an opening question, each milestone starts with a drawn animation of what happened on Earth, then hands over to the live simulation and its result, and ends on an open question with a fact. The last chapter is about local rules and emergence.
 - **Live footage.** Chapters 1, 2, 3, 5 and 6 run the site's own engines in the page (`films/footage.js`), with seed 3 as in the World Viewer. Nothing is pre-recorded, so the film plays the same way every time and every picture can be checked on the simulation pages. A red dot and *Live simulation* mark it.
 - **Real charts.** The motor and sticking gene charts are runs of the same worlds (`films/tools/gene-curves.js`, seed 3, 12,000 steps), stored in `data.js`.
-- **Drawn scenes.** The planet, the clock and the levels are drawings that place each moment in time. The clock squeezes 4.54 billion years into 24 hours: one hour is about 189 million years.
+- **Drawn scenes.** The animations, the planet, the clock and the levels are drawings (marked *Drawing* with their date) that place each moment in time. The clock squeezes 4.54 billion years into 24 hours: one hour is about 189 million years.
 
 ## Dates on the clock
 

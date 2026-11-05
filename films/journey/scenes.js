@@ -1,9 +1,11 @@
 // The journey of life: the picture for each chapter of script.js.
 //
-// Chapters with footage show the real simulation (films/footage.js) through a
-// camera that moves on the narration's cues. The others are drawn Earth-history
-// scenes: a planet whose oceans, sky and ice change, and a clock that squeezes
-// Earth's 4.54 billion years into one day.
+// Each milestone opens with a drawn animation of what happened on Earth (ART),
+// then fades to the real simulation (films/footage.js) at the narration's
+// 'sim' line, with a camera that moves on the narration's cues. The opening
+// and the long wait are drawn planets and a clock that squeezes Earth's 4.54
+// billion years into one day; the ending is a flock of agents that follow
+// only local rules, then every level we visited.
 //
 // Every draw(ctx, S) works in a 1920 x 1080 frame. S gives the chapter's local
 // time (S.lt), when each line starts (S.c(id)) and ends (S.ce(id)), the
@@ -362,263 +364,702 @@
   ];
 
   // ---------- Chapters ----------
-  const SCENES = {
-    // 0. The planet forms; the clock appears; the levels stack up; we dive in.
-    day(ctx, S) {
+  // The long wait: microbes, oxygen, ice, then bodies (a drawn planet).
+  const WAIT = function (ctx, S) {
+    const lt = S.lt, c = S.c;
+    ctx.fillStyle = '#05080a'; ctx.fillRect(0, 0, W, H);
+    stars(ctx, 9, 1);
+    const oxy = sstep(c('oxygen') + 0.5, c('oxygen') + 3.5, lt);
+    const ice = sstep(c('snow') + 0.3, c('snow') + 2.2, lt) * (1 - sstep(c('snow') + 3.2, c('bodies') + 0.5, lt));
+    const mats = sstep(0.5, c('microbes') + 2, lt);
+    const life = sstep(c('bodies') + 0.5, c('bodies') + 2.5, lt);
+    planet(ctx, 760, 540, 330, lt * 0.12, { ocean: 1, oxy, ice: ice * 0.92, mats, life: life * 0.5 });
+    // The clock runs from the colonies to the first big bodies.
+    const hShow = lt < c('oxygen') ? lerp(hourOf(3.5e9), hourOf(2.4e9), sstep(c('microbes') + 1, c('oxygen') + 0.5, lt))
+      : lt < c('snow') ? lerp(hourOf(2.4e9), hourOf(7.2e8), sstep(c('oxygen') + 2.5, c('snow') + 0.3, lt))
+        : lerp(hourOf(7.2e8), hourOf(5.75e8), sstep(c('snow') + 2.5, c('bodies') + 1, lt));
+    clock(ctx, 1480, 440, 200, hShow, { marks: MARKS.slice(0, 3) });
+    const notes = [
+      [c('microbes'), c('oxygen'), { en: 'Microbial mats on the coasts', es: 'Tapetes microbianos en las costas' }],
+      [c('oxygen'), c('snow'), { en: 'The Great Oxidation · 2.4 billion years ago', es: 'La Gran Oxidación · hace 2.400 millones de años' }],
+      [c('snow'), c('bodies'), { en: 'Snowball Earth · 720 to 635 million years ago', es: 'Tierra bola de nieve · hace 720 a 635 millones de años' }],
+      [c('bodies'), S.len, { en: 'The first large bodies · about 575 million years ago', es: 'Los primeros cuerpos grandes · hace unos 575 millones de años' }],
+    ];
+    for (const [a, b, t] of notes) {
+      const al = sstep(a + 0.3, a + 1, lt) * (1 - sstep(b - 0.2, b + 0.3, lt));
+      if (al > 0) label(ctx, S.L(t), 760, 960, { align: 'center', size: 36, weight: 600, alpha: al, box: 'rgba(8,12,11,0.6)' });
+    }
+  };
+
+  // ---------- Small tools for the drawn scenes ----------
+  const hash = (n, s) => { const x = Math.sin(n * 127.1 + (s || 0) * 311.7) * 43758.5453123; return x - Math.floor(x); };
+  const rgba = (c, a) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`;
+  function glow(ctx, x, y, r, c, a) {
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, rgba(c, a)); g.addColorStop(1, rgba(c, 0));
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+  }
+  function vgrad(ctx, y0, y1, stops) {
+    const g = ctx.createLinearGradient(0, y0, 0, y1);
+    stops.forEach(([o, c]) => g.addColorStop(o, c));
+    return g;
+  }
+  // Specks drifting in water, for depth.
+  function specks(ctx, t, n, seed, colour, alpha) {
+    for (let i = 0; i < n; i++) {
+      const x = ((hash(i, seed) * W + t * (8 + hash(i, seed + 1) * 18)) % (W + 40)) - 20;
+      const y = (hash(i, seed + 2) * H + Math.sin(t * 0.4 + i) * 12 + H) % H;
+      const r = 1 + hash(i, seed + 3) * 3;
+      ctx.fillStyle = rgba(colour, alpha * (0.3 + 0.7 * hash(i, seed + 4)));
+      ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+    }
+  }
+  // Sun rays through water.
+  function rays(ctx, t, a) {
+    ctx.save();
+    for (let i = 0; i < 7; i++) {
+      const x = 200 + i * 260 + Math.sin(t * 0.2 + i) * 40;
+      const g = ctx.createLinearGradient(x, 0, x + 260, H);
+      g.addColorStop(0, `rgba(220,240,255,${0.08 * a})`); g.addColorStop(1, 'rgba(220,240,255,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.moveTo(x - 30, 0); ctx.lineTo(x + 60, 0); ctx.lineTo(x + 360, H); ctx.lineTo(x + 160, H); ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+  }
+  // A wobbly closed outline, like a membrane.
+  function blob(ctx, x, y, r, t, seed, sx, sy) {
+    ctx.beginPath();
+    for (let i = 0; i <= 64; i++) {
+      const a = i / 64 * TAU;
+      const rr = r * (1 + 0.035 * Math.sin(3 * a + t * 1.3 + seed) + 0.025 * Math.sin(5 * a - t * 0.9 + seed * 2));
+      const px = x + Math.cos(a) * rr * (sx || 1), py = y + Math.sin(a) * rr * (sy || 1);
+      if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py);
+    }
+    ctx.closePath();
+  }
+  function cellBody(ctx, x, y, r, t, seed, hue, opts) {
+    const o = opts || {};
+    const base = hue || [120, 220, 150];
+    blob(ctx, x, y, r, t, seed, o.sx, o.sy);
+    const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.1, x, y, r * 1.1);
+    g.addColorStop(0, rgba(base.map((v) => Math.min(255, v + 50)), 0.95));
+    g.addColorStop(1, rgba(base.map((v) => v * 0.45), 0.95));
+    ctx.fillStyle = g; ctx.fill();
+    ctx.lineWidth = Math.max(2, r * 0.05); ctx.strokeStyle = rgba(base.map((v) => Math.min(255, v + 80)), 0.9); ctx.stroke();
+    if (o.inside !== false) {
+      // The instructions: a coiled strand.
+      ctx.save(); ctx.lineWidth = Math.max(1.5, r * 0.035); ctx.strokeStyle = 'rgba(255,240,200,0.85)';
+      ctx.beginPath();
+      for (let i = 0; i <= 80; i++) {
+        const u = i / 80, a = u * TAU * 1.6 + t * 0.3 + seed;
+        const px = x + Math.cos(a) * r * 0.32 * (0.6 + 0.4 * Math.sin(u * 9 + t)), py = y + Math.sin(a) * r * 0.22 + Math.sin(u * 23 + t * 2) * r * 0.04;
+        if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py);
+      }
+      ctx.stroke(); ctx.restore();
+      for (let i = 0; i < 14; i++) {
+        const a = hash(i, seed) * TAU, d = r * (0.45 + 0.4 * hash(i, seed + 1));
+        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        ctx.beginPath(); ctx.arc(x + Math.cos(a + t * 0.1) * d, y + Math.sin(a + t * 0.1) * d * 0.85, r * 0.035, 0, TAU); ctx.fill();
+      }
+    }
+  }
+  function tail(ctx, x, y, ang, len, t, w) {
+    ctx.save(); ctx.strokeStyle = 'rgba(230,250,240,0.85)'; ctx.lineWidth = w || 4; ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (let i = 0; i <= 30; i++) {
+      const u = i / 30, d = u * len, wv = Math.sin(u * 9 - t * 14) * len * 0.08 * u;
+      const px = x - Math.cos(ang) * d - Math.sin(ang) * wv, py = y - Math.sin(ang) * d + Math.cos(ang) * wv;
+      if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py);
+    }
+    ctx.stroke(); ctx.restore();
+  }
+  // Fade to dark and back where the animation hands over to the simulation.
+  function handover(ctx, S, anim, sim) {
+    const k = S.c('sim'), lt = S.lt;
+    if (lt < k) {
+      anim(ctx, S);
+      const d = sstep(k - 0.9, k - 0.05, lt);
+      if (d > 0) { ctx.fillStyle = `rgba(5,8,10,${d})`; ctx.fillRect(0, 0, W, H); }
+      S.st.live = false;
+    } else {
+      sim(ctx, S);
+      const d = 1 - sstep(k, k + 0.8, lt);
+      if (d > 0) { ctx.fillStyle = `rgba(5,8,10,${d})`; ctx.fillRect(0, 0, W, H); }
+      S.st.live = true;
+    }
+  }
+  const tag = (ctx, S, text, a) => label(ctx, S.L(text), 70, 160, { size: 30, font: F.mono, alpha: a, box: 'rgba(8,12,11,0.6)' });
+
+  // ---------- The drawn scenes ----------
+  const ART = {
+    // The opening: today's Earth, the question, a small world, the levels, then the day clock.
+    hook(ctx, S) {
       const lt = S.lt, c = S.c;
       ctx.fillStyle = '#05080a'; ctx.fillRect(0, 0, W, H);
       stars(ctx, 5, 1);
-      const form = sstep(0.3, c('midnight') + 3.5, lt);
-      const cool = sstep(c('humans') - 1, c('between') + 1, lt);
-      const dive = sstep(c('watch') + 0.6, S.len - 0.2, lt);
-      // Dust spiralling in.
-      if (form < 1) {
-        let s = 3;
-        const rnd = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
-        for (let i = 0; i < 900; i++) {
-          const r0 = 120 + rnd() * 900, a0 = rnd() * TAU, sp = 0.3 + rnd();
-          const r = lerp(r0, 240 * Math.sqrt(rnd()), form), a = a0 + lt * sp * 0.35 + form * 3;
-          ctx.fillStyle = `rgba(255,${(150 + rnd() * 80) | 0},90,${0.5 * (1 - form)})`;
-          ctx.fillRect(760 + Math.cos(a) * r, 540 + Math.sin(a) * r * 0.55, 3, 3);
+      const back = sstep(c('day') + 0.8, c('midnight') + 0.5, lt);   // rewind to the young planet
+      const side = sstep(c('nobody') - 0.2, c('nobody') + 1.2, lt);
+      const px = lerp(960, 600, side), R = lerp(lerp(330, 300, side), 280, back);
+      const k = { ocean: 1 - back * 0.98, oxy: 1 - back, ice: 0.1 * (1 - back), mats: 0.5 * (1 - back), life: 0.85 * (1 - back) };
+      const rot = lt * 0.06 - back * back * 9;
+      planet(ctx, px, 560, R * sstep(0, 1.2, lt + 0.4), rot, k);
+      // The question, large.
+      const qa = sstep(c('wonder') + 0.9, c('wonder') + 1.7, lt) * (1 - sstep(c('nobody') - 0.6, c('nobody'), lt));
+      label(ctx, S.L({ en: 'How did life get here?', es: '¿Cómo llegó aquí la vida?' }), 960, 130, { align: 'center', size: 76, font: F.serif, alpha: qa });
+      // A small world with simple rules: the real coast, in a window.
+      const wa = side * (1 - sstep(c('portal') - 0.4, c('portal') + 0.2, lt));
+      if (wa > 0) {
+        const f = root.Footage.get('earth'), x0 = 1060, y0 = 330, w = 720, h = 450;
+        ctx.save(); ctx.globalAlpha = wa;
+        ctx.fillStyle = '#0b100e'; ctx.beginPath(); ctx.roundRect(x0, y0, w, h, 20); ctx.fill();
+        if (f.ready) {
+          ctx.save(); ctx.beginPath(); ctx.roundRect(x0, y0, w, h, 20); ctx.clip(); ctx.translate(x0, y0);
+          const s = w / W; ctx.scale(s, s); f.draw(ctx, W, h / s, { cx: 80, cy: 50, zoom: 1.15 }); ctx.restore();
         }
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect(x0, y0, w, h, 20); ctx.stroke();
+        ctx.restore();
+        label(ctx, S.L({ en: 'A small world, simple rules', es: 'Un mundo pequeño, reglas sencillas' }), x0 + w / 2, y0 - 50, { align: 'center', size: 40, font: F.serif, alpha: wa });
       }
-      const R = lerp(lerp(40, 260, form), 2600, dive * dive);
-      const px = lerp(760, 960, dive), py = lerp(540, 540 + 1400, dive * dive);
-      if (form > 0.02) planet(ctx, px, py, R, lt * 0.08, { ocean: cool, oxy: 0, ice: 0, mats: 0 });
-      // The clock.
-      const cA = sstep(c('imagine') + 0.2, c('imagine') + 1.6, lt) * (1 - sstep(c('between') - 0.2, c('between') + 0.4, lt));
-      let h = 0;
-      if (lt > c('humans')) h = lerp(0, 24 - 6 / 3600, sstep(c('humans'), c('humans') + 2.2, lt));
-      if (lt > c('between')) h = lerp(24, 0, sstep(c('between'), c('between') + 1, lt));
-      clock(ctx, 1480, 470, 230, h, { alpha: cA, caption: S.L({ en: 'Earth’s history as one day', es: 'La historia de la Tierra en un día' }) });
-      if (lt > c('humans') && lt < c('between') + 0.5) {
-        const a = sstep(c('humans') + 2.2, c('humans') + 2.8, lt) * (1 - sstep(c('between'), c('between') + 0.5, lt));
-        label(ctx, S.L({ en: 'Humans: the last 6 seconds', es: 'Humanos: los últimos 6 segundos' }), 1480, 150, { align: 'center', size: 36, weight: 600, colour: '#ffd08a', alpha: a });
+      // Every step you can explore.
+      const la = sstep(c('portal'), c('portal') + 0.8, lt) * (1 - sstep(c('day') - 0.3, c('day') + 0.4, lt));
+      if (la > 0) {
+        label(ctx, S.L({ en: 'Explore every step', es: 'Explora cada paso' }), 1150, 190, { size: 46, font: F.serif, alpha: la });
+        ladder(ctx, S, 1160, 300, la, (lt - c('portal')) * 3);
       }
-      if (lt < c('humans')) label(ctx, S.lang === 'es' ? '4.540.000.000' : '4,540,000,000', 760, 150, { align: 'center', size: 44, font: F.mono, alpha: sstep(c('midnight'), c('midnight') + 1, lt) * (1 - sstep(c('humans') - 0.5, c('humans'), lt)), colour: 'rgba(255,220,170,0.9)' });
-      if (lt < c('humans')) label(ctx, S.L({ en: 'years ago', es: 'años atrás' }), 760, 202, { align: 'center', size: 30, alpha: sstep(c('midnight'), c('midnight') + 1, lt) * (1 - sstep(c('humans') - 0.5, c('humans'), lt)), colour: 'rgba(255,220,170,0.75)' });
-      // The levels, stacking up.
-      const lA = sstep(c('between'), c('between') + 0.6, lt) * (1 - sstep(c('watch') + 0.3, c('watch') + 1.2, lt));
-      ladder(ctx, S, 1340, 250, lA, (lt - c('between')) * 2.4);
+      // The day clock.
+      const ca = sstep(c('day') + 0.3, c('day') + 1.3, lt);
+      if (ca > 0) {
+        let h = lerp(24, 0, sstep(c('day') + 0.5, c('midnight'), lt));
+        if (lt > c('midnight') + 2.2) h = lerp(0, 24 - 6 / 3600, sstep(c('midnight') + 2.2, c('midnight') + 4.2, lt));
+        clock(ctx, 1440, 470, 220, h % 24.0001, { alpha: ca, caption: S.L({ en: 'Earth’s history as one day', es: 'La historia de la Tierra en un día' }) });
+        const ha = sstep(c('midnight') + 4.2, c('midnight') + 4.8, lt);
+        label(ctx, S.L({ en: 'Humans: the last 6 seconds', es: 'Humanos: los últimos 6 segundos' }), 1440, 150, { align: 'center', size: 36, weight: 600, colour: '#ffd08a', alpha: ha });
+      }
     },
 
-    // 1. The young coast, with no life.
+    // The young coast in cross-section: sky, tide pools on the rocks, a vent below; a lens on a drying pool.
     sea(ctx, S) {
-      const f = S.footage, e = f.earth, lt = S.lt, c = S.c, st = S.st;
-      if (!st.pool) st.pool = findPool(e);
-      if (!st.vent) st.vent = { x: e.vents[0].x, y: e.vents[0].y };
-      let target = fit(e), layer = 'nature', mark = null, text = '';
-      if (lt > c('sun')) { target = { cx: st.pool.x, cy: st.pool.y, zoom: 3 }; mark = st.pool; text = S.L({ en: 'Tide pools', es: 'Pozas de marea' }); }
-      if (lt > c('vents')) { target = { cx: st.vent.x, cy: st.vent.y, zoom: 3 }; layer = 'temp'; mark = st.vent; text = S.L({ en: 'Hot vent', es: 'Fuente hidrotermal' }); }
-      if (lt > c('chains')) { target = { cx: st.pool.x, cy: st.pool.y, zoom: 3.5 }; layer = 'chains'; mark = st.pool; text = S.L({ en: 'Chains', es: 'Cadenas' }); }
-      if (lt > c('copiers')) {
-        if (!st.cop) st.cop = findField(e, f.chem.f.copiers);
-        target = { cx: st.cop.x, cy: st.cop.y, zoom: 2.6 }; layer = 'copiers'; mark = st.cop; text = S.L({ en: 'Copiers', es: 'Copiadores' });
+      const lt = S.lt, c = S.c, t = lt;
+      const sky = vgrad(ctx, 0, 560, [[0, '#2a130d'], [0.6, '#8a3f22'], [1, '#d98a4a']]);
+      ctx.fillStyle = sky; ctx.fillRect(0, 0, W, 600);
+      glow(ctx, 1460, 230 - lt * 2, 220, [255, 200, 120], 0.6);
+      ctx.fillStyle = '#ffe2b0'; ctx.beginPath(); ctx.arc(1460, 230 - lt * 2, 46, 0, TAU); ctx.fill();
+      const tide = Math.sin(lt * 0.55) * 22;
+      const seaY = 560 + tide;
+      // The sea.
+      ctx.fillStyle = vgrad(ctx, seaY, H, [[0, '#2b6a6a'], [0.5, '#123a44'], [1, '#07141c']]);
+      ctx.fillRect(0, seaY, W, H - seaY);
+      // Rock shelf on the left, sloping into the deep.
+      const rock = (x) => 470 + Math.pow(Math.max(0, x - 200) / 700, 2.2) * 600 + Math.sin(x * 0.02) * 10;
+      ctx.fillStyle = '#4b3a32';
+      ctx.beginPath(); ctx.moveTo(0, H); ctx.lineTo(0, 470);
+      for (let x = 0; x <= 1300; x += 10) ctx.lineTo(x, rock(x));
+      ctx.lineTo(1300, H); ctx.closePath(); ctx.fill();
+      // Deep floor to the right, with a vent.
+      ctx.fillStyle = '#2b2420';
+      ctx.beginPath(); ctx.moveTo(1100, H); ctx.lineTo(1100, 1010);
+      for (let x = 1100; x <= W; x += 20) ctx.lineTo(x, 990 + Math.sin(x * 0.01) * 14);
+      ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
+      const vx = 1560, vy = 985;
+      ctx.fillStyle = '#3a2c24'; ctx.beginPath(); ctx.moveTo(vx - 50, vy + 10); ctx.lineTo(vx - 18, vy - 90); ctx.lineTo(vx + 18, vy - 90); ctx.lineTo(vx + 50, vy + 10); ctx.closePath(); ctx.fill();
+      glow(ctx, vx, vy - 95, 90, [255, 140, 50], 0.55 + 0.15 * Math.sin(t * 3));
+      for (let i = 0; i < 50; i++) {
+        const u = ((t * 0.25 + hash(i, 3)) % 1), y = vy - 95 - u * 330, x = vx + Math.sin(u * 8 + i) * 30 * u;
+        ctx.fillStyle = `rgba(${lerp(255, 90, u) | 0},${lerp(150, 80, u) | 0},${lerp(70, 70, u) | 0},${0.5 * (1 - u)})`;
+        ctx.beginPath(); ctx.arc(x, y, 6 + u * 16, 0, TAU); ctx.fill();
       }
-      if (lt > S.ce('copiers') + 0.5) { target = fit(e); layer = 'copiers'; mark = null; }
-      const cam = camTo(S, e, target, 1.3);
-      f.draw(ctx, W, H, cam, { layer });
-      const keys = ['sun', 'vents', 'chains', 'copiers'].map(c);
-      const since = Math.min(...keys.map((k) => (lt > k ? lt - k : 99)));
-      if (mark) callout(ctx, toScreen(cam, e, mark.x + 0.5, mark.y + 0.5), 46, text, sstep(0.8, 1.6, since) * (1 - sstep(4.5, 5.2, since)));
-      if (layer !== 'nature') {
-        const names = { temp: { en: 'Showing: heat', es: 'Mostrando: calor' }, chains: { en: 'Showing: chains', es: 'Mostrando: cadenas' }, copiers: { en: 'Showing: copiers', es: 'Mostrando: copiadores' } };
-        label(ctx, S.L(names[layer]), 60, H - 210, { size: 28, font: F.mono, box: 'rgba(8,12,11,0.7)' });
+      // Tide pools on the shelf: full at high tide, drying at low tide.
+      const pools = [[240, 120], [470, 140], [700, 110]];
+      for (const [x, w] of pools) {
+        const y = rock(x) - 4, depth = 34;
+        const level = clamp(0.35 + 0.65 * (seaY < y + 5 ? 1 : 0.6 + 0.4 * Math.cos(lt * 0.55)), 0.2, 1);
+        ctx.fillStyle = '#2a1f1a'; ctx.beginPath(); ctx.ellipse(x, y, w / 2, depth, 0, 0, Math.PI); ctx.fill();
+        ctx.fillStyle = 'rgba(70,140,140,0.9)';
+        ctx.beginPath(); ctx.ellipse(x, y + depth * (1 - level), w / 2 * Math.sqrt(level), depth * level, 0, 0, Math.PI); ctx.fill();
       }
+      // Waves on the surface.
+      ctx.strokeStyle = 'rgba(230,240,235,0.5)'; ctx.lineWidth = 3;
+      ctx.beginPath();
+      for (let x = 0; x <= W; x += 12) { const y = seaY + Math.sin(x * 0.02 + t * 2) * 5; if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
+      ctx.stroke();
+      // Labels.
+      const pa = sstep(c('pools') + 0.3, c('pools') + 1, lt) * (1 - sstep(c('crowd') - 0.3, c('crowd'), lt));
+      label(ctx, S.L({ en: 'Tide pools', es: 'Pozas de marea' }), 470, 380, { align: 'center', size: 34, weight: 600, alpha: pa, box: 'rgba(8,12,11,0.55)' });
+      label(ctx, S.L({ en: 'Hot vent', es: 'Fuente caliente' }), vx, 700, { align: 'center', size: 34, weight: 600, alpha: sstep(c('pools') + 3, c('pools') + 4, lt) * (1 - sstep(c('crowd') - 0.3, c('crowd'), lt)), box: 'rgba(8,12,11,0.55)' });
+      // A lens on a drying pool: molecules crowd and join into chains.
+      const la = sstep(c('crowd'), c('crowd') + 0.8, lt);
+      if (la > 0) {
+        const cx = 1180, cy = 430, r = 330, dry = sstep(c('crowd') + 0.5, c('sim') - 1, lt);
+        ctx.save(); ctx.globalAlpha = la;
+        ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(470, rock(470) + 10); ctx.lineTo(cx - r * 0.8, cy + r * 0.55); ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, TAU); ctx.fillStyle = '#123c3e'; ctx.fill(); ctx.stroke();
+        ctx.clip();
+        const R2 = r * lerp(1, 0.45, dry), pts = [];
+        for (let i = 0; i < 70; i++) {
+          const a = hash(i, 9) * TAU, d = Math.sqrt(hash(i, 10)) * R2;
+          const x = cx + Math.cos(a) * d + Math.sin(t * 1.7 + i) * 9, y = cy + Math.sin(a) * d + Math.cos(t * 1.3 + i * 2) * 9;
+          pts.push([x, y, i]);
+        }
+        ctx.strokeStyle = 'rgba(255,214,120,0.9)'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+        const link = 26 + 30 * dry;
+        ctx.beginPath();
+        for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) {
+          if ((i + j) % 3 && dry < 0.9) continue;
+          const dx = pts[i][0] - pts[j][0], dy = pts[i][1] - pts[j][1];
+          if (dx * dx + dy * dy < link * link * dry) { ctx.moveTo(pts[i][0], pts[i][1]); ctx.lineTo(pts[j][0], pts[j][1]); }
+        }
+        ctx.stroke();
+        for (const [x, y, i] of pts) { ctx.fillStyle = ['#7fd3ff', '#ffd078', '#ff8fb0', '#a8f0a0'][i % 4]; ctx.beginPath(); ctx.arc(x, y, 9, 0, TAU); ctx.fill(); }
+        ctx.restore();
+        label(ctx, S.L(dry > 0.5 ? { en: 'Chains form as the pool dries', es: 'Se forman cadenas al secarse la poza' } : { en: 'Molecules in a pool', es: 'Moléculas en una poza' }), cx, cy + r + 50, { align: 'center', size: 34, weight: 600, alpha: la, box: 'rgba(8,12,11,0.6)' });
+      }
+      tag(ctx, S, { en: 'Drawing · about 4 billion years ago', es: 'Dibujo · hace unos 4.000 millones de años' }, sstep(0.5, 1.5, lt));
     },
 
-    // 2. First cells: swimming evolves; a real run's motor gene.
+    // A cell: skin and instructions; it grows, splits, and a daughter with a small change swims away.
     cells(ctx, S) {
-      const f = S.footage, L = f.life, e = f.earth, lt = S.lt, c = S.c, st = S.st;
-      let target = fit(e);
-      if (lt > c('eat')) {
-        const p = follow(L, st, 'one', () => { let best = null; for (const x of L.cells) if (x.clumpSize === 1 && (!best || x.g.speed > best.g.speed)) best = x; return best; });
-        if (p) target = { cx: p.x, cy: p.y, zoom: lt > c('copy') ? 16 : 6 };
+      const lt = S.lt, c = S.c, t = lt;
+      ctx.fillStyle = vgrad(ctx, 0, H, [[0, '#0f3a40'], [1, '#05141a']]); ctx.fillRect(0, 0, W, H);
+      rays(ctx, t, 0.8);
+      specks(ctx, t, 90, 4, [200, 240, 230], 0.35);
+      const grow = sstep(c('four'), c('four') + 1.5, lt);
+      const split = sstep(c('divide') + 1.5, c('divide') + 4.5, lt);
+      const R = 200 * grow * (1 + 0.15 * sstep(c('divide'), c('divide') + 1.5, lt));
+      if (split <= 0) {
+        if (R > 1) cellBody(ctx, 960, 540, R, t, 1);
+        const la = sstep(c('four') + 2, c('four') + 2.8, lt) * (1 - sstep(c('divide') - 0.3, c('divide'), lt));
+        callout(ctx, { x: 960 + R * 0.7, y: 540 - R * 0.7 }, 26, S.L({ en: 'Skin', es: 'Piel' }), la);
+        callout(ctx, { x: 960 - R * 0.1, y: 540 + R * 0.05 }, 40, S.L({ en: 'Instructions', es: 'Instrucciones' }), la);
+      } else {
+        const d = split * 300, r = lerp(R * 0.82, 170, split);
+        // The waist between the two halves while they part.
+        if (split < 0.6) {
+          ctx.fillStyle = 'rgb(90,180,120)';
+          const wh = r * 0.9 * (1 - split / 0.6);
+          ctx.beginPath(); ctx.ellipse(960, 540, d * 0.9 + 1, wh, 0, 0, TAU); ctx.fill();
+        }
+        const swim = sstep(c('sim') - 4, c('sim') - 0.5, lt);
+        cellBody(ctx, 960 - d, 540, r, t, 1);
+        const rx = 960 + d + swim * 900, ry = 540 - swim * 120;
+        const tl = sstep(c('divide') + 4.5, c('divide') + 5.5, lt);
+        if (tl > 0) tail(ctx, rx - r * 0.95, ry, 0, r * 1.4 * tl, t, 6);
+        cellBody(ctx, rx, ry, r, t, 2, [150, 210, 120]);
+        const la = sstep(c('divide') + 4.5, c('divide') + 5.2, lt) * (1 - swim);
+        callout(ctx, { x: rx + r * 0.5, y: ry - r * 0.6 }, 30, S.L({ en: 'A small mistake: a tail', es: 'Un pequeño error: una cola' }), la);
       }
-      if (lt > c('chart')) target = Object.assign({}, st.cam || target, { zoom: 3 });
-      const cam = camTo(S, e, target, lt > c('copy') ? 2.4 : 1.4);
-      f.draw(ctx, W, H, cam);
-      const one = st.one;
-      if (one && lt > c('copy') && lt < c('chart')) {
-        const p = toScreen(cam, e, one.x, one.y);
-        const since = lt - c('copy');
-        callout(ctx, p, 60, S.L({ en: 'Tail: its motor', es: 'Cola: su motor' }), sstep(1, 1.6, since) * (1 - sstep(c('motor') - c('copy') + 3, c('motor') - c('copy') + 3.6, since)));
-      }
-      const a = sstep(c('chart'), c('chart') + 0.8, lt);
-      const data = root.FilmData.journey.cells;
-      chart(ctx, 1080, 140, 760, 520, data, {
-        alpha: a, reveal: (lt - c('chart')) / 4, max: 0.12, ticks: [0, 0.04, 0.08, 0.12], colour: '#8fe3a8', start: 0.01,
-        startLabel: S.L({ en: 'at the start', es: 'al principio' }),
-        title: S.L({ en: 'Motor gene, average of all cells', es: 'Gen del motor, media de todas las células' }),
-        foot: S.L({ en: 'Real run · seed 3 · 12,000 steps · 26 generations', es: 'Simulación real · semilla 3 · 12.000 pasos · 26 generaciones' }),
-      });
+      tag(ctx, S, { en: 'Drawing · about 3.8 billion years ago', es: 'Dibujo · hace unos 3.800 millones de años' }, sstep(0.5, 1.5, lt));
     },
 
-    // 3. Colonies: predators and clumps; a real run's sticking gene.
+    // Stromatolites growing layer by layer, then a predator that swallows a cell but not a clump.
     colonies(ctx, S) {
-      const f = S.footage, L = f.life, e = f.earth, lt = S.lt, c = S.c, st = S.st;
-      let target = fit(e), pred = null;
-      if (lt > c('predators') && L.predators.length) {
-        if (!st.pred || !L.predators.includes(st.pred)) st.pred = L.predators[0];
-        pred = st.pred;
-        target = { cx: pred.x, cy: pred.y, zoom: 5 };
+      const lt = S.lt, c = S.c, t = lt;
+      const micro = sstep(c('predators') - 0.6, c('predators') + 0.2, lt);
+      if (micro < 1) {
+        ctx.fillStyle = vgrad(ctx, 0, H, [[0, '#3f8f8a'], [0.6, '#1f5a5c'], [1, '#14302e']]); ctx.fillRect(0, 0, W, H);
+        rays(ctx, t, 1);
+        const g = sstep(0.3, c('predators') - 0.5, lt);
+        ctx.fillStyle = '#b8a27a'; ctx.fillRect(0, 900, W, 180);
+        const domes = [[260, 1.0], [560, 0.8], [880, 1.2], [1220, 0.9], [1560, 1.1], [1800, 0.7]];
+        domes.forEach(([x, s]) => {
+          const layers = Math.floor(4 + 22 * g * s);
+          for (let i = 0; i < layers; i++) {
+            const hgt = 900 - i * 10 * s, w = 150 * s * (1 - i / 60);
+            ctx.fillStyle = i % 2 ? '#7d6a4c' : '#93805c';
+            if (i === layers - 1) ctx.fillStyle = '#5f8a54';   // the living mat on top
+            ctx.beginPath(); ctx.ellipse(x, hgt, w, 18 + i * 2.2 * s, 0, Math.PI, TAU); ctx.fill();
+          }
+        });
+        label(ctx, S.L({ en: 'Stromatolites: domes built by microbes, layer by layer', es: 'Estromatolitos: cúpulas hechas por microbios, capa a capa' }), 960, 980, { align: 'center', size: 34, weight: 600, alpha: sstep(1, 2, lt) * (1 - micro), box: 'rgba(8,12,11,0.55)' });
+        if (micro > 0) { ctx.fillStyle = `rgba(5,8,10,${micro})`; ctx.fillRect(0, 0, W, H); }
+        tag(ctx, S, { en: 'Drawing · from 3.5 billion years ago', es: 'Dibujo · desde hace 3.500 millones de años' }, sstep(0.5, 1.5, lt) * (1 - micro));
+        return;
       }
-      let clump = null;
-      if (lt > c('stick')) {
-        clump = follow(L, st, 'clump', () => { let best = null; for (const x of L.cells) if (!best || x.clumpSize > best.clumpSize) best = x; return best; });
-        if (clump) target = { cx: clump.x, cy: clump.y, zoom: 10 };
+      // Up close: a predator.
+      const u = lt - c('predators');
+      ctx.fillStyle = vgrad(ctx, 0, H, [[0, '#12343a'], [1, '#081a1e']]); ctx.fillRect(0, 0, W, H);
+      specks(ctx, t, 60, 7, [200, 240, 230], 0.3);
+      for (let i = 0; i < 14; i++) cellBody(ctx, 120 + hash(i, 1) * 1700, 120 + hash(i, 2) * 840 + Math.sin(t + i) * 10, 26, t, i + 5, [120, 220, 150], { inside: false });
+      // The lone cell, then the clump of four.
+      const eat = sstep(1.2, 2.6, u);
+      const px = lerp(300, 820, sstep(0, 2.2, u)) + lerp(0, 380, sstep(3.2, 5, u)) - lerp(0, 260, sstep(5.2, 6.2, u));
+      const py = 540 + Math.sin(u * 0.8) * 20;
+      const single = { x: 900, y: 540 };
+      if (eat < 1) cellBody(ctx, lerp(single.x, px, eat), lerp(single.y, py, eat), 40 * (1 - eat * 0.5), t, 3, [120, 220, 150], { inside: false });
+      const clump = [[1350, 500], [1410, 500], [1350, 560], [1410, 560]];
+      for (const [x, y] of clump) cellBody(ctx, x, y, 34, t, x, [110, 200, 230], { inside: false });
+      ctx.save(); ctx.globalAlpha = 0.85;
+      cellBody(ctx, px, py, 120, t, 9, [220, 80, 60], { inside: false });
+      ctx.restore();
+      if (eat > 0 && eat < 1) cellBody(ctx, lerp(single.x, px, eat), lerp(single.y, py, eat), 40 * (1 - eat * 0.5), t, 3, [120, 220, 150], { inside: false });
+      label(ctx, S.L({ en: 'Swallowed', es: 'Tragada' }), 820, 360, { align: 'center', size: 34, weight: 600, alpha: sstep(2, 2.6, u) * (1 - sstep(3.2, 3.6, u)), box: 'rgba(8,12,11,0.6)' });
+      label(ctx, S.L({ en: 'Too big to swallow', es: 'Demasiado grande para tragar' }), 1380, 380, { align: 'center', size: 34, weight: 600, alpha: sstep(5, 5.6, u), box: 'rgba(8,12,11,0.6)' });
+    },
+
+    // Fronds on the Ediacaran floor, then a jelly whose nerve net makes it squeeze as one.
+    bodies(ctx, S) {
+      const lt = S.lt, c = S.c, t = lt;
+      ctx.fillStyle = vgrad(ctx, 0, H, [[0, '#2f6f86'], [0.7, '#183e52'], [1, '#0e2430']]); ctx.fillRect(0, 0, W, H);
+      rays(ctx, t, 0.8);
+      const jelly = sstep(c('jelly') - 0.5, c('jelly') + 0.8, lt);
+      // The sea floor with fronds and discs.
+      ctx.save(); ctx.globalAlpha = 1 - jelly * 0.7;
+      ctx.fillStyle = '#8c7a5c'; ctx.fillRect(0, 930, W, 150);
+      for (let i = 0; i < 9; i++) {
+        const x = 120 + i * 210 + hash(i, 3) * 60, hgt = 260 + hash(i, 4) * 220, sway = Math.sin(t * 0.8 + i) * 0.08;
+        ctx.save(); ctx.translate(x, 935); ctx.rotate(sway);
+        ctx.strokeStyle = '#6f8f6a'; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -hgt * 0.25); ctx.stroke();
+        // A quilted leaf.
+        for (let k = 0; k < 14; k++) {
+          const y = -hgt * 0.25 - k * hgt * 0.054, w = 46 * Math.sin((k + 1) / 15 * Math.PI);
+          ctx.fillStyle = k % 2 ? '#9fbf8a' : '#88aa78';
+          ctx.beginPath(); ctx.ellipse(-w * 0.5, y, w * 0.55, hgt * 0.03, -0.4, 0, TAU); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(w * 0.5, y, w * 0.55, hgt * 0.03, 0.4, 0, TAU); ctx.fill();
+        }
+        ctx.restore();
       }
-      if (lt > c('rise')) target = Object.assign({}, st.cam || target, { zoom: 3 });
-      if (lt > c('algae') + 1) target = fit(e);
-      const cam = camTo(S, e, target, 1.5);
-      f.draw(ctx, W, H, cam);
-      if (pred && lt < c('stick')) callout(ctx, toScreen(cam, e, pred.x, pred.y), 50, S.L({ en: 'Predator', es: 'Depredador' }), sstep(0.8, 1.4, lt - c('predators')));
-      if (clump && lt < c('rise')) callout(ctx, toScreen(cam, e, clump.x, clump.y), 80, S.L({ en: 'Too big to swallow', es: 'Demasiado grande para tragar' }), sstep(1.5, 2.1, lt - c('stick')));
-      const a = sstep(c('rise'), c('rise') + 0.8, lt) * (1 - sstep(S.ce('algae') + 1.5, S.ce('algae') + 2.2, lt));
-      chart(ctx, 1080, 140, 760, 520, root.FilmData.journey.colonies, {
-        alpha: a, reveal: (lt - c('rise')) / 4, max: 0.4, ticks: [0, 0.1, 0.2, 0.3, 0.4], colour: '#6cc4ee', start: 0.075,
-        startLabel: S.L({ en: 'at the start', es: 'al principio' }),
-        title: S.L({ en: 'Sticking gene, average of all cells', es: 'Gen de pegarse, media de todas las células' }),
-        foot: S.L({ en: 'Real run · seed 3 · 12,000 steps · 71 generations', es: 'Simulación real · semilla 3 · 12.000 pasos · 71 generaciones' }),
+      for (let i = 0; i < 5; i++) {
+        const x = 250 + i * 380, y = 990;
+        for (let k = 4; k > 0; k--) { ctx.fillStyle = k % 2 ? '#a08c68' : '#b49e78'; ctx.beginPath(); ctx.ellipse(x, y, k * 22, k * 7, 0, 0, TAU); ctx.fill(); }
+      }
+      ctx.restore();
+      tag(ctx, S, { en: 'Drawing · about 575 million years ago', es: 'Dibujo · hace unos 575 millones de años' }, sstep(0.5, 1.5, lt) * (1 - jelly));
+      if (jelly <= 0) return;
+      // The jelly: a nerve signal spreads, then the bell squeezes.
+      const P = 2.4, ph = (lt % P) / P;
+      const squeeze = sstep(0.45, 0.6, ph) * (1 - sstep(0.7, 0.95, ph));
+      const cx = 960, cy = 470 - squeeze * 30, bw = 330 * (1 - 0.14 * squeeze), bh = 260 * (1 + 0.06 * squeeze);
+      ctx.save(); ctx.globalAlpha = jelly;
+      // Tentacles.
+      ctx.strokeStyle = 'rgba(230,200,240,0.5)'; ctx.lineWidth = 3;
+      for (let i = 0; i < 12; i++) {
+        const x0 = cx - bw * 0.85 + i * bw * 1.7 / 11;
+        ctx.beginPath(); ctx.moveTo(x0, cy + 10);
+        for (let k = 1; k <= 12; k++) ctx.lineTo(x0 + Math.sin(t * 2 + i + k * 0.5) * 12, cy + 10 + k * 30);
+        ctx.stroke();
+      }
+      const bell = () => { ctx.beginPath(); ctx.ellipse(cx, cy, bw, bh, 0, Math.PI, TAU); ctx.quadraticCurveTo(cx, cy + 60 - squeeze * 30, cx - bw, cy); ctx.closePath(); };
+      bell();
+      const g = ctx.createRadialGradient(cx, cy - bh * 0.6, 20, cx, cy, bw);
+      g.addColorStop(0, 'rgba(240,210,250,0.75)'); g.addColorStop(1, 'rgba(170,120,220,0.35)');
+      ctx.fillStyle = g; ctx.fill();
+      ctx.strokeStyle = `rgba(255,${lerp(200, 140, squeeze) | 0},${lerp(250, 60, squeeze) | 0},0.9)`; ctx.lineWidth = 5 + 6 * squeeze; ctx.stroke();
+      // The nerve net: nodes in the bell, lit by a spreading wave.
+      const nodes = [];
+      for (let i = 0; i < 46; i++) {
+        const a = Math.PI + hash(i, 21) * Math.PI, d = Math.sqrt(hash(i, 22)) * 0.88;
+        nodes.push([cx + Math.cos(a) * bw * d, cy + Math.sin(a) * bh * d]);
+      }
+      const origin = nodes[0], front = sstep(0.05, 0.45, ph) * bw * 2.2;
+      ctx.lineWidth = 2;
+      for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
+        const dx = nodes[i][0] - nodes[j][0], dy = nodes[i][1] - nodes[j][1];
+        if (dx * dx + dy * dy > 120 * 120) continue;
+        const di = Math.hypot(nodes[i][0] - origin[0], nodes[i][1] - origin[1]);
+        const lit = Math.abs(di - front) < 60 ? 1 : 0;
+        ctx.strokeStyle = lit ? 'rgba(255,255,255,0.9)' : 'rgba(190,160,255,0.35)';
+        ctx.beginPath(); ctx.moveTo(nodes[i][0], nodes[i][1]); ctx.lineTo(nodes[j][0], nodes[j][1]); ctx.stroke();
+      }
+      for (const [x, y] of nodes) {
+        const di = Math.hypot(x - origin[0], y - origin[1]), lit = Math.abs(di - front) < 60;
+        if (lit) glow(ctx, x, y, 26, [255, 255, 255], 0.8);
+        ctx.fillStyle = lit ? '#ffffff' : '#b59cff'; ctx.beginPath(); ctx.arc(x, y, 6, 0, TAU); ctx.fill();
+      }
+      ctx.restore();
+      const ja = jelly * sstep(c('jelly') + 1.5, c('jelly') + 2.3, lt);
+      label(ctx, S.L({ en: 'Nerve net: no centre', es: 'Red nerviosa: sin centro' }), cx - bw - 40, cy - bh * 0.5, { align: 'right', size: 34, weight: 600, alpha: ja, box: 'rgba(8,12,11,0.55)' });
+      label(ctx, S.L({ en: 'Squeezing cells', es: 'Células contráctiles' }), cx + bw + 40, cy, { size: 34, weight: 600, colour: '#ffb36a', alpha: ja, box: 'rgba(8,12,11,0.55)' });
+    },
+
+    // The Cambrian sea: eyes, shells, legs, and a chase.
+    brains(ctx, S) {
+      const lt = S.lt, c = S.c, t = lt;
+      ctx.fillStyle = vgrad(ctx, 0, H, [[0, '#2e7e94'], [0.6, '#17465a'], [1, '#0c2430']]); ctx.fillRect(0, 0, W, H);
+      rays(ctx, t, 1);
+      specks(ctx, t, 70, 11, [220, 240, 255], 0.3);
+      ctx.fillStyle = '#7d6b50'; ctx.fillRect(0, 950, W, 130);
+      // Sponges.
+      for (let i = 0; i < 6; i++) {
+        const x = 150 + i * 330, h = 90 + hash(i, 31) * 90;
+        ctx.fillStyle = '#c98c5a'; ctx.beginPath(); ctx.moveTo(x - 30, 955); ctx.lineTo(x - 42, 955 - h); ctx.lineTo(x + 42, 955 - h); ctx.lineTo(x + 30, 955); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#6b4a30'; ctx.beginPath(); ctx.ellipse(x, 955 - h, 42, 10, 0, 0, TAU); ctx.fill();
+      }
+      // Crawlers with shells and eyes, walking the floor.
+      for (let i = 0; i < 5; i++) {
+        const x = ((i * 420 + t * (25 + i * 6)) % (W + 200)) - 100, y = 960 - 14;
+        ctx.save(); ctx.translate(x, y);
+        ctx.fillStyle = '#5a4a6a'; ctx.beginPath(); ctx.ellipse(0, 0, 60, 26, 0, Math.PI, TAU); ctx.fill();
+        ctx.strokeStyle = '#8a7aa0'; ctx.lineWidth = 3;
+        for (let k = -3; k <= 3; k++) { ctx.beginPath(); ctx.moveTo(k * 14, -2); ctx.lineTo(k * 14, -24 + Math.abs(k) * 3); ctx.stroke(); }
+        ctx.strokeStyle = '#3a2c40'; ctx.lineWidth = 3;
+        for (let k = -4; k <= 4; k++) { ctx.beginPath(); ctx.moveTo(k * 12, 0); ctx.lineTo(k * 12 + Math.sin(t * 8 + k) * 6, 12); ctx.stroke(); }
+        ctx.fillStyle = '#ffe9a0'; ctx.beginPath(); ctx.arc(52, -14, 5, 0, TAU); ctx.fill();
+        ctx.restore();
+      }
+      // A school of small swimmers and a hunter after them.
+      const chase = sstep(c('race') - 0.5, c('race') + 1, lt);
+      const sx = lerp(1300, 700, ((t * 0.06) % 1)), sy = 420 + Math.sin(t * 0.7) * 60;
+      for (let i = 0; i < 22; i++) {
+        const ox = (hash(i, 41) - 0.5) * 260, oy = (hash(i, 42) - 0.5) * 180;
+        const x = sx + ox + Math.sin(t * 2 + i) * 8 - chase * 60 * Math.sin(t * 3 + i), y = sy + oy + Math.cos(t * 1.7 + i) * 8;
+        ctx.save(); ctx.translate(x, y); ctx.scale(-1, 1);
+        ctx.fillStyle = '#e8efe9'; ctx.beginPath(); ctx.ellipse(0, 0, 18, 7, 0, 0, TAU); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(-16, 0); ctx.lineTo(-28, -8 + Math.sin(t * 10 + i) * 3); ctx.lineTo(-28, 8 + Math.sin(t * 10 + i) * 3); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(10, -2, 2.4, 0, TAU); ctx.fill();
+        ctx.restore();
+      }
+      const hx = sx + 520 - chase * 250 + Math.sin(t * 0.9) * 30, hy = sy + 40 + Math.sin(t * 1.1) * 40;
+      ctx.save(); ctx.translate(hx, hy); ctx.scale(-1, 1);
+      ctx.fillStyle = '#d4573f';
+      ctx.beginPath(); ctx.ellipse(0, 0, 130, 38, 0, 0, TAU); ctx.fill();
+      for (let k = -4; k <= 3; k++) { ctx.fillStyle = k % 2 ? '#e0705a' : '#c14b36'; ctx.beginPath(); ctx.ellipse(k * 28, 0, 18, 46 + Math.sin(t * 6 + k) * 6, 0, 0, TAU); ctx.fill(); }
+      ctx.strokeStyle = '#e8866c'; ctx.lineWidth = 8; ctx.lineCap = 'round';
+      for (const s of [-1, 1]) { ctx.beginPath(); ctx.moveTo(120, s * 10); ctx.quadraticCurveTo(170, s * 30 + Math.sin(t * 4) * 10, 190, s * 6); ctx.stroke(); }
+      glow(ctx, 95, -30, 30, [255, 230, 150], 0.6); glow(ctx, 95, 30, 30, [255, 230, 150], 0.6);
+      ctx.fillStyle = '#fff2c0'; ctx.beginPath(); ctx.arc(95, -30, 12, 0, TAU); ctx.arc(95, 30, 12, 0, TAU); ctx.fill();
+      ctx.restore();
+      label(ctx, S.L({ en: 'Eyes, shells, legs and jaws', es: 'Ojos, conchas, patas y mandíbulas' }), 960, 230, { align: 'center', size: 40, font: F.serif, alpha: sstep(c('cambrian') + 1, c('cambrian') + 2, lt) * (1 - sstep(c('race') - 0.5, c('race'), lt)) });
+      label(ctx, S.L({ en: 'An arms race', es: 'Una carrera armamentística' }), 960, 150, { align: 'center', size: 40, font: F.serif, alpha: sstep(c('race') + 0.5, c('race') + 1.3, lt) });
+      tag(ctx, S, { en: 'Drawing · about 520 million years ago', es: 'Dibujo · hace unos 520 millones de años' }, sstep(0.5, 1.5, lt));
+    },
+  };
+
+  // ---------- The ending: local rules, and what emerges ----------
+  // A flock of simple agents: each only looks at its neighbours. Once the
+  // rules switch on, groups and swirls appear that no agent was told to make.
+  function flock(st, n, dt, rule) {
+    if (!st.agents) {
+      st.agents = [];
+      for (let i = 0; i < n; i++) st.agents.push({ x: hash(i, 51) * W, y: hash(i, 52) * H, vx: Math.cos(hash(i, 53) * TAU) * 60, vy: Math.sin(hash(i, 53) * TAU) * 60 });
+    }
+    const A = st.agents, R = 90;
+    const steps = Math.max(1, Math.round(dt * 60));
+    for (let s = 0; s < steps; s++) {
+      for (const a of A) {
+        let cx = 0, cy = 0, ax = 0, ay = 0, sx = 0, sy = 0, k = 0;
+        for (const b of A) {
+          if (a === b) continue;
+          const dx = b.x - a.x, dy = b.y - a.y, d2 = dx * dx + dy * dy;
+          if (d2 > R * R) continue;
+          k++; cx += b.x; cy += b.y; ax += b.vx; ay += b.vy;
+          if (d2 < 30 * 30) { sx -= dx; sy -= dy; }
+        }
+        if (k) {
+          a.vx += rule * ((cx / k - a.x) * 0.01 + (ax / k - a.vx) * 0.06) + sx * 0.05;
+          a.vy += rule * ((cy / k - a.y) * 0.01 + (ay / k - a.vy) * 0.06) + sy * 0.05;
+        }
+        a.vx += (hash(a.x, s) - 0.5) * 8 * (1 - rule); a.vy += (hash(a.y, s + 1) - 0.5) * 8 * (1 - rule);
+        const sp = Math.hypot(a.vx, a.vy) || 1, want = 90;
+        a.vx *= lerp(1, want / sp, 0.1); a.vy *= lerp(1, want / sp, 0.1);
+      }
+      for (const a of A) { a.x = (a.x + a.vx / 60 + W) % W; a.y = (a.y + a.vy / 60 + H) % H; }
+    }
+    return A;
+  }
+
+  function footagePanels(ctx, S, a, lt) {
+    const kinds = ['earth', 'cells', 'colonies', 'nerves', 'ecosystems'];
+    const names = [LEVELS[0], LEVELS[1], LEVELS[2], { en: 'Bodies and nerves', es: 'Cuerpos y nervios' }, { en: 'Brains and ecosystems', es: 'Cerebros y ecosistemas' }];
+    const pw = 560, ph = 350, slots = [[80, 80], [680, 80], [1280, 80], [380, 470], [980, 470]];
+    kinds.forEach((k, i) => {
+      const f = root.Footage.get(k);
+      if (!f.ready) return;
+      if (S.frame % kinds.length === i) f.advance(S.dt * kinds.length, 2);
+      const [x0, y0] = slots[i], ai = a * sstep(i * 0.25, i * 0.25 + 0.6, lt);
+      if (ai <= 0) return;
+      ctx.save(); ctx.globalAlpha = ai;
+      ctx.beginPath(); ctx.roundRect(x0, y0, pw, ph, 18); ctx.clip(); ctx.translate(x0, y0);
+      const e = f.earth;
+      if (!S.st['c' + i]) {
+        const cam = { cx: e.cols / 2, cy: e.rows / 2, zoom: [1.3, 2.2, 2.6, 3, 1.4][i] };
+        if (f.life && f.life.cells.length) { let best = f.life.cells[0]; for (const x of f.life.cells) if (x.clumpSize > best.clumpSize) best = x; cam.cx = best.x; cam.cy = best.y; }
+        S.st['c' + i] = clampCam(cam, e);
+      }
+      const s = pw / W; ctx.scale(s, s); f.draw(ctx, W, ph / s, S.st['c' + i]);
+      ctx.restore();
+      ctx.save(); ctx.globalAlpha = ai; ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.roundRect(x0, y0, pw, ph, 18); ctx.stroke(); ctx.restore();
+      label(ctx, S.L(names[i]), x0 + 20, y0 + ph - 32, { size: 30, weight: 600, alpha: ai, box: 'rgba(8,12,11,0.7)' });
+    });
+  }
+
+  // ---------- Chapters ----------
+  const SCENES = {
+    hook: ART.hook,
+    wait(ctx, S) { WAIT(ctx, S); },
+
+    sea(ctx, S) {
+      handover(ctx, S, ART.sea, (ctx2, S2) => {
+        const f = S2.footage, e = f.earth, lt = S2.lt, c = S2.c, st = S2.st;
+        if (!st.pool) st.pool = findPool(e);
+        if (!st.vent) st.vent = { x: e.vents[0].x, y: e.vents[0].y };
+        let target = fit(e), layer = 'nature', mark = null, text = '', since = 99;
+        if (lt > c('heat')) { target = { cx: st.vent.x, cy: st.vent.y, zoom: 3 }; layer = 'temp'; mark = st.vent; text = S2.L({ en: 'Hot vent', es: 'Fuente caliente' }); since = lt - c('heat'); }
+        if (lt > c('chains')) { target = { cx: st.pool.x, cy: st.pool.y, zoom: 3.5 }; layer = 'chains'; mark = st.pool; text = S2.L({ en: 'Chains in a tide pool', es: 'Cadenas en una poza' }); since = lt - c('chains'); }
+        if (lt > c('copiers')) {
+          if (!st.cop) st.cop = findField(e, f.chem.f.copiers);
+          target = { cx: st.cop.x, cy: st.cop.y, zoom: 2.6 }; layer = 'copiers'; mark = st.cop; text = S2.L({ en: 'Copiers', es: 'Copiadores' }); since = lt - c('copiers');
+        }
+        if (lt > S2.ce('copiers') + 0.5) { target = fit(e); mark = null; }
+        const cam = camTo(S2, e, target, 1.3);
+        f.draw(ctx2, W, H, cam, { layer });
+        if (mark) callout(ctx2, toScreen(cam, e, mark.x + 0.5, mark.y + 0.5), 46, text, sstep(0.8, 1.6, since) * (1 - sstep(5, 5.6, since)));
+        if (layer !== 'nature') {
+          const names = { temp: { en: 'Showing: heat', es: 'Mostrando: calor' }, chains: { en: 'Showing: chains', es: 'Mostrando: cadenas' }, copiers: { en: 'Showing: copiers', es: 'Mostrando: copiadores' } };
+          label(ctx2, S2.L(names[layer]), 60, H - 210, { size: 28, font: F.mono, box: 'rgba(8,12,11,0.7)' });
+        }
       });
     },
 
-    // 4. The long wait: microbes, oxygen, ice, then bodies.
-    wait(ctx, S) {
-      const lt = S.lt, c = S.c;
-      ctx.fillStyle = '#05080a'; ctx.fillRect(0, 0, W, H);
-      stars(ctx, 9, 1);
-      const oxy = sstep(c('oxygen') + 0.5, c('oxygen') + 3.5, lt);
-      const ice = sstep(c('snow') + 0.3, c('snow') + 2.2, lt) * (1 - sstep(c('snow') + 3.2, c('bodies') + 0.5, lt));
-      const mats = sstep(0.5, c('microbes') + 2, lt);
-      const life = sstep(c('bodies') + 0.5, c('bodies') + 2.5, lt);
-      planet(ctx, 760, 540, 330, lt * 0.12, { ocean: 1, oxy, ice: ice * 0.92, mats, life: life * 0.5 });
-      // The clock runs from the colonies to the first big bodies.
-      const hShow = lt < c('oxygen') ? lerp(hourOf(3.5e9), hourOf(2.4e9), sstep(c('microbes') + 1, c('oxygen') + 0.5, lt))
-        : lt < c('snow') ? lerp(hourOf(2.4e9), hourOf(7.2e8), sstep(c('oxygen') + 2.5, c('snow') + 0.3, lt))
-          : lerp(hourOf(7.2e8), hourOf(5.75e8), sstep(c('snow') + 2.5, c('bodies') + 1, lt));
-      clock(ctx, 1480, 440, 200, hShow, { marks: MARKS.slice(0, 3) });
-      const notes = [
-        [c('microbes'), c('oxygen'), { en: 'Microbial mats on the coasts', es: 'Tapetes microbianos en las costas' }],
-        [c('oxygen'), c('snow'), { en: 'The Great Oxidation · 2.4 billion years ago', es: 'La Gran Oxidación · hace 2.400 millones de años' }],
-        [c('snow'), c('bodies'), { en: 'Snowball Earth · 720 to 635 million years ago', es: 'Tierra bola de nieve · hace 720 a 635 millones de años' }],
-        [c('bodies'), S.len, { en: 'The first large bodies · about 575 million years ago', es: 'Los primeros cuerpos grandes · hace unos 575 millones de años' }],
-      ];
-      for (const [a, b, t] of notes) {
-        const al = sstep(a + 0.3, a + 1, lt) * (1 - sstep(b - 0.2, b + 0.3, lt));
-        if (al > 0) label(ctx, S.L(t), 760, 960, { align: 'center', size: 36, weight: 600, alpha: al, box: 'rgba(8,12,11,0.6)' });
-      }
+    cells(ctx, S) {
+      handover(ctx, S, ART.cells, (ctx2, S2) => {
+        const f = S2.footage, L = f.life, e = f.earth, lt = S2.lt, c = S2.c, st = S2.st;
+        let target = fit(e);
+        if (lt > c('motor')) {
+          const p = follow(L, st, 'one', () => { let best = null; for (const x of L.cells) if (x.clumpSize === 1 && (!best || x.g.speed > best.g.speed)) best = x; return best; });
+          if (p) target = { cx: p.x, cy: p.y, zoom: 16 };
+        }
+        if (lt > c('chart')) target = Object.assign({}, st.cam || target, { zoom: 3 });
+        const cam = camTo(S2, e, target, lt > c('motor') ? 2.4 : 1.4);
+        f.draw(ctx2, W, H, cam);
+        if (st.one && lt > c('motor') && lt < c('chart')) callout(ctx2, toScreen(cam, e, st.one.x, st.one.y), 60, S2.L({ en: 'Tail: its motor', es: 'Cola: su motor' }), sstep(1, 1.6, lt - c('motor')));
+        chart(ctx2, 1080, 140, 760, 520, root.FilmData.journey.cells, {
+          alpha: sstep(c('chart'), c('chart') + 0.8, lt), reveal: (lt - c('chart')) / 4, max: 0.12, ticks: [0, 0.04, 0.08, 0.12], colour: '#8fe3a8', start: 0.01,
+          startLabel: S2.L({ en: 'at the start', es: 'al principio' }),
+          title: S2.L({ en: 'Motor gene, average of all cells', es: 'Gen del motor, media de todas las células' }),
+          foot: S2.L({ en: 'Real run · seed 3 · 12,000 steps · 26 generations', es: 'Simulación real · semilla 3 · 12.000 pasos · 26 generaciones' }),
+        });
+      });
     },
 
-    // 5. Bodies with roles, muscles in step, then a nerve net.
-    bodies(ctx, S) {
-      const f = S.footage, L = f.life, e = f.earth, lt = S.lt, c = S.c, st = S.st, M = root.LifeSim;
-      let target = fit(e);
-      if (lt > c('roles')) {
-        const ok = (x) => { const m = L.clumpOf(x); return m.some((y) => y.role === M.MOVER) && m.some((y) => y.role === M.GERM); };
-        const p = follow(L, st, 'body', () => L.cells.find((x) => x.role === M.GERM && x.clumpSize >= 6 && ok(x)) || L.cells.find((x) => x.role === M.MOVER));
-        if (p) target = { cx: p.x, cy: p.y, zoom: lt > c('squeeze') ? 14 : 8 };
-      }
-      if (lt > c('nerves')) {
-        const p = follow(L, st, 'nerve', () => {
-          let best = 0, pick = null;
-          for (const x of L.cells) if (x.role === M.NERVE) { const n = L.clumpOf(x).filter((m) => m.role === M.NERVE).length; if (n > best) { best = n; pick = x; } }
-          return pick;
+    colonies(ctx, S) {
+      handover(ctx, S, ART.colonies, (ctx2, S2) => {
+        const f = S2.footage, L = f.life, e = f.earth, lt = S2.lt, c = S2.c, st = S2.st;
+        let target = fit(e), pred = null, clump = null;
+        if (L.predators.length) {
+          if (!st.pred || !L.predators.includes(st.pred)) st.pred = L.predators[0];
+          pred = st.pred; target = { cx: pred.x, cy: pred.y, zoom: 5 };
+        }
+        if (lt > c('stick')) {
+          clump = follow(L, st, 'clump', () => { let best = null; for (const x of L.cells) if (!best || x.clumpSize > best.clumpSize) best = x; return best; });
+          if (clump) target = { cx: clump.x, cy: clump.y, zoom: 10 };
+        }
+        if (lt > c('chart')) target = Object.assign({}, st.cam || target, { zoom: 3 });
+        const cam = camTo(S2, e, target, 1.5);
+        f.draw(ctx2, W, H, cam);
+        if (pred && lt < c('stick')) callout(ctx2, toScreen(cam, e, pred.x, pred.y), 50, S2.L({ en: 'Predator', es: 'Depredador' }), sstep(1, 1.6, lt - c('sim')));
+        if (clump && lt < c('chart')) callout(ctx2, toScreen(cam, e, clump.x, clump.y), 80, S2.L({ en: 'Too big to swallow', es: 'Demasiado grande para tragar' }), sstep(1.5, 2.1, lt - c('stick')));
+        chart(ctx2, 1080, 140, 760, 520, root.FilmData.journey.colonies, {
+          alpha: sstep(c('chart'), c('chart') + 0.8, lt), reveal: (lt - c('chart')) / 4, max: 0.4, ticks: [0, 0.1, 0.2, 0.3, 0.4], colour: '#6cc4ee', start: 0.075,
+          startLabel: S2.L({ en: 'at the start', es: 'al principio' }),
+          title: S2.L({ en: 'Sticking gene, average of all cells', es: 'Gen de pegarse, media de todas las células' }),
+          foot: S2.L({ en: 'Real run · seed 3 · 12,000 steps · 71 generations', es: 'Simulación real · semilla 3 · 12.000 pasos · 71 generaciones' }),
         });
-        if (p) target = { cx: p.x, cy: p.y, zoom: 11 };
-      }
-      if (lt > S.ce('nerves') + 1) target = Object.assign({}, st.cam || target, { zoom: 4 });
-      const cam = camTo(S, e, target, 1.6);
-      f.draw(ctx, W, H, cam);
-      // A key for the roles, while we are close.
-      const keyA = sstep(c('squeeze'), c('squeeze') + 0.8, lt) * (1 - sstep(S.ce('nerves') + 1, S.ce('nerves') + 2, lt));
-      if (keyA > 0) {
+      });
+    },
+
+    bodies(ctx, S) {
+      handover(ctx, S, ART.bodies, (ctx2, S2) => {
+        const f = S2.footage, L = f.life, e = f.earth, lt = S2.lt, c = S2.c, st = S2.st, M = root.LifeSim;
+        const ok = (x) => { const m = L.clumpOf(x); return m.some((y) => y.role === M.MOVER) && m.some((y) => y.role === M.GERM); };
+        let target = fit(e);
+        const p = follow(L, st, 'body', () => L.cells.find((x) => x.role === M.GERM && x.clumpSize >= 6 && ok(x)) || L.cells.find((x) => x.role === M.MOVER));
+        if (p) target = { cx: p.x, cy: p.y, zoom: 14 };
+        if (lt > c('nerves')) {
+          const q = follow(L, st, 'nerve', () => {
+            let best = 0, pick = null;
+            for (const x of L.cells) if (x.role === M.NERVE) { const n = L.clumpOf(x).filter((m) => m.role === M.NERVE).length; if (n > best) { best = n; pick = x; } }
+            return pick;
+          });
+          if (q) target = { cx: q.x, cy: q.y, zoom: 11 };
+        }
+        const cam = camTo(S2, e, target, 2);
+        f.draw(ctx2, W, H, cam);
         const D = root.LifeDraw, rows = [[D.ROLE_RGB[2], { en: 'Squeezing cell', es: 'Célula contráctil' }], [D.CONTRACT_RGB, { en: 'Squeezing now', es: 'Contrayéndose ahora' }], [D.ROLE_RGB[3], { en: 'Germ cell: makes new cells', es: 'Célula germinal: hace células nuevas' }]];
         if (lt > c('nerves')) rows.push([D.ROLE_RGB[4], { en: 'Nerve cell: passes signals', es: 'Célula nerviosa: pasa señales' }]);
-        ctx.save(); ctx.globalAlpha = keyA; ctx.fillStyle = 'rgba(8,12,11,0.78)';
-        ctx.beginPath(); ctx.roundRect(60, 150, 640, 40 + rows.length * 56, 14); ctx.fill(); ctx.restore();
-        rows.forEach(([col, t], i) => {
-          ctx.save(); ctx.globalAlpha = keyA; ctx.fillStyle = col; ctx.beginPath(); ctx.arc(100, 198 + i * 56, 14, 0, TAU); ctx.fill(); ctx.restore();
-          label(ctx, S.L(t), 130, 198 + i * 56, { size: 30, alpha: keyA });
+        const ka = sstep(c('sim') + 1, c('sim') + 1.8, lt);
+        ctx2.save(); ctx2.globalAlpha = ka; ctx2.fillStyle = 'rgba(8,12,11,0.78)';
+        ctx2.beginPath(); ctx2.roundRect(60, 150, 640, 40 + rows.length * 56, 14); ctx2.fill(); ctx2.restore();
+        rows.forEach(([col, tx], i) => {
+          ctx2.save(); ctx2.globalAlpha = ka; ctx2.fillStyle = col; ctx2.beginPath(); ctx2.arc(100, 198 + i * 56, 14, 0, TAU); ctx2.fill(); ctx2.restore();
+          label(ctx2, S2.L(tx), 130, 198 + i * 56, { size: 30, alpha: ka });
         });
-      }
+      });
     },
 
-    // 6. Prey and hunters with brains on the Gaia coast.
     brains(ctx, S) {
-      const f = S.footage, w = f.world, e = f.earth, lt = S.lt, c = S.c, st = S.st;
-      let target = fit(e), sel = null;
-      const centre = (x) => ({ cx: x.x / w.sx, cy: x.y / w.sx });
-      if (lt > c('descend')) {
+      handover(ctx, S, ART.brains, (ctx2, S2) => {
+        const f = S2.footage, w = f.world, e = f.earth, lt = S2.lt, c = S2.c, st = S2.st;
+        const centre = (x) => ({ cx: x.x / w.sx, cy: x.y / w.sx });
+        let target = fit(e), sel = null;
         if (!st.prey || !w.creatures.includes(st.prey)) st.prey = w.creatures.find((x) => !x.meat && x.brain) || w.creatures[0];
         sel = st.prey;
         if (sel) target = Object.assign(centre(sel), { zoom: 5 });
-      }
-      if (lt > c('hunters')) {
-        if (!st.hunter || !w.creatures.includes(st.hunter)) st.hunter = w.creatures.find((x) => x.meat);
-        sel = st.hunter;
-        if (sel) target = Object.assign(centre(sel), { zoom: 4 });
-      }
-      if (lt > c('balance')) { target = fit(e); sel = null; }
-      const cam = camTo(S, e, target, 1.8);
-      f.draw(ctx, W, H, cam, { selected: sel });
-      // Live counts.
-      let prey = 0, hunters = 0;
-      for (const x of w.creatures) { if (x.meat) hunters++; else prey++; }
-      const a = sstep(c('hunters'), c('hunters') + 1, lt);
-      if (a > 0) {
-        label(ctx, S.L({ en: 'Prey', es: 'Presas' }) + '  ' + prey, 1860, 170, { align: 'right', size: 40, weight: 600, font: F.mono, colour: '#e8efe9', alpha: a, box: 'rgba(8,12,11,0.7)' });
-        label(ctx, S.L({ en: 'Hunters', es: 'Cazadores' }) + '  ' + hunters, 1860, 250, { align: 'right', size: 40, weight: 600, font: F.mono, colour: '#ff8a72', alpha: a, box: 'rgba(8,12,11,0.7)' });
-      }
-      if (sel && lt < c('hunters')) callout(ctx, toScreen(cam, e, sel.x / w.sx, sel.y / w.sx), 50, S.L({ en: 'A brain that learns', es: 'Un cerebro que aprende' }), sstep(1, 1.6, lt - c('descend')));
-      if (sel && lt > c('hunters') && lt < c('balance')) callout(ctx, toScreen(cam, e, sel.x / w.sx, sel.y / w.sx), 50, S.L({ en: 'Hunter', es: 'Cazador' }), sstep(1, 1.6, lt - c('hunters')));
+        if (lt > c('hunters')) {
+          if (!st.hunter || !w.creatures.includes(st.hunter)) st.hunter = w.creatures.find((x) => x.meat);
+          sel = st.hunter;
+          if (sel) target = Object.assign(centre(sel), { zoom: 4 });
+        }
+        if (lt > c('balance')) { target = fit(e); sel = null; }
+        const cam = camTo(S2, e, target, 1.8);
+        f.draw(ctx2, W, H, cam, { selected: sel });
+        let prey = 0, hunters = 0;
+        for (const x of w.creatures) { if (x.meat) hunters++; else prey++; }
+        const a = sstep(c('hunters'), c('hunters') + 1, lt);
+        label(ctx2, S2.L({ en: 'Prey', es: 'Presas' }) + '  ' + prey, 1860, 170, { align: 'right', size: 40, weight: 600, font: F.mono, colour: '#e8efe9', alpha: a, box: 'rgba(8,12,11,0.7)' });
+        label(ctx2, S2.L({ en: 'Hunters', es: 'Cazadores' }) + '  ' + hunters, 1860, 250, { align: 'right', size: 40, weight: 600, font: F.mono, colour: '#ff8a72', alpha: a, box: 'rgba(8,12,11,0.7)' });
+        if (sel && lt < c('hunters')) callout(ctx2, toScreen(cam, e, sel.x / w.sx, sel.y / w.sx), 50, S2.L({ en: 'A brain that learns', es: 'Un cerebro que aprende' }), sstep(1, 1.6, lt - c('sim')));
+        if (sel && lt > c('hunters') && lt < c('balance')) callout(ctx2, toScreen(cam, e, sel.x / w.sx, sel.y / w.sx), 50, S2.L({ en: 'Hunter', es: 'Cazador' }), sstep(1, 1.6, lt - c('hunters')));
+      });
     },
 
-    // 7. One world: every level we visited, live, then the planet.
-    gaia(ctx, S) {
-      const lt = S.lt, c = S.c;
+    // Only local rules: a flock that organises itself, then every level we visited, then Gaia.
+    emerge(ctx, S) {
+      const lt = S.lt, c = S.c, st = S.st;
       ctx.fillStyle = '#05080a'; ctx.fillRect(0, 0, W, H);
-      stars(ctx, 13, 1);
-      const kinds = ['earth', 'cells', 'colonies', 'nerves', 'ecosystems'];
-      const names = [LEVELS[0], LEVELS[1], LEVELS[2], { en: 'Bodies and nerves', es: 'Cuerpos y nervios' }, { en: 'Brains and ecosystems', es: 'Cerebros y ecosistemas' }];
-      const out = sstep(c('built') + 0.5, c('next'), lt);
-      const pa = sstep(0.2, 1.2, lt);
-      // The planet grows behind the panels.
-      planet(ctx, 960, 560, lerp(180, 380, out), lt * 0.1, { ocean: 1, oxy: 1, ice: 0.08, mats: 0.6, life: 0.7 });
-      const pw = 560, ph = 350;
-      const slots = [[80, 80], [680, 80], [1280, 80], [380, 470], [980, 470]];
-      kinds.forEach((k, i) => {
-        const f = root.Footage.get(k);
-        if (!f.ready) return;
-        // One world steps each frame, in turn, so all of them stay alive.
-        if (S.frame % kinds.length === i) f.advance(S.dt * kinds.length, 2);
-        const [x0, y0] = slots[i];
-        const hl = lt > c('same') ? sstep(c('same') + i * 0.9, c('same') + i * 0.9 + 0.4, lt) : 0;
-        const a = pa * (1 - out) * sstep(i * 0.25, i * 0.25 + 0.6, lt);
-        if (a <= 0) return;
-        ctx.save();
-        ctx.globalAlpha = a;
-        ctx.beginPath(); ctx.roundRect(x0, y0, pw, ph, 18); ctx.clip();
-        ctx.translate(x0, y0);
-        const e = f.earth;
-        const cam = { cx: e.cols / 2, cy: e.rows / 2, zoom: [1.3, 2.2, 2.6, 3, 1.4][i] };
-        if (!S.st['c' + i]) {
-          // Each panel looks where its chapter's interesting things are.
-          if (f.life && f.life.cells.length) { let best = f.life.cells[0]; for (const x of f.life.cells) if (x.clumpSize > best.clumpSize) best = x; cam.cx = best.x; cam.cy = best.y; }
-          S.st['c' + i] = clampCam(Object.assign({}, cam), e);
+      stars(ctx, 13, 0.7);
+      const rule = sstep(c('local') + 2, c('emerges') + 1, lt);
+      const fa = 1 - sstep(c('gaia') - 0.5, c('gaia') + 0.3, lt);
+      if (fa > 0) {
+        const A = flock(st, 170, S.dt, rule);
+        ctx.save(); ctx.globalAlpha = fa;
+        for (const a of A) {
+          const ang = Math.atan2(a.vy, a.vx);
+          ctx.save(); ctx.translate(a.x, a.y); ctx.rotate(ang);
+          ctx.fillStyle = '#9fe3c8'; ctx.beginPath(); ctx.moveTo(12, 0); ctx.lineTo(-8, 6); ctx.lineTo(-8, -6); ctx.closePath(); ctx.fill();
+          ctx.restore();
         }
-        // The panel shows the footage at full width, shrunk.
-        const s = pw / W;
-        ctx.scale(s, s);
-        f.draw(ctx, W, ph / s, S.st['c' + i]);
+        // One agent and what it can see.
+        const ha = sstep(c('local'), c('local') + 0.8, lt) * (1 - sstep(c('emerges') - 0.5, c('emerges'), lt));
+        if (ha > 0) {
+          const a0 = A[0];
+          ctx.globalAlpha = fa * ha;
+          ctx.strokeStyle = '#ffd08a'; ctx.lineWidth = 3; ctx.setLineDash([10, 8]);
+          ctx.beginPath(); ctx.arc(a0.x, a0.y, 90, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+          glow(ctx, a0.x, a0.y, 40, [255, 208, 138], 0.8);
+        }
         ctx.restore();
-        ctx.save(); ctx.globalAlpha = a; ctx.strokeStyle = hl > 0 ? `rgba(255,255,255,${0.3 + 0.6 * hl})` : 'rgba(255,255,255,0.25)'; ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.roundRect(x0, y0, pw, ph, 18); ctx.stroke(); ctx.restore();
-        label(ctx, S.L(names[i]), x0 + 20, y0 + ph - 32, { size: 30, weight: 600, alpha: a, box: 'rgba(8,12,11,0.7)' });
-      });
-      const tA = sstep(c('next') + 0.5, c('next') + 1.5, lt);
-      label(ctx, 'Gaia', 960, 120, { align: 'center', size: 72, font: F.serif, alpha: out });
-      label(ctx, S.L({ en: 'One world, seen at different levels', es: 'Un mundo, visto a distintos niveles' }), 960, 990, { align: 'center', size: 40, alpha: tA });
+        const rules = [{ en: 'React with what is near', es: 'Reaccionar con lo cercano' }, { en: 'Eat', es: 'Comer' }, { en: 'Copy, with small mistakes', es: 'Copiarse, con pequeños errores' }, { en: 'Stick, or let go', es: 'Pegarse, o soltarse' }];
+        rules.forEach((r, i) => {
+          const a = sstep(c('local') + 1 + i * 0.9, c('local') + 1.6 + i * 0.9, lt) * (1 - sstep(c('emerges') - 0.5, c('emerges'), lt));
+          label(ctx, S.L(r), 90, 300 + i * 90, { size: 44, weight: 600, alpha: a, box: 'rgba(8,12,11,0.7)' });
+        });
+        const na = sstep(c('nothing'), c('nothing') + 0.8, lt) * (1 - sstep(c('local') - 0.3, c('local') + 0.2, lt));
+        label(ctx, S.L({ en: 'No plan · no designer · no one in control', es: 'Sin plan · sin diseñador · sin nadie al mando' }), 960, 540, { align: 'center', size: 56, font: F.serif, alpha: na, box: 'rgba(5,8,10,0.7)' });
+        const ia = sstep(c('idea') + 0.3, c('idea') + 1, lt) * (1 - sstep(c('nothing') - 0.3, c('nothing'), lt));
+        label(ctx, S.L({ en: 'The big idea', es: 'La gran idea' }), 960, 540, { align: 'center', size: 72, font: F.serif, alpha: ia, box: 'rgba(5,8,10,0.7)' });
+        const ea = sstep(c('emerges') + 0.5, c('emerges') + 1.3, lt);
+        label(ctx, S.L({ en: 'Local rules → emergence', es: 'Reglas locales → emergencia' }), 960, 980, { align: 'center', size: 56, font: F.serif, alpha: ea * fa, box: 'rgba(5,8,10,0.7)' });
+      }
+      // Every level we visited, then the planet.
+      const pa = sstep(c('gaia') - 0.2, c('gaia') + 0.8, lt) * (1 - sstep(c('next') - 0.3, c('next') + 0.6, lt));
+      if (pa > 0) footagePanels(ctx, S, pa, lt - c('gaia') + 0.2);
+      const out = sstep(c('next') - 0.3, c('next') + 1, lt);
+      if (out > 0) {
+        planet(ctx, 960, 560, lerp(200, 360, out), lt * 0.1, { ocean: 1, oxy: 1, ice: 0.08, mats: 0.6, life: 0.7 });
+        label(ctx, 'Gaia', 960, 110, { align: 'center', size: 72, font: F.serif, alpha: out });
+        label(ctx, S.L({ en: 'Your turn: what will emerge?', es: 'Te toca: ¿qué surgirá?' }), 960, 1000, { align: 'center', size: 44, alpha: sstep(c('next') + 1, c('next') + 2, lt) });
+      }
     },
   };
 
