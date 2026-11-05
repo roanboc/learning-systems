@@ -18,3 +18,7 @@ One engine, four chapters; each switches on one more ability on the same coast:
 - **Nerve nets:** some movers become nerve cells (`nerve`); a cell tasting richer food than its body fires and nerve cells relay the signal, so movers push toward food together.
 
 The `specialise` and `nerve` genes rise only modestly in test runs (about +0.1 to +0.25 over 10,000 steps); the population is food-capped much of the time, so selection is weak. Treat these as leans, not results.
+
+## References
+
+The studies, papers and books this simulation draws on, with what each supports and how firm the claim is, are listed at the end of the page. They live in `lib/references.js`.
