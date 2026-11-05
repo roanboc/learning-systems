@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="../../lib/i18n.js"></script>
-<script src="../../lib/i18n/es/films.js"></script>
 <title>The journey of life · a film</title>
 <meta name="description" content="A 4-minute film through the history of life, from a sea with no life to brains and ecosystems, told with the real simulations of Learning Systems.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -33,6 +32,7 @@
 </div>
 <script src="../../lib/earth.js"></script>
 <script src="../../lib/chemistry.js"></script>
+<script src="../../lib/cell.js"></script>
 <script src="../../lib/life.js"></script>
 <script src="../../environments/early-earth/draw.js"></script>
 <script src="../../environments/first-cells/draw.js"></script>
@@ -42,6 +42,7 @@
 <script src="../../environments/forager-worlds/engine.js"></script>
 <script src="../../lib/creature-draw.js"></script>
 <script src="../../lib/gaia.js"></script>
+<script src="../../lib/nav.js"></script>
 <script src="../footage.js"></script>
 <script src="../player.js"></script>
 <script src="script.js"></script>
@@ -57,7 +58,7 @@
     timing: FilmTiming.journey,
     scenes: S,
     lang: window.I18N ? I18N.lang : 'en',
-    posterAt: 15,
+    posterAt: 9,
     audio: { en: 'audio/en.mp3', es: 'audio/es.mp3' },
     chips: {
       earth: { en: 'Early Earth', es: 'Tierra primitiva' },

@@ -26,6 +26,7 @@
   const AGE = 4.54e9;
   const hourOf = (yearsAgo) => 24 * (1 - yearsAgo / AGE);
   function clockText(h) {
+    if (h > 23.99 && h < 24) { const s = Math.round((24 - h) * 3600); return '23:59:' + String(60 - s).padStart(2, '0'); }
     const m = Math.round(h * 60) % (24 * 60);
     return Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0');
   }
@@ -392,7 +393,7 @@
       clock(ctx, 1480, 470, 230, h, { alpha: cA, caption: S.L({ en: 'Earth’s history as one day', es: 'La historia de la Tierra en un día' }) });
       if (lt > c('humans') && lt < c('between') + 0.5) {
         const a = sstep(c('humans') + 2.2, c('humans') + 2.8, lt) * (1 - sstep(c('between'), c('between') + 0.5, lt));
-        label(ctx, S.L({ en: 'Humans: the last 6 seconds', es: 'Humanos: los últimos 6 segundos' }), 1480, 900, { align: 'center', size: 36, weight: 600, colour: '#ffd08a', alpha: a });
+        label(ctx, S.L({ en: 'Humans: the last 6 seconds', es: 'Humanos: los últimos 6 segundos' }), 1480, 150, { align: 'center', size: 36, weight: 600, colour: '#ffd08a', alpha: a });
       }
       if (lt < c('humans')) label(ctx, S.lang === 'es' ? '4.540.000.000' : '4,540,000,000', 760, 150, { align: 'center', size: 44, font: F.mono, alpha: sstep(c('midnight'), c('midnight') + 1, lt) * (1 - sstep(c('humans') - 0.5, c('humans'), lt)), colour: 'rgba(255,220,170,0.9)' });
       if (lt < c('humans')) label(ctx, S.L({ en: 'years ago', es: 'años atrás' }), 760, 202, { align: 'center', size: 30, alpha: sstep(c('midnight'), c('midnight') + 1, lt) * (1 - sstep(c('humans') - 0.5, c('humans'), lt)), colour: 'rgba(255,220,170,0.75)' });
