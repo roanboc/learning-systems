@@ -1,0 +1,144 @@
+1
+00:00:02,000 --> 00:00:05,371
+Imagine the whole history of Earth squeezed into a single day.
+
+2
+00:00:06,121 --> 00:00:09,235
+At midnight, a young planet forms from dust and fire.
+
+3
+00:00:09,985 --> 00:00:13,889
+We humans arrive in the last six seconds before the next midnight.
+
+4
+00:00:14,639 --> 00:00:18,330
+In between, life built itself, one level on top of another.
+
+5
+00:00:19,080 --> 00:00:21,704
+Let’s watch it happen, in a world we simulate.
+
+6
+00:00:24,754 --> 00:00:28,615
+Within the first hours, there are oceans. Nothing lives in them yet.
+
+7
+00:00:29,365 --> 00:00:35,317
+This is a real simulation, not a drawing. Every patch of water is calculated as it runs.
+
+8
+00:00:36,067 --> 00:00:40,099
+The sun warms the shallows. Tides fill pools and leave them to dry.
+
+9
+00:00:40,849 --> 00:00:44,732
+On the deep floor, hot vents leak heat and minerals from below.
+
+10
+00:00:45,482 --> 00:00:49,898
+As a pool dries, small molecules crowd together and join into chains.
+
+11
+00:00:50,648 --> 00:00:57,475
+A few chains help make copies of themselves. Nothing here is alive, but something has started to pass itself on.
+
+12
+00:01:02,025 --> 00:01:04,499
+By four or five in the morning, there are cells.
+
+13
+00:01:05,249 --> 00:01:09,089
+Each one eats, divides when it is full, and dies when it runs out.
+
+14
+00:01:09,839 --> 00:01:14,383
+Daughters copy their genes with small mistakes. Nobody designs anything.
+
+15
+00:01:15,133 --> 00:01:20,573
+Yet cells that only drifted begin to swim, because the ones that swim leave more daughters.
+
+16
+00:01:21,323 --> 00:01:26,507
+In our runs, the motor gene grows about seven times, then settles at a best strength.
+
+17
+00:01:31,057 --> 00:01:34,833
+Then come predators: big red cells that swallow anything small.
+
+18
+00:01:35,583 --> 00:01:39,445
+A daughter that stays stuck to its mother makes a clump too big to swallow.
+
+19
+00:01:40,195 --> 00:01:44,504
+So the gene for sticking spreads, even though clumped cells must share their food.
+
+20
+00:01:45,254 --> 00:01:49,393
+Real algae do the same in experiments, in a few hundred generations.
+
+21
+00:01:53,943 --> 00:01:57,527
+Then, for most of the day, microbes rule the planet alone.
+
+22
+00:01:58,277 --> 00:02:03,525
+Before noon, some of them fill the air with oxygen, and the sky and seas change for ever.
+
+23
+00:02:04,275 --> 00:02:08,072
+In the evening, ice spreads almost to the equator, then melts again.
+
+24
+00:02:08,822 --> 00:02:11,745
+Only now do cells team up into large bodies.
+
+25
+00:02:14,795 --> 00:02:16,907
+Cells that stay together take on roles.
+
+26
+00:02:17,657 --> 00:02:21,966
+Some squeeze, like the first muscle cells. Others only make new cells.
+
+27
+00:02:22,716 --> 00:02:28,753
+A body moves only when its squeezing cells work in step. Out of step, it just sloshes in place.
+
+28
+00:02:29,503 --> 00:02:36,138
+Then some cells start passing signals. A net of nerves, with no centre, tells the whole body where the food is.
+
+29
+00:02:40,688 --> 00:02:43,781
+Around nine in the evening, the sea fills with animals.
+
+30
+00:02:44,531 --> 00:02:50,867
+Our creatures descend from those bodies. Each has a small brain of neurons that learns what is good to eat.
+
+31
+00:02:51,617 --> 00:02:57,249
+Then hunters appear. Prey that notice them in time survive, and hunters that chase well eat.
+
+32
+00:02:57,999 --> 00:03:04,527
+Too many hunters, and they empty the sea and starve. Balance is not given. It emerges, or it fails.
+
+33
+00:03:09,077 --> 00:03:12,149
+Everything you just saw is one world. We call it Gaia.
+
+34
+00:03:12,899 --> 00:03:18,169
+The same coast and the same chemistry, seen at different levels, from molecules to brains.
+
+35
+00:03:18,919 --> 00:03:23,057
+Each level is built from the one below, and none of it is drawn by hand.
+
+36
+00:03:23,807 --> 00:03:30,314
+Now pick a moment and go deeper. Each one has its own film, and a lab where you change the rules yourself.
+
