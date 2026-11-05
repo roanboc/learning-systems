@@ -71,7 +71,8 @@ function serve() {
       '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p',
       '-c:a', 'aac', '-b:a', '128k', '-c:s', 'mov_text',
       '-metadata:s:s:0', 'language=eng', '-metadata:s:s:1', 'language=spa',
-      '-shortest', '-movflags', '+faststart', out], { stdio: ['pipe', 'inherit', 'inherit'] });
+      // Not -shortest: the captions end before the picture does.
+      '-t', String(to - from), '-movflags', '+faststart', out], { stdio: ['pipe', 'inherit', 'inherit'] });
     for (let f = Math.round(from * fps); f <= Math.round(to * fps); f++) {
       await page.evaluate((x) => window.FilmRender.frame(x), f / fps);
       const buf = Buffer.from(await grab(), 'base64');
