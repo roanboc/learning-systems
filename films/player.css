@@ -1,0 +1,72 @@
+/* The film pages and their player. Same tokens as the rest of the site. */
+:root {
+  --bg: #f1f3f0; --surface: #fbfcfa; --ink: #1b2420; --muted: #5b6862; --line: #d3dad5;
+  --accent: #2a6f73; --danger: #b4412b;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --serif: "IBM Plex Serif", Georgia, "Times New Roman", serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111614; --surface: #19201d; --ink: #e2e9e4; --muted: #95a39c; --line: #2b3531;
+    --accent: #6db6b8; --danger: #e07a62; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111614; --surface: #19201d; --ink: #e2e9e4; --muted: #95a39c; --line: #2b3531;
+  --accent: #6db6b8; --danger: #e07a62; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.6 var(--sans); padding-inline: 16px; padding-block: 24px 64px; }
+.wrap { max-width: 1100px; margin: 0 auto; display: grid; gap: 22px; }
+a { color: var(--accent); }
+.back { font-size: 14px; text-decoration: none; }
+.eyebrow { margin: 0; font: 500 11px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+header { display: grid; gap: 10px; max-width: 68ch; }
+h1 { margin: 0; font: 500 clamp(30px, 6vw, 44px)/1.1 var(--serif); }
+h2 { margin: 0; font: 500 22px var(--serif); }
+.lede { margin: 0; color: var(--muted); }
+.film-links { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0; font-size: 14px; }
+.howto summary { cursor: pointer; font-weight: 500; }
+.howto p, .more p { margin: 8px 0 0; color: var(--muted); max-width: 72ch; }
+
+/* ---------- player ---------- */
+.film { display: grid; gap: 10px; outline: none; }
+.fp-stage { position: relative; aspect-ratio: 16 / 9; background: #05080a; border-radius: 12px; overflow: hidden; }
+.fp-stage:fullscreen { border-radius: 0; }
+.fp-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.fp-cc { position: absolute; left: 50%; bottom: 5%; transform: translateX(-50%); max-width: 86%; padding: 6px 14px; border-radius: 8px;
+  background: rgba(0, 0, 0, 0.7); color: #fff; font: 500 clamp(13px, 2.1vw, 26px)/1.35 var(--sans); text-align: center; pointer-events: none; }
+.fp-cc[hidden], .fp-cc:empty { display: none; }
+.fp-poster { position: absolute; inset: 0; border: 0; background: radial-gradient(circle at 40% 50%, rgba(42,111,115,0.35), rgba(5,8,10,0.2) 60%); cursor: pointer; display: grid; place-items: center; }
+.fp-poster span { padding: 12px 22px; border-radius: 999px; background: #fff; color: #10201c; font: 600 clamp(14px, 2vw, 20px) var(--sans); box-shadow: 0 6px 30px rgba(0,0,0,0.4); }
+.fp-poster:focus-visible span { outline: 3px solid var(--accent); outline-offset: 3px; }
+.fp-poster[hidden] { display: none; }
+.fp-card { position: absolute; inset: 0; display: grid; align-content: center; justify-items: start; gap: 12px; padding: clamp(16px, 6vw, 80px);
+  background: rgba(5, 8, 10, 0.86); color: #eef4f0; overflow: auto; }
+.fp-card[hidden] { display: none; }
+.fp-card h3 { margin: 0; font: 500 clamp(18px, 3vw, 34px)/1.25 var(--serif); max-width: 32ch; }
+.fp-card .fp-k { margin: 0; font: 500 12px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: #9fd3d5; }
+.fp-card .fp-a { margin: 0; max-width: 56ch; font-size: clamp(14px, 1.8vw, 19px); color: #d8e4de; }
+.fp-opts { display: flex; flex-wrap: wrap; gap: 8px; }
+.fp-opts a, .fp-opts button { font: 500 15px var(--sans); color: #eef4f0; background: transparent; border: 1px solid rgba(238,244,240,0.45); border-radius: 999px; padding: 8px 16px; cursor: pointer; text-decoration: none; }
+.fp-opts .primary { background: #eef4f0; color: #10201c; border-color: #eef4f0; }
+.fp-opts a:focus-visible, .fp-opts button:focus-visible { outline: 2px solid #9fd3d5; outline-offset: 2px; }
+.fp-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.fp-bar button { font: 500 14px var(--sans); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+.fp-bar button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.fp-bar button:focus-visible, .fp-seek:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.fp-seek { flex: 1 1 200px; accent-color: var(--accent); }
+.fp-time { font: 13px var(--mono); color: var(--muted); min-width: 92px; }
+.fp-chapters { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+.fp-chapters button { width: 100%; text-align: left; font: inherit; color: inherit; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; cursor: pointer; display: grid; }
+.fp-chapters b { font-weight: 500; font-size: 14px; line-height: 1.3; }
+.fp-chapters small { font: 12px var(--mono); color: var(--muted); }
+.fp-chapters li[data-on] button { border-color: var(--accent); }
+.fp-chapters button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* The MP4 renderer only wants the picture. */
+.fp-render .fp-bar, .fp-render .fp-chapters, .fp-render .fp-poster, .fp-render .fp-cc { display: none; }
+body:has(.fp-render) { padding: 0; }
+body:has(.fp-render) .wrap > :not(.film) { display: none; }

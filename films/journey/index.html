@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="../../lib/i18n.js"></script>
+<title>The journey of life · a film</title>
+<meta name="description" content="A 4-minute film through the history of life, from a sea with no life to brains and ecosystems, told with the real simulations of Learning Systems.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500&display=swap">
+<link rel="stylesheet" href="../player.css">
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../../index.html">← Learning Systems</a>
+  <header>
+    <p class="eyebrow">Watch · Film 1</p>
+    <h1>The journey of life</h1>
+    <p class="lede">Four billion years in four minutes: from a sea with no life to brains and ecosystems. Everything moving on screen is one of our real simulations, running live in your browser.</p>
+  </header>
+  <section id="film" class="film" tabindex="-1"></section>
+  <p class="film-links"><a href="captions/en.srt">Caption file (English)</a><a href="captions/es.srt">Caption file (Spanish)</a><a href="script.md">Read the script</a></p>
+  <details class="howto">
+    <summary>How to read the film</summary>
+    <p>A red dot and <b>Live simulation</b> mean the picture is the real simulation from this site, run with a fixed seed, so it plays the same way every time. The planet and the clock are drawings that place each moment in Earth’s history: the clock squeezes 4.54 billion years into one day. The charts are real runs of the same worlds. The narration is a synthetic voice.</p>
+  </details>
+  <section class="more">
+    <h2>Key moments</h2>
+    <p>Short films that go deeper into one result each are being made next: born knowing or learning, a brain that wires itself, safety in numbers, sharers and cheats, and more.</p>
+  </section>
+</div>
+<script src="../../lib/earth.js"></script>
+<script src="../../lib/chemistry.js"></script>
+<script src="../../lib/cell.js"></script>
+<script src="../../lib/life.js"></script>
+<script src="../../environments/early-earth/draw.js"></script>
+<script src="../../environments/first-cells/draw.js"></script>
+<script src="../../lib/brain.js"></script>
+<script src="../../nervous-systems/tissue-lab/engine.js"></script>
+<script src="../../environments/forager-worlds/tissue-brain.js"></script>
+<script src="../../environments/forager-worlds/engine.js"></script>
+<script src="../../lib/creature-draw.js"></script>
+<script src="../../lib/gaia.js"></script>
+<script src="../../lib/nav.js"></script>
+<script src="../footage.js"></script>
+<script src="../player.js"></script>
+<script src="script.js"></script>
+<script src="timing.js"></script>
+<script src="data.js"></script>
+<script src="scenes.js"></script>
+<script>
+(function () {
+  'use strict';
+  const S = window.FilmScenes.journey;
+  FilmPlayer.mount(document.getElementById('film'), {
+    film: Films.journey,
+    timing: FilmTiming.journey,
+    scenes: S,
+    lang: window.I18N ? I18N.lang : 'en',
+    posterAt: 9,
+    audio: { en: 'audio/en.mp3', es: 'audio/es.mp3' },
+    chips: {
+      earth: { en: 'Early Earth', es: 'Tierra primitiva' },
+      cells: { en: 'First cells', es: 'Primeras células' },
+      colonies: { en: 'Colonies', es: 'Colonias' },
+      nerves: { en: 'Nerve nets', es: 'Redes nerviosas' },
+      ecosystems: { en: 'Ecosystems on the Gaia coast', es: 'Ecosistemas en la costa de Gaia' },
+    },
+    // Where each chapter sits on the day clock (Earth's 4.54 billion years as 24 hours).
+    clockHours: {
+      sea: S.hourOf(4.0e9), cells: S.hourOf(3.8e9), colonies: S.hourOf(3.5e9),
+      bodies: S.hourOf(5.6e8), brains: S.hourOf(5.2e8),
+    },
+    next: [
+      { href: '../../index.html', text: { en: 'Dive into the planet →', es: 'Sumérgete en el planeta →' } },
+      { href: '../../world/index.html', text: { en: 'World Viewer: travel the timeline', es: 'Visor del mundo: recorre la línea del tiempo' } },
+      { href: '../../labs/index.html', text: { en: 'Guided labs: change the rules', es: 'Laboratorios guiados: cambia las reglas' } },
+    ],
+  });
+})();
+</script>
+</body>
+</html>

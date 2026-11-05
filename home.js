@@ -811,7 +811,7 @@ void main() {
         <p>Small simulated worlds where life organises itself. Scroll down to sink from a whole ecosystem to the molecules life began with. Every stop is a live simulation.</p>
         <div class="chips" role="group" aria-label="Light up on the planet"><span class="lab">Light up</span>${chips}</div>
         ${plateKey()}
-        <div class="acts"><button class="main" data-go="1">Start the dive ↓</button><a href="${ROOT}world/index.html#story">Watch the story</a></div>`;
+        <div class="acts"><button class="main" data-go="1">Start the dive ↓</button><a href="${ROOT}films/journey/index.html">▶ Watch the 4-minute film</a><a href="${ROOT}world/index.html#story">Watch the story</a></div>`;
       return;
     }
     const s = st.s, k = st.kind, done = C.labsDone(), up = STOPS[i - 1], down = STOPS[i + 1];
@@ -1108,6 +1108,7 @@ void main() {
       <header><h1>Every level of life</h1><p class="lede">Small simulated worlds where living systems organise themselves from local rules. Here they are as a plain list, from a whole ecosystem down to the chemistry life began with.</p>
         <ul class="principles"><li>no global controller</li><li>only local rules</li><li>grounded in biology</li><li>compare, don't assume</li></ul></header>
       <section><h2>Ways in</h2><div class="ways-list">
+        <a href="${ROOT}films/journey/index.html"><b>Start here: watch the film</b><span>The journey of life in four minutes, from a sea with no life to brains and ecosystems. Everything moving on screen is one of the real simulations, with questions to pause and think, in English or Spanish.</span></a>
         <a href="${ROOT}world/index.html#story"><b>Watch the story</b><span>A guided tour of one world, chapter by chapter.</span></a>
         <a href="${ROOT}labs/index.html"><b>Take a mechanism apart</b><span>Guided labs: change one thing and follow the effect. ${done.length} of ${labs.length} done.</span></a>
         <a href="${ROOT}world/index.html"><b>Explore freely</b><span>The World Viewer: every chapter on one stage.</span></a>
