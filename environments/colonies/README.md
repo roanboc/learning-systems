@@ -1,6 +1,6 @@
 # Colonies: sharers and cheats
 
-Chapter 2 of the timeline of life, as its own lab page. Open `index.html` in a browser. No build step.
+Chapter 3 of the timeline of life, as its own lab page. Open `index.html` in a browser. No build step.
 
 It reuses the First cells page (`../first-cells/app.js` and `draw.js`) with `data-stage="colonies"`, so the engine is `lib/life.js` at stage `colonies` with its opt-in `goods` setting switched on. Nothing changes for other pages or the World Viewer: with `goods` off, every world draws the same random numbers and gives the same results as before.
 
@@ -33,3 +33,7 @@ So sharing holds when families stay together and the help stays local, and cheat
 ## Simplified
 
 The helper molecule is made up, one map cell is far bigger than a real cell, and genes are numbers. Real microbes also regulate production (quorum sensing), police cheats and choose partners; none of that is here yet.
+
+## References
+
+The studies, papers and books this simulation draws on, with what each supports and how firm the claim is, are listed at the end of the page. They live in `lib/references.js`.

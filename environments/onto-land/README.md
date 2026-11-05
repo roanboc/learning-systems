@@ -1,6 +1,6 @@
 # Onto land: body plans
 
-Chapter 7 of the timeline of life, about 430 to 375 million years ago. Open `index.html` in a browser. No build step. The plan and the evidence check are in [proposal.md](proposal.md).
+Chapter 8 of the timeline of life, about 430 to 375 million years ago. Open `index.html` in a browser. No build step. The plan and the evidence check are in [proposal.md](proposal.md).
 
 Two Gaia coasts side by side (`lib/gaia.js`, era `shores`): the Ecosystems coast with grazers and hunters, where every body is now a row of segments with fins or legs. Left, mats grow on the damp ground the tide uncovers. Right, the twin: the same coast with nothing to eat on land. Grazers are coloured by limb (sand for legs, pale blue for fins).
 

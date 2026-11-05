@@ -104,5 +104,78 @@
     },
   };
 
-  window.Learn.mount({ toolbar: document.querySelector('.toolbar'), labs: [beating], api: page });
+  // Clones against two parents: the paradox of sex.
+  const pickBroken = (c) => (c.clumpSize >= 4 ? c.clumpSize + Math.random() : -1);
+  const paradox = {
+    id: 'clones-or-two-parents',
+    title: 'Why two parents?',
+    question: 'A clone needs no partner and passes on all its genes. Why does almost every animal and plant have two parents?',
+    levels: ['Population', 'Cell', 'Population', 'Population'],
+    setup(api) {
+      api.replaceWorlds([['clones', SEED], ['parents', SEED]]);
+      api.setSpeed('ff');
+      api.setMetric('seeds');
+      api.play();
+    },
+    steps: [
+      {
+        level: 0,
+        title: 'Two coasts, one difference',
+        text: 'On both coasts, new bodies start only from a **seed cell** that a germ cell releases. Left: the seed is a **clone** of its germ cell. Right: the germ cell needs a **partner**, a germ cell of another body nearby, and the seed takes each gene from one parent or the other, at random. With no partner in reach, no seed. The chart counts seeds.',
+        wait: 'Waiting for the first seeds.',
+        check: (api) => two() && api.worlds[0].sim.t > 1500,
+        result(api) {
+          if (!two()) return 'This lab needs two worlds. Restart it from Guided labs.';
+          const [A, B] = api.worlds;
+          return `Seeds: **${st(A).seeds}** left, **${st(B).seeds}** right. On the right, **${st(B).noMate}** times a germ cell was ready but found no partner. That is the first cost of sex.`;
+        },
+      },
+      {
+        level: 1,
+        title: 'Genes that break for good',
+        text: 'Each cell carries 10 genes that a copying mistake can break, and a broken gene never mends. Every broken gene makes the cell burn 15% more energy to stay alive. Follow a cell in a body and look at its broken genes under the map.',
+        action: {
+          label: 'Follow a cell in a body on each coast',
+          run(api) {
+            if (!two()) return;
+            for (const W of api.worlds) api.follow(W, pick(W, pickBroken), 16);
+            api.reveal();
+          },
+        },
+        result(api) {
+          if (!two()) return '';
+          const [A, B] = api.worlds;
+          return `Cells with no broken genes: **${Math.round(st(A).clean * 100)}%** left, **${Math.round(st(B).clean * 100)}%** right.`;
+        },
+      },
+      {
+        level: 2,
+        title: 'Do two parents clean up?',
+        text: 'Theory says clones can only pile up broken genes, one click at a time (**Muller\'s ratchet**), while two parents can make a seed with fewer broken genes than either of them. The chart now shows broken genes per cell. Watch which line stays lower.',
+        enter(api) { api.setMetric('load'); api.setSpeed('ff'); },
+        wait: 'Waiting a few weeks of coast time.',
+        check: (api) => two() && api.worlds[0].sim.t > 6000,
+        result(api) {
+          if (!two()) return '';
+          const [A, B] = api.worlds;
+          return `Broken genes per cell: **${n2(st(A).load)}** left, **${n2(st(B).load)}** right. In our test runs, two parents ended lower on 2 coasts out of 5 and higher on 3: no clear difference, while they made far fewer seeds.`;
+        },
+      },
+      {
+        level: 3,
+        title: 'The paradox of sex',
+        text: 'Here, two parents do not beat clones, and they pay for a partner. Biologists call this the **paradox of sex**: the costs are certain, and the benefits only show in some conditions. Models and experiments find them in small populations over many generations, against fast-changing parasites, or when many genes must change at once. This coast has a big population, few generations of bodies and no parasites. Why sex is so common is still **debated**.',
+      },
+    ],
+    think: {
+      q: 'Why don\'t two parents win on this coast?',
+      opts: [
+        { t: 'Mixing genes is always harmful.', why: 'It is not. A seed of two parents can carry fewer broken genes than either parent; it can also carry more. On average, mixing does not change the load by itself.' },
+        { t: 'Its costs come every time, while its benefits need conditions this coast lacks: many generations, small populations, or a changing enemy.', ok: true, why: 'This is the heart of the paradox. Real sexual species pay these costs too, and researchers still argue about which benefit matters most.' },
+        { t: 'Bodies cannot meet at all.', why: 'They do meet: the right coast makes seeds with two parents. They just meet less often than a clone makes a seed.' },
+      ],
+    },
+  };
+
+  window.Learn.mount({ toolbar: document.querySelector('.toolbar'), labs: [beating, paradox], api: page });
 })();

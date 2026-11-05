@@ -12,6 +12,7 @@
 
   // Light at cells compared with light in the water, by day only.
   const lightRel = (s) => (s.lightInWater > 0.15 ? s.lightAtCells / s.lightInWater : null);
+  const brokenGenes = (load) => { let n = 0; for (let x = load || 0; x; x &= x - 1) n++; return n; };
   const bodyOf = (L, c) => (L._beatOrder && L._beatOrder.get(c.clump)) || null;
 
   // One page per chapter: the page says which (<body data-stage="...">).
@@ -67,16 +68,23 @@
         coupled: { label: 'Linked rhythm', params: { geneStart: { sync: [1, 1] }, fixed: ['sync'] } },
         uncoupled: { label: 'Each cell on its own rhythm', params: { geneStart: { sync: [0, 0] }, fixed: ['sync'] } },
         noroles: { label: 'No roles', params: { geneStart: { specialise: [0, 0] }, fixed: ['specialise'] } },
+        // Clones against two parents (lib/life.js `sex`, `harm`, `seedsOnly`).
+        clones: { label: 'Clones', params: { seedsOnly: true, harm: 0.05 } },
+        parents: { label: 'Two parents', params: { seedsOnly: true, harm: 0.05, sex: true } },
       },
       metrics: [
         { key: 'inStep', label: 'In step', get: (s) => s.inStep, min: 1, note: 'How together the contracting cells of each body squeeze, on average (1 = all at once). A few cells on random rhythms still score about 0.5.' },
         { key: 'bodySpeed', label: 'Body speed', get: (s) => s.bodySpeed, min: 0.05, note: 'How fast bodies push themselves along, on average, not counting the current.' },
         { key: 'sync', label: 'Linking gene', get: (s) => s.sync, note: 'Average "sync" gene: how strongly a contracting cell falls into step with the rest of its body.' },
         { key: 'specialise', label: 'Takes a role', get: (s) => s.specialise, min: 1, note: 'Average "specialise" gene: the chance that a cell in a body takes a role.' },
+        { key: 'load', label: 'Broken genes', get: (s) => s.load, min: 0.3, note: 'Average number of broken genes per cell, out of 10. Only on the Clones and Two parents coasts, where a division can break a gene for good.' },
+        { key: 'seeds', label: 'Seeds', get: (s) => s.seeds, min: 10, note: 'Seed cells released so far. On the Two parents coast, a germ cell with no partner in reach makes no seed.' },
         { key: 'cells', label: 'Cells', get: (s) => s.cells, min: 10, note: 'Number of cells. The coast holds at most 900.' },
       ],
       stats: (W, st) => [['Cells', st.cells], ['Bodies with roles', st.bodies], ['Contracting cells', st.movers], ['Germ cells', st.germs],
-        ['In step', fmt(st.inStep)], ['Body speed', fmt(st.bodySpeed, 3)], ['Linking gene', fmt(st.sync)], ['Predators', st.predators]],
+        ['In step', fmt(st.inStep)], ['Body speed', fmt(st.bodySpeed, 3)], ['Linking gene', fmt(st.sync)], ['Predators', st.predators]]
+        .concat(st.load == null ? [] : [['Broken genes', fmt(st.load)], ['No broken genes', Math.round(st.clean * 100) + '%'], ['Seeds', st.seeds]])
+        .concat(W.sim.p.sex ? [['No partner', st.noMate]] : []),
       genes: (c, L) => {
         const b = c.clumpSize > 1 ? bodyOf(L, c) : null;
         const roles = [0, 0, 0, 0, 0];
@@ -84,7 +92,8 @@
         return (c.clumpSize > 1 ? `body of <b>${c.clumpSize}</b>: ${roles[2]} contracting, ${roles[3]} germ, ${roles[1]} without a role` +
           (b && b.n > 1 ? ` · in step <b>${fmt(Math.hypot(b.x, b.y) / b.n)}</b>` : '') + '<br>' : '') +
           (c.role === window.LifeSim.MOVER ? (c.contracting ? '<b>contracting now</b> · ' : 'resting · ') : '') +
-          `linking gene <b>${fmt(c.g.sync)}</b> · takes a role ${fmt(c.g.specialise)} · sticks ${fmt(c.g.stick)}`;
+          `linking gene <b>${fmt(c.g.sync)}</b> · takes a role ${fmt(c.g.specialise)} · sticks ${fmt(c.g.stick)}` +
+          (L.p.harm ? `<br>broken genes <b>${brokenGenes(c.g.load)}</b> of 10` : '');
       },
     },
   };

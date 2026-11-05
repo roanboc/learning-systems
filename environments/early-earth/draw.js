@@ -177,10 +177,17 @@
       const r = Math.max(0.25 + Math.sqrt(b.lipid) * 0.3, 2.5 / s);
       const c = b.copiers > 0.05 ? Math.min(1, b.copiers / 0.6) : 0;
       ctx.beginPath(); ctx.arc(b.x, b.y, r, 0, Math.PI * 2);
-      ctx.fillStyle = c > 0 ? `rgba(235,80,170,${0.35 + 0.55 * c})` : 'rgba(245,235,200,0.18)';
+      if (b.skin !== undefined && c > 0) {
+        // First genes: green when most copiers are working genes, pink when
+        // plain copiers (parasites) have taken over.
+        const wk = (b.skin + b.meta) / b.copiers;
+        ctx.fillStyle = `rgba(${Math.round(235 - 155 * wk)},${Math.round(80 + 130 * wk)},${Math.round(170 - 10 * wk)},${0.35 + 0.55 * c})`;
+      } else ctx.fillStyle = c > 0 ? `rgba(235,80,170,${0.35 + 0.55 * c})` : 'rgba(245,235,200,0.18)';
       ctx.fill();
-      ctx.lineWidth = Math.max(0.08, 1 / s);
-      ctx.strokeStyle = 'rgba(250,240,210,0.9)';
+      // A protocell that makes its own skin gets a bright, thick skin.
+      const own = b.closure || 0;
+      ctx.lineWidth = Math.max(0.08, 1 / s) * (1 + 2 * own);
+      ctx.strokeStyle = own > 0.05 ? `rgba(255,215,90,${0.5 + 0.5 * own})` : 'rgba(250,240,210,0.9)';
       ctx.stroke();
     }
     if (sel) {
