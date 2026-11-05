@@ -15,10 +15,16 @@
   // ---------- Chapters ----------
   const CHAPTERS = [
     {
-      key: 'earth', title: 'Early Earth', era: 'about 4 billion years ago', live: true,
+      key: 'earth', title: 'Early Earth', era: 'about 4.4 billion years ago', live: true,
       text: 'A young coast with no life. Sunlight, hot vents and tides drive a made-up chemistry: chains form in drying tide pools, copiers arise and spread, and oily bubbles trap them and split. Zoom in until the water turns into molecules.',
       lab: '../environments/early-earth/index.html',
       lenses: ['Coast', 'Water up close', 'Bubble'],
+    },
+    {
+      key: 'genes', title: 'First genes', era: 'before 4.2 billion years ago', live: true,
+      text: 'The same coast, now with protocells: bubbles holding copiers that do a job. Some copiers make oils for the bubble\'s own skin, some make its building blocks, and plain copiers only copy, like parasites. A protocell whose genes work grows and splits; at each split its genes are shared by chance. Watch how much of each protocell makes itself.',
+      lab: '../environments/first-genes/index.html',
+      lenses: ['Coast', 'Water up close', 'Protocell'],
     },
     {
       key: 'cells', title: 'First cells', era: 'about 3.8 billion years ago', live: true, stage: 'cells',
@@ -87,8 +93,8 @@
     if (!ch.live) return null;
     let s = state.sims[ch.key];
     if (s) return s;
-    if (ch.key === 'earth') {
-      const w = window.ChemSim.makeWorld('full', 3);
+    if (ch.key === 'earth' || ch.key === 'genes') {
+      const w = window.ChemSim.makeWorld(ch.key === 'genes' ? 'genes' : 'full', 3);
       const e = w.earth;
       s = { kind: 'earth', w, painter: new window.EarthDraw.MapPainter(w), size: [e.cols, e.rows], journalShown: 0 };
     } else if (ch.stage) {
@@ -281,7 +287,8 @@
       const e = s.w.earth;
       if (s.selected) {
         const b = s.selected, alive = s.w.bubbles.includes(b);
-        box.innerHTML = `<b>Bubble #${b.id}</b>${alive ? '' : ' (burst)'}<br>generation <b>${b.gen}</b> · age ${e.t - b.born} · size ${fmt(b.lipid)}<br>copiers <b>${fmt(b.copiers, 3)}</b> · chains ${fmt(b.chains, 3)} · split ${b.children}×`;
+        box.innerHTML = `<b>Bubble #${b.id}</b>${alive ? '' : ' (burst)'}<br>generation <b>${b.gen}</b> · age ${e.t - b.born} · size ${fmt(b.lipid)}<br>copiers <b>${fmt(b.copiers, 3)}</b> · chains ${fmt(b.chains, 3)} · split ${b.children}×` +
+          (b.skin !== undefined ? `<br>skin-makers ${fmt(b.skin, 3)} · block-makers ${fmt(b.meta, 3)} · parasites ${fmt(b.plain, 3)}<br>makes itself <b>${Math.round(b.closure * 100)}%</b>` : '');
         setActions('b' + b.id, [[s.follow ? 'Stop following' : 'Follow it', () => { s.follow = !s.follow; if (s.follow && s.cam.zoom < 6) s.cam.zoom = 6; renderSide(); }]]);
       } else if (s.inspectCell != null) {
         const i = s.inspectCell, c = s.w.at(i);
@@ -665,7 +672,7 @@
   // brains, then whole ecosystems.
   const STORY = [
     { ch: 0, focus: 'fit', layer: 'nature', title: 'A young planet',
-      text: 'Four billion years ago Earth had land, sea and sky, but nothing alive. This coast is our stand-in: rock on top, a shallow shore in the middle, deep sea below.',
+      text: 'More than four billion years ago Earth had land, sea and sky, but nothing alive. This coast is our stand-in: rock on top, a shallow shore in the middle, deep sea below.',
       look: 'Everything you see comes from a few simple rules for ground, water, sun and heat. There is no designer and no goal.' },
     { ch: 0, focus: 'fit', layer: 'light', title: 'The sun',
       text: 'The sun rises and sets. Light is strongest in shallow water and fades with depth. It is the first source of energy in this world.',
@@ -697,40 +704,46 @@
     { ch: 0, focus: 'bubble', layer: 'nature', zoom: 7, title: 'Protocells: bubbles that pass things on',
       text: 'A bubble holding copiers pulls in oils faster, grows, and splits in two. Both halves share what was inside. Nothing tells bubbles to keep copiers, but those that do leave more daughters. That is heredity and selection, before life.',
       look: 'Pink bubbles carry copiers. Watch the one you are following grow and split.' },
-    { ch: 1, focus: 'fit', title: 'First cells',
+    { ch: 1, focus: 'protocell', layer: 'nature', zoom: 7, title: 'First genes: copiers with a job', lab: 'break-the-skin',
+      text: 'Some copiers do more than copy: they make oils for the bubble\'s own skin, or building blocks inside it. These are the first genes. Plain copiers only copy, and copy fastest, so they act as parasites. Inside a skin, a gene\'s work helps its own protocell grow and split, so the work pays.',
+      look: 'Green protocells are rich in working genes, pink ones are full of parasites. A thick golden skin means the protocell makes most of itself.' },
+    { ch: 1, focus: 'fit', layer: 'nature', title: 'A network that makes itself', lab: 'break-the-skin',
+      text: 'A protocell whose genes make its skin and its blocks keeps rebuilding the parts that keep it going. Researchers call this closure, the modern form of the old idea of autopoiesis. It is a matter of degree, and you can watch it rise.',
+      look: 'Check the journal for "A protocell that mostly makes itself" and "Parasites ended a lineage".' },
+    { ch: 2, focus: 'fit', title: 'First cells',
       text: 'Protocells became true cells: a skin, copiers that carry instructions, and machinery to eat and divide. Here they live on the same coast. Each green dot eats building blocks and energy, divides when it has stored enough and dies when it runs out.',
       look: 'Within a day, cells crowd into the sunlit shallows and around the vents, where food is made. At night food runs short and many starve.' },
-    { ch: 1, focus: 'cell', zoom: 14, title: 'Motors: from drifting to swimming', lab: 'learning-to-move',
+    { ch: 2, focus: 'cell', zoom: 14, title: 'Motors: from drifting to swimming', lab: 'learning-to-move',
       text: 'The first cells were probably carried by the water. Bacteria later evolved the flagellum, a whip turned by a tiny protein motor. Here one gene sets how strong a cell\'s motor is. Swimming costs energy, but a cell that can leave a spot it has eaten bare reaches fresh food first.',
       look: 'Up close, the wavy tail is the flagellum, longer for a stronger motor. Watch the average "motor" gene rise from almost zero. The First cells lab shows that it settles at a best strength.' },
-    { ch: 1, focus: 'cell', zoom: 8, title: 'Steering: following food, and light',
+    { ch: 2, focus: 'cell', zoom: 8, title: 'Steering: following food, and light',
       text: 'A motor alone moves a cell at random. Cells swim like bacteria: run straight while food gets richer, turn at random when it gets poorer. Cells here also gain a little energy from light, and an eyespot lets them turn toward light, and away when it is too strong, as the alga Chlamydomonas does. Each is a gene that can evolve.',
       look: 'The red dot at a cell\'s front is its eyespot. In "Looking at", compare the average genes at the start and now. Light sense pays only a little on this coast, where most food comes from the dark vents.' },
-    { ch: 2, focus: 'fit', title: 'Predators, and safety in numbers',
+    { ch: 3, focus: 'fit', title: 'Predators, and safety in numbers',
       text: 'Predators arrive: big red cells that swallow anything small. A daughter can stay stuck to its mother. A clump of four is too big to swallow, but clumped cells crowd each other for food. Experiments with real algae show predators can make single cells evolve clumps in a few hundred generations.',
       look: 'Red cells hunting. Watch the share of cells in clumps, and the "sticks" gene, rise over a few days.' },
-    { ch: 2, focus: 'colony', zoom: 9, title: 'A colony',
+    { ch: 3, focus: 'colony', zoom: 9, title: 'A colony',
       text: 'Cells in a colony stay bonded and can pass energy to hungry neighbours. They are still all the same: each one eats, swims and divides.',
       look: 'Lines between cells are bonds. Big clumps sometimes break apart, and each piece lives on.' },
-    { ch: 3, focus: 'body', zoom: 9, title: 'Bodies: cells take on roles',
+    { ch: 4, focus: 'body', zoom: 9, title: 'Bodies: cells take on roles',
       text: 'In a body, inner cells become germ cells (pink) that feed and divide but never move. Outer cells become contracting cells (yellow) that never divide. Contracting cells grow old and die: the first cells that live only for the body.',
       look: 'A full body lets a germ cell go. That seed cell grows into a new body, the way plants and animals start from one cell.' },
-    { ch: 3, focus: 'body', zoom: 14, title: 'The first muscles: squeezing together', lab: 'muscles-beat-together',
+    { ch: 4, focus: 'body', zoom: 14, title: 'The first muscles: squeezing together', lab: 'muscles-beat-together',
       text: 'Each contracting cell squeezes on its own rhythm, using the same kind of protein fibres (actin and myosin) that later fill our muscles. One cell squeezing alone just makes the water slosh. The body only moves when its contracting cells squeeze at the same moment. Cells linked through the body pull each other\'s rhythm into step, as the coupled skin cells of Hydra do.',
       look: 'Orange means squeezing right now. Watch a body: do its contracting cells flash together, or one by one? "Looking at" shows how in step they are. The Bodies lab compares bodies with and without the link.' },
-    { ch: 4, focus: 'nerve', zoom: 9, title: 'Nerve nets',
+    { ch: 5, focus: 'nerve', zoom: 9, title: 'Nerve nets',
       text: 'Some outer cells become nerve cells (violet). When a cell tastes richer food than the rest of its body, it fires. Nerve cells pass the signal across the body, and each contracting cell it reaches starts a squeeze toward the food, so they squeeze together. There is no centre: a net, like in Hydra and jellyfish.',
       look: 'White flashes are cells firing. Bodies with nerve cells turn toward food together; bodies without them drift.' },
-    { ch: 5, focus: 'fit', title: 'Bodies with an eye and a brain',
+    { ch: 6, focus: 'fit', title: 'Bodies with an eye and a brain',
       text: 'Hundreds of millions of years later, animals have bodies, eyes and brains. These creatures see green and violet plants. One colour is food, the other poison, and nobody tells them which.',
       look: 'Creatures are the arrows. Plants are green or violet dots on drifting fertile soil.' },
-    { ch: 5, focus: 'creature', zoom: 4, title: 'Follow one creature', lab: 'learning-colour',
+    { ch: 6, focus: 'creature', zoom: 4, title: 'Follow one creature', lab: 'learning-colour',
       text: 'Each creature carries a small spiking brain that wires itself while it lives and learns from what it eats. Its genes set how the brain is built, never what it knows.',
       look: 'The fan in front of it is its eye. Watch whether it bites food and avoids poison.' },
-    { ch: 5, focus: 'enter', title: 'Inside the body, brain and cells', lab: 'who-cleans',
+    { ch: 6, focus: 'enter', title: 'Inside the body, brain and cells', lab: 'who-cleans',
       text: 'Zoom into the creature. Senses feed the brain and the brain drives the muscles. Click the brain to see neurons fire, then click any neuron to meet a single cell.',
       look: 'Close the inside view to come back to the world.' },
-    { ch: 6, focus: 'fit', title: 'Ecosystems',
+    { ch: 7, focus: 'fit', title: 'Ecosystems',
       text: 'Add hunters, and plant eaters must see them and flee. Chases, booms, crashes and extinctions emerge from nothing but local rules, as in the Cambrian seas.',
       look: 'Red arrows are hunters. Watch how the numbers of hunters and prey rise and fall together.' },
   ];
@@ -754,6 +767,11 @@
       if (focus === 'bubble') {
         let best = null;
         for (const b of s.w.bubbles) if (!best || b.copiers > best.copiers) best = b;
+        return best ? { bubble: best } : null;
+      }
+      if (focus === 'protocell') {
+        let best = null;
+        for (const b of s.w.bubbles) if (b.skin !== undefined && (!best || b.closure > best.closure)) best = b;
         return best ? { bubble: best } : null;
       }
       return null;
@@ -806,7 +824,7 @@
     if (s.kind === 'life' && s.w.t < 400 && st.focus !== 'fit') advance(s, 300);
     const z = st.zoom || 1;
     const t = findFocus(s, st.focus);
-    if (!t && ['bubble', 'copiers', 'cell', 'colony', 'body', 'nerve'].includes(st.focus)) {
+    if (!t && ['bubble', 'protocell', 'copiers', 'cell', 'colony', 'body', 'nerve'].includes(st.focus)) {
       $('#story-look').textContent = st.look + ' Nothing like this has formed yet in this run: set the speed to Fast-forward for a while, then come back to this step.';
     }
     if (!t) { s.cam = { cx: s.size[0] / 2, cy: s.size[1] / 2, zoom: z }; }

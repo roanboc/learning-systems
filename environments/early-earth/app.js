@@ -1,15 +1,26 @@
 // Early Earth page: worlds side by side, each a map you can fly over.
+// First genes (environments/first-genes/) runs this same page script with
+// <body data-stage="genes">: its own worlds, charts and readouts.
 (function () {
   'use strict';
 
-  const { makeWorld, PRESETS, SPECIES } = window.ChemSim;
+  const GENES = document.body.dataset.stage === 'genes';
+  const { makeWorld, SPECIES } = window.ChemSim;
+  const PRESETS = GENES ? window.ChemSim.GENE_PRESETS : window.ChemSim.PRESETS;
   const { MapPainter, drawWorld, toCell, LAYERS } = window.EarthDraw;
   const css = getComputedStyle(document.documentElement);
   const token = (n) => css.getPropertyValue(n).trim();
   const WORLD_COLOURS = ['--s1', '--s2', '--s3'];
   const MAX_WORLDS = 3;
 
-  const METRICS = [
+  const METRICS = GENES ? [
+    { key: 'closure', label: 'Makes itself' },
+    { key: 'working', label: 'Working genes' },
+    { key: 'protocells', label: 'Protocells' },
+    { key: 'maxGen', label: 'Longest lineage' },
+    { key: 'emptyBirths', label: 'Daughters with no working genes' },
+    { key: 'oils', label: 'Oils in the water' },
+  ] : [
     { key: 'withCopiers', label: 'Bubbles with copiers' },
     { key: 'bubbles', label: 'Bubbles' },
     { key: 'maxGen', label: 'Longest lineage' },
@@ -18,7 +29,8 @@
     { key: 'blocks', label: 'Building blocks' },
     { key: 'oils', label: 'Oils' },
   ];
-  let metric = 'withCopiers';
+  const SHARES = ['closure', 'working', 'emptyBirths'];
+  let metric = GENES ? 'closure' : 'withCopiers';
 
   const worlds = [];
   let running = true;
@@ -27,6 +39,7 @@
 
   const $ = (s, el) => (el || document).querySelector(s);
   const fmt = (v, d) => (v >= 100 ? Math.round(v).toString() : v.toFixed(d == null ? 2 : d));
+  const pct = (v) => Math.round((v || 0) * 100) + '%';
   function timeOfDay(e) {
     const h = e.dayPhase * 24, hh = Math.floor(h), mm = Math.floor((h - hh) * 60);
     return String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
@@ -192,6 +205,7 @@
         `<b>Bubble #${b.id}</b>${alive ? '' : ' (burst)'} · generation <b>${b.gen}</b> · ` +
         `age ${e.t - b.born} steps · size ${fmt(b.lipid)} · chains ${fmt(b.chains, 3)} · copiers <b>${fmt(b.copiers, 3)}</b> · ` +
         `blocks ${fmt(b.blocks, 3)} · split ${b.children}× · parent ${b.parent ? '#' + b.parent : 'none (formed from oils)'}` +
+        (b.skin !== undefined ? `<br>skin-makers <b>${fmt(b.skin, 3)}</b> · block-makers <b>${fmt(b.meta, 3)}</b> · parasites <b>${fmt(b.plain, 3)}</b> · makes itself <b>${pct(b.closure)}</b>` : '') +
         `<button class="follow">${W.follow ? 'Stop following' : 'Follow'}</button>`;
       $('.follow', box).onclick = () => {
         W.follow = !W.follow;
@@ -243,7 +257,10 @@
   function showStats(W) {
     const st = W.sim.stats, e = W.sim.earth;
     if (!st.t && st.t !== 0) return;
-    const items = [
+    const items = GENES ? [
+      ['Protocells', st.protocells], ['Makes itself', pct(st.closure)], ['Working genes', pct(st.working)],
+      ['Longest lineage', st.maxGen], ['Far from vents', st.far],
+    ] : [
       ['Bubbles', st.bubbles], ['with copiers', st.withCopiers], ['Longest lineage', st.maxGen],
       ['Copier patches', st.copierPatch], ['Copier origins lost', st.extinctions],
     ];
@@ -274,7 +291,7 @@
     const ctx = cv.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
-    let tMax = 1, vMax = ['bubbles', 'withCopiers', 'maxGen', 'copierPatch'].includes(metric) ? 1 : 0.01;
+    let tMax = 1, vMax = SHARES.includes(metric) ? 1 : ['bubbles', 'withCopiers', 'maxGen', 'copierPatch', 'protocells'].includes(metric) ? 1 : 0.01;
     for (const W of worlds) for (const s of W.sim.history) { tMax = Math.max(tMax, s.t); vMax = Math.max(vMax, s[metric]); }
     const padL = 40, padB = 18, pw = w - padL - 6, ph = h - padB - 6;
     ctx.strokeStyle = token('--line'); ctx.lineWidth = 1;
@@ -282,7 +299,7 @@
     for (let k = 0; k <= 2; k++) {
       const y = 6 + ph * (1 - k / 2);
       ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + pw, y); ctx.stroke();
-      ctx.fillText(fmt(vMax * k / 2), 2, y + 4);
+      ctx.fillText(SHARES.includes(metric) ? pct(vMax * k / 2) : fmt(vMax * k / 2), 2, y + 4);
     }
     const dayLen = worlds[0] ? worlds[0].sim.earth.p.dayLength : 720;
     ctx.fillText('day ' + Math.floor(tMax / dayLen), padL + pw - 44, h - 4);
@@ -369,6 +386,12 @@
       W.mark = { x, y };
     },
     scale(W) { return scale(W, $('canvas.map', W.el)); },
+    follow(W, b, zoom) {
+      if (!b) return;
+      W.selected = b; W.inspectCell = null; W.mark = null; W.follow = true;
+      W.cam.zoom = clampZoom(zoom || 6);
+      showInspect(W);
+    },
     setSpeed(v) { $('#speed').value = v; },
     play() { if (!running) $('#play').click(); },
     setMetric(k) { metric = k; renderMetrics(); drawChart(); },
@@ -376,6 +399,6 @@
   };
 
   renderMetrics();
-  addWorld('full', 3);
+  addWorld(GENES ? 'genes' : 'full', 3);
   requestAnimationFrame(loop);
 })();

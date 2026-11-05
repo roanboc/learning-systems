@@ -1,6 +1,6 @@
 # First cells: learning to move
 
-Chapter 1 of the timeline of life, as its own lab page. Open `index.html` in a browser. No build step.
+Chapter 2 of the timeline of life, as its own lab page. Open `index.html` in a browser. No build step.
 
 Cells (`lib/life.js`, stage `cells`) live on the Early Earth coast (`lib/earth.js`, `lib/chemistry.js`). They start with almost no motor and drift with the currents. Three genes can evolve:
 
