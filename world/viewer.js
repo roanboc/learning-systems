@@ -13,6 +13,8 @@
   const fmt = (v, d) => (Math.abs(v) >= 100 ? Math.round(v).toString() : v.toFixed(d == null ? 2 : d));
 
   // ---------- Chapters ----------
+  // Each stage belongs to a chapter of the site, which is an act of film 1 (lib/story.js).
+  const ACT = { earth: 1, genes: 2, cells: 3, colonies: 4, bodies: 5, nerves: 6, brains: 6, ecosystems: 7, shores: 7 };
   const CHAPTERS = [
     {
       key: 'earth', title: 'Early Earth', era: 'about 4.4 billion years ago', live: true,
@@ -231,7 +233,7 @@
     const s = sim();
     if (s && !reduce) { s.cam.zoom = 1; s.cam.cx = s.size[0] / 2; s.cam.cy = s.size[1] / 2; }
     const card = $('#era');
-    card.querySelector('small').textContent = 'Chapter ' + i + ' · ' + ch.era;
+    card.querySelector('small').textContent = 'Chapter ' + ACT[ch.key] + ' · ' + ch.era;
     card.querySelector('h2').textContent = ch.title;
     card.querySelector('p').textContent = ch.live ? (ch.lenses || []).join(' › ') : 'Not built yet';
     card.classList.remove('show'); void card.offsetWidth; if (!reduce) card.classList.add('show');
@@ -244,7 +246,7 @@
   // ---------- Side panel ----------
   function renderSide() {
     const ch = CHAPTERS[state.chapter], s = sim();
-    $('#c-era').textContent = 'Chapter ' + state.chapter + ' · ' + ch.era;
+    $('#c-era').textContent = 'Chapter ' + ACT[ch.key] + ' · ' + ch.era;
     $('#c-title').textContent = ch.title;
     $('#c-text').textContent = ch.text;
     $('#c-lab').hidden = !ch.lab;

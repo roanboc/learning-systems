@@ -1,6 +1,6 @@
 # Early Earth
 
-Chapter 0 of the timeline of life: a young coast before life. Open `index.html` in a browser. No build step.
+Chapter 1 of the timeline of life: a young coast before life. Open `index.html` in a browser. No build step.
 
 ## The Earth (`lib/earth.js`)
 A shared world meant to host every later chapter (cells, plants, animals). Seen from above, as a grid of cells:

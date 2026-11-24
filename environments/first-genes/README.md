@@ -1,6 +1,6 @@
 # First genes: a protocell that makes itself
 
-Chapter 1 of the timeline of life, between Early Earth and First cells, as its own lab page. Open `index.html` in a browser. No build step. The plan and decisions are in [proposal.md](proposal.md).
+Chapter 2 of the timeline of life, between Early Earth and First cells, as its own lab page. Open `index.html` in a browser. No build step. The plan and decisions are in [proposal.md](proposal.md).
 
 It reuses the Early Earth page (`../early-earth/app.js` and `draw.js`) with `data-stage="genes"`, so the engine is `lib/chemistry.js` with its opt-in `genes` setting switched on. Gaia builds it as the `genes` era (`Gaia.make({ era: 'genes' })`), and the World Viewer has it as chapter 1. With `genes` off, every world draws the same random numbers and gives the same results as before (fixed-seed check below).
 

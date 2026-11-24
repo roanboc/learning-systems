@@ -3,243 +3,138 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+  // Old links to the Deep Dive (#list, #colonies, ...) now go to its own page.
+  if (location.hash.length > 1 && location.hash !== '#chapters') location.replace('dive/index.html' + location.search + location.hash);
+</script>
 <script src="lib/i18n.js"></script>
+<script src="lib/site.js"></script>
 <title>Learning Systems</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<meta name="description" content="The story of systems and life in nine chapters. Watch each one, read how we know, then play with a real simulation.">
 <style>
-/* Layout: one screen you dive into. The glowing planet floats in a round lens;
-   scroll, swipe or use the depth gauge on the right to sink through the
-   levels of life, from a whole ecosystem down to molecules, each one a live
-   simulation opening in the same lens. The log is the list view. One dark
-   look by design: the deep sea. */
-:root {
-  --abyss: #020b10;
-  --abyss-2: #06151d;
-  --panel: rgba(4, 18, 26, 0.72);
-  --ink: #e6fbff;
-  --muted: #8fb3bd;
-  --faint: #4f707a;
-  --line: rgba(120, 230, 240, 0.18);
-  --glow: #4ff0e0;
-  --k-chemistry: #ffb547;
-  --k-cells: #b4ff5a;
-  --k-bodies: #ff6b9a;
-  --k-nervous: #c08bff;
-  --k-ecosystems: #4ff0e0;
-  --sans: "Space Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
-  color-scheme: dark;
-}
+/* Home: the story first. A hero, Earth's day with the nine acts on it, the chapters, other ways in. */
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html, body { margin: 0; height: 100%; }
-body { background: var(--abyss); color: var(--ink); font: 15px/1.5 var(--sans); overflow: hidden; }
-body.listing { overflow: auto; }
-a { color: var(--glow); }
-button { font: inherit; color: inherit; }
-:focus-visible { outline: 2px solid var(--glow); outline-offset: 2px; }
-.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-
-/* ---------- The dive ---------- */
-.dive { position: fixed; inset: 0; overflow: hidden; background: radial-gradient(ellipse at 50% 40%, #082430 0%, var(--abyss) 70%); touch-action: none; }
-.dive canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.sim { position: absolute; left: 0; top: 0; width: 0; height: 0; opacity: 0; }
-.sim canvas { background: #0b100e; will-change: transform; }
-.sim::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle, transparent 52%, rgba(2, 11, 16, 0.7) 71%); }
-.sim .status { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: 86%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font: 13px var(--mono); color: var(--ink); background: rgba(2, 11, 16, 0.6); border: 1px solid var(--line); border-radius: 999px; padding: 4px 14px; z-index: 1; }
-#globe, #glow { pointer-events: none; }
-#globe { z-index: 1; }
-#glow { z-index: 3; mix-blend-mode: screen; }
-#hit { z-index: 4; touch-action: none; cursor: grab; }
-#hit.over { cursor: pointer; }
-#hit.is-dragging { cursor: grabbing; }
-
-/* ---------- HUD ---------- */
-.bar { position: fixed; z-index: 10; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap; padding: 14px max(20px, env(safe-area-inset-right, 0px)) 0 max(20px, env(safe-area-inset-left, 0px)); pointer-events: none; }
-.bar > * { pointer-events: auto; }
-body.listing .bar { position: sticky; background: linear-gradient(var(--abyss) 70%, transparent); padding-bottom: 14px; }
-.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); margin-right: auto; }
-.brand i { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--glow); box-shadow: 0 0 14px var(--glow), inset 0 0 8px var(--glow); }
-.brand b { font-weight: 700; font-size: 18px; letter-spacing: 0.02em; }
-.toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: rgba(2, 11, 16, 0.5); backdrop-filter: blur(8px); }
-.toggle button { border: 0; background: transparent; border-radius: 999px; padding: 5px 14px; cursor: pointer; color: var(--muted); font-weight: 600; font-size: 13.5px; }
-.toggle button[aria-selected="true"] { background: var(--glow); color: var(--abyss); }
-.ways { display: flex; gap: 6px; }
-.ways a { text-decoration: none; color: var(--ink); font-size: 13.5px; font-weight: 500; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; background: rgba(2, 11, 16, 0.5); backdrop-filter: blur(8px); }
-.ways a:hover { border-color: var(--glow); }
-.ways small { font: 11px var(--mono); color: var(--muted); }
-.bar .lang .lang-switch { --accent: var(--glow); --surface: var(--abyss); color: var(--ink); background: rgba(2, 11, 16, 0.5); backdrop-filter: blur(8px); border-color: var(--line); }
-.bar .lang .lang-switch a { padding: 6px 11px; }
-
-/* The stop: what you are looking at. */
-.stop {
-  position: fixed; z-index: 5; left: max(20px, env(safe-area-inset-left, 0px)); bottom: 22px; width: min(440px, calc(100% - 140px));
-  display: grid; gap: 10px; padding: 18px 20px; border-radius: 18px; background: var(--panel); border: 1px solid var(--line); backdrop-filter: blur(14px);
-  transition: opacity 250ms ease, transform 250ms ease;
-}
-.stop.fading { opacity: 0; transform: translateY(8px); }
-.stop .depth { font: 500 11.5px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--kc, var(--glow)); display: flex; gap: 10px; flex-wrap: wrap; }
-.stop .depth span { color: var(--muted); }
-.stop .into { color: var(--muted); font-size: 14px; margin-bottom: -6px; }
-.stop h1, .stop h2 { margin: 0; font-weight: 700; letter-spacing: -0.02em; line-height: 1.02; }
-.stop h1 { font-size: clamp(34px, 4vw, 52px); }
-.stop h1 em { font-style: normal; color: var(--glow); text-shadow: 0 0 24px rgba(79, 240, 224, 0.6); }
-.stop h2 { font-size: clamp(30px, 3.4vw, 44px); }
-.stop .facts { display: flex; flex-wrap: wrap; gap: 4px 14px; font: 12.5px var(--mono); color: var(--muted); }
-.stop .facts b { color: var(--ink); font-weight: 500; }
-.stop p { margin: 0; color: #c4dde3; }
-.stop .ev { font-size: 13px; color: var(--muted); border-left: 2px solid var(--kc, var(--glow)); padding-left: 10px; }
-.stop .acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
-.stop .acts a, .stop .acts button { text-decoration: none; border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; font-weight: 600; font-size: 13.5px; color: var(--ink); background: rgba(255, 255, 255, 0.03); cursor: pointer; }
-.stop .acts .main { background: var(--kc, var(--glow)); color: var(--abyss); border-color: transparent; box-shadow: 0 0 22px color-mix(in srgb, var(--kc, var(--glow)) 45%, transparent); }
-.stop .acts a:hover, .stop .acts button:hover { border-color: var(--kc, var(--glow)); }
-.stop .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.stop .chips .lab { font: 500 11px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-right: 2px; }
-.stop .steps { display: flex; flex-wrap: wrap; gap: 8px; border-top: 1px solid var(--line); padding-top: 10px; }
-.stop .steps button { border: 1px solid var(--line); border-radius: 999px; background: transparent; padding: 5px 12px; font-size: 13px; color: var(--muted); cursor: pointer; }
-.stop .steps button:hover { color: var(--ink); border-color: var(--glow); }
-.chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px 4px 8px; background: rgba(255, 255, 255, 0.02); cursor: pointer; font-size: 12.5px; }
-.chip i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); box-shadow: 0 0 8px var(--c); }
-.chip[aria-pressed="true"] { border-color: var(--c); background: color-mix(in srgb, var(--c) 18%, transparent); }
-/* The key to the plates layer. */
-.stop .key { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; font-size: 12.5px; color: #c4dde3; border-top: 1px solid var(--line); padding-top: 9px; }
-.stop .key-title { flex-basis: 100%; font: 500 11px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); }
-.stop .key-title small { font: inherit; letter-spacing: 0; text-transform: none; color: var(--faint); margin-left: 6px; }
-.stop .key-item { display: inline-flex; align-items: center; gap: 6px; }
-.stop .key-item svg { width: 18px; height: 8px; flex: none; overflow: visible; }
-.stop .key-hint { flex-basis: 100%; font-size: 12px; color: var(--muted); }
-
-/* Depth gauge: the levels of life on a log scale of size. */
-.gauge { position: fixed; z-index: 6; right: max(18px, env(safe-area-inset-right, 0px)); top: 76px; bottom: 26px; width: 200px; pointer-events: none; }
-.gauge .rail { position: absolute; right: 18px; top: 0; bottom: 0; width: 2px; border-radius: 2px; pointer-events: auto; cursor: pointer; opacity: 0.8; }
-.gauge .rail::before { content: ""; position: absolute; left: -12px; right: -12px; top: 0; bottom: 0; }
-.gauge .lvl { position: absolute; right: 8px; transform: translateY(-50%); display: flex; align-items: center; gap: 10px; border: 0; background: transparent; padding: 2px 0; cursor: pointer; pointer-events: auto; color: var(--muted); font-size: 13px; font-weight: 500; text-align: right; }
-.gauge .lvl i { order: 2; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--c); background: var(--abyss); box-shadow: 0 0 10px var(--c); }
-.gauge .lvl:hover, .gauge .lvl[aria-current="true"] { color: var(--ink); }
-.gauge .lvl[aria-current="true"] i { background: var(--c); }
-.gauge .lvl small { display: block; font: 10.5px var(--mono); color: var(--faint); }
-.gauge .here { position: absolute; right: 2px; width: 34px; height: 2px; transform: translateY(-1px); background: var(--ink); box-shadow: 0 0 12px var(--glow); }
-.gauge .here { pointer-events: none; }
-.gauge .here b { display: none; position: absolute; right: 40px; top: -9px; font: 500 11px var(--mono); color: var(--ink); white-space: nowrap; background: rgba(2, 11, 16, 0.7); padding: 1px 6px; border-radius: 4px; }
-
-/* History strip at the surface: drag to age the planet. */
-.history { position: fixed; z-index: 5; left: calc(min(440px, 100% - 140px) + 44px); right: 250px; bottom: 26px; display: grid; gap: 6px; transition: opacity 300ms ease; }
-body.deep .history, body.deep .cue { opacity: 0; pointer-events: none; }
-.history .label button { border: 0; background: none; padding: 0 0 0 8px; font: inherit; letter-spacing: inherit; text-transform: inherit; color: var(--glow); cursor: pointer; }
-.history .label { font: 500 11px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; gap: 10px; }
-.history .label b { color: var(--ink); font-weight: 500; }
-.strip { position: relative; height: 34px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); cursor: ew-resize; touch-action: none; }
-.strip .eon { position: absolute; top: 0; bottom: 0; background: color-mix(in srgb, var(--c) 30%, transparent); border-left: 1px solid rgba(255, 255, 255, 0.12); }
-.strip .eon { overflow: hidden; }
-.strip .eon span { position: absolute; left: 5px; top: 3px; font: 9.5px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: rgba(230, 251, 255, 0.75); white-space: nowrap; }
-.strip .sys { position: absolute; top: 23px; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: var(--c); box-shadow: 0 0 8px var(--c); }
-.strip .knob { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--ink); box-shadow: 0 0 10px var(--glow); }
-
-.cue { position: fixed; z-index: 4; left: 50%; top: 80%; transform: translateX(-50%); font: 12px var(--mono); color: var(--muted); display: grid; justify-items: center; gap: 3px; pointer-events: none; animation: bob 2.4s ease-in-out infinite; transition: opacity 300ms ease; }
-.cue::after { content: ""; width: 1px; height: 16px; background: linear-gradient(var(--glow), transparent); }
-@keyframes bob { 0%, 100% { transform: translate(-50%, 0); opacity: 0.85; } 50% { transform: translate(-50%, 6px); opacity: 0.5; } }
-.label-tip { position: fixed; z-index: 7; pointer-events: none; transform: translate(-50%, calc(-100% - 10px)); text-align: center; width: max-content; max-width: min(320px, calc(100vw - 20px)); background: rgba(2, 11, 16, 0.85); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; font-size: 13px; line-height: 1.35; }
-.label-tip small { display: block; font: 11px/1.45 var(--mono); color: var(--muted); margin-top: 1px; }
-
-/* ---------- Log (list view) ---------- */
-.log { position: relative; padding: 8px max(20px, env(safe-area-inset-right, 0px)) 80px max(20px, env(safe-area-inset-left, 0px)); }
-.log-inner { max-width: 980px; margin: 0 auto; display: grid; gap: 36px; }
-.log h1 { margin: 10px 0 0; font: 700 clamp(34px, 5vw, 54px)/1 var(--sans); letter-spacing: -0.03em; }
-.log .lede { margin: 10px 0 0; color: var(--muted); max-width: 60ch; font-size: 16px; }
-.principles { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 14px 0 0; list-style: none; }
-.principles li { font: 12px var(--mono); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; color: var(--muted); }
-.log h2 { margin: 0 0 12px; font: 600 13px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--glow); }
-.log h2 small { color: var(--muted); font-weight: 400; margin-left: 8px; }
-.ways-list b { font-weight: 600; }
-.ways-list { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); }
-.ways-list a { display: grid; gap: 3px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; text-decoration: none; color: var(--ink); background: rgba(255, 255, 255, 0.02); }
-.ways-list a:hover { border-color: var(--glow); }
-.ways-list span { color: var(--muted); font-size: 14px; }
-.levels { list-style: none; margin: 0; padding: 0 0 0 28px; position: relative; display: grid; gap: 4px; }
-.levels::before { content: ""; position: absolute; left: 7px; top: 8px; bottom: 8px; width: 2px; background: linear-gradient(var(--glow), rgba(79, 240, 224, 0.1)); }
-.levels li { position: relative; display: grid; gap: 4px; padding: 12px 0 14px; border-bottom: 1px solid var(--line); }
-.levels li::before { content: ""; position: absolute; left: -26px; top: 18px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--c); background: var(--abyss); box-shadow: 0 0 10px var(--c); }
-.levels .head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
-.levels .head a { font-size: 21px; font-weight: 700; color: var(--ink); text-decoration: none; letter-spacing: -0.01em; }
-.levels .head a:hover { color: var(--c); }
-.levels .head span { font: 12px var(--mono); color: var(--muted); }
-.levels p { margin: 0; color: #c4dde3; }
-.levels .more { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 14px; }
-.levels .more button { border: 0; background: none; padding: 0; font: inherit; color: var(--c); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
-.chron { list-style: none; margin: 0; padding: 0; display: grid; }
-.chron li { display: grid; grid-template-columns: 96px 1fr; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
-.chron time { font: 12px var(--mono); color: var(--glow); padding-top: 3px; }
-.chron b { font-weight: 600; }
-.chron span { color: var(--muted); font-size: 14px; }
-.foot { color: var(--faint); font-size: 13px; }
-
-@media (max-width: 1180px) and (min-width: 861px) {
-  .stop { width: 380px; }
-  .gauge { width: 170px; }
-  .history { left: 444px; right: 210px; }
-}
-@media (max-width: 860px) {
-  .ways { display: none; }
-  .stop { left: 10px; right: 10px; width: auto; bottom: 10px; padding: 14px 16px; gap: 8px; max-height: 52%; overflow: auto; }
-  .stop h1 { font-size: 30px; }
-  .stop h2 { font-size: 28px; }
-  .stop p { font-size: 14px; }
-  .gauge { right: 4px; width: 40px; top: 64px; bottom: auto; height: 40%; }
-  .gauge .lvl span { display: none; }
-  .gauge .here b { display: block; right: 34px; }
-  .stop .ev { display: none; }
-  .stop .key { gap: 3px 10px; font-size: 12px; }
-  .stop .key-hint { display: none; }
-  .stop .into { font-size: 13px; }
-  .history { left: 10px; right: 10px; bottom: auto; top: 58%; }
-  body.deep .history { display: none; }
-  .cue { display: none; }
-}
-@media (prefers-reduced-motion: reduce) { .cue { animation: none; } .stop { transition: none; } }
+html, body { margin: 0; }
+body { font: 16px/1.55 var(--sans, system-ui, sans-serif); padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px)); padding-block: 16px 48px; }
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 30px; }
+a { color: inherit; }
+p { margin: 0; }
+h1, h2, h3 { margin: 0; line-height: 1.12; }
+.kicker { font: 600 13px var(--display); letter-spacing: .08em; text-transform: uppercase; color: var(--soft); }
+.lead { font-size: 18px; color: var(--soft); max-width: 60ch; }
+.hero { display: grid; gap: 28px; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); align-items: center; }
+.hero h1 { font-size: clamp(38px, 5.4vw, 66px); margin: 8px 0 14px; }
+.hero .go { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; font: 600 16px var(--display); padding: 11px 18px; border-radius: 12px; text-decoration: none; border: 1.5px solid var(--ink); background: var(--sheet); color: var(--ink); }
+.btn.solid { background: var(--ink); color: var(--paper); }
+.btn:hover { transform: translateY(-1px); }
+.frame { border-radius: 16px; overflow: hidden; border: 1.5px solid rgba(44, 39, 35, .18); background: var(--sheet); }
+.frame img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
+.day-bar { position: relative; height: 56px; border-radius: 12px; border: 1.5px solid var(--ink);
+  background: linear-gradient(90deg, #f6e3b0 0 9%, #e3ecd0 9% 87%, #f4d6cf 87%); }
+.day-bar .tick { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(44, 39, 35, .16); }
+.day-bar a { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+  font: 700 14px var(--display); text-decoration: none; border: 1.5px solid var(--ink); color: var(--ink); }
+.day-bar a:hover, .day-bar a:focus-visible { transform: translate(-50%, -50%) scale(1.12); }
+.day-legend { display: flex; justify-content: space-between; gap: 10px; font: 500 13px var(--mono, monospace); color: var(--soft); margin-top: 6px; }
+.note { font-size: 15px; color: var(--soft); max-width: 72ch; margin-top: 8px; }
+.head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.head h2 { font-size: 30px; }
+.head p { color: var(--soft); }
+.cards { display: grid; gap: 18px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.card { display: grid; grid-template-rows: auto 1fr; border-radius: 16px; overflow: hidden; background: var(--sheet); border: 1px solid var(--line); text-decoration: none; transition: transform .15s, box-shadow .15s; }
+.card:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(44, 39, 35, .12); }
+.card img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
+.card .body { padding: 12px 14px 14px; display: grid; gap: 7px; align-content: start; }
+.card .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.card h3 { font-size: 20px; }
+.card .line { font-size: 14.5px; color: var(--soft); }
+.card .play { font-size: 14px; color: var(--soft); }
+.card .play b { color: var(--ink); font-weight: 600; }
+.ways { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+.way { display: grid; grid-template-columns: 64px 1fr; gap: 14px; align-items: center; padding: 14px; border-radius: 14px; background: var(--sheet); border: 1px solid var(--line); text-decoration: none; }
+.way img { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; }
+.way b { font: 600 17px var(--display); display: block; }
+.way span { font-size: 14px; color: var(--soft); }
+.foot { font-size: 14px; color: var(--soft); max-width: 72ch; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 820px) { .hero { grid-template-columns: minmax(0, 1fr); } }
+@media (prefers-reduced-motion: reduce) { .card, .btn, .day-bar a { transition: none; transform: none !important; } }
 </style>
 </head>
 <body>
-<header class="bar">
-  <a class="brand" href="index.html"><i></i><b>Learning Systems</b></a>
-  <div class="toggle" role="tablist" aria-label="View">
-    <button role="tab" id="tab-dive" aria-selected="true" aria-controls="dive">Dive</button>
-    <button role="tab" id="tab-log" aria-selected="false" aria-controls="log">List</button>
-  </div>
-  <nav class="ways" aria-label="Ways in">
-    <a href="films/journey/index.html">Watch the film</a>
-    <a href="world/index.html#story">Watch the story</a>
-    <a href="labs/index.html">Guided labs <small id="labs-done"></small></a>
-  </nav>
-  <span class="lang" data-lang-switch></span>
-</header>
+<div class="wrap">
+  <header class="hero">
+    <div>
+      <p class="kicker">Learning Systems</p>
+      <h1>The story of systems and life</h1>
+      <p class="lead">Nine chapters, from a young planet with no life to a living world. Watch each one, read how we know, then play with a real simulation where you can change the rules.</p>
+      <div class="go"><a class="btn solid" href="films/index.html">▶ Watch film 1 · 6 min</a><a class="btn" href="environments/early-earth/index.html">Start at chapter 1</a></div>
+    </div>
+    <div class="frame"><img id="hero-img" src="films/story/img/act-0-1-one-day.jpg" alt="The young Earth inside a ring marked like a clock: all of Earth’s history as one day." width="960" height="540"></div>
+  </header>
 
-<main class="dive" id="dive" role="tabpanel" aria-labelledby="tab-dive">
-  <div class="sim" id="sim-a"><canvas aria-hidden="true"></canvas><span class="status" hidden></span></div>
-  <div class="sim" id="sim-b"><canvas aria-hidden="true"></canvas><span class="status" hidden></span></div>
-  <canvas id="globe" aria-hidden="true"></canvas>
-  <canvas id="glow" aria-hidden="true"></canvas>
-  <canvas id="hit" tabindex="0" aria-label="The dive. Scroll, swipe or use the arrow keys to go deeper or back up. On the planet, drag to turn it and click a light to dive straight to that system."></canvas>
-  <div class="cue" id="cue">Scroll to dive</div>
-  <section class="stop" id="stop" aria-live="polite"></section>
-  <div class="history" id="history" aria-label="The age of the planet">
-    <div class="label"><span>Age of the planet<button id="today" type="button" hidden>Back to today</button></span><b id="age">Today</b></div>
-    <div class="strip" id="strip"></div>
-  </div>
-  <nav class="gauge" id="gauge" aria-label="Depth"></nav>
-  <div class="label-tip" id="tip" hidden></div>
-</main>
+  <section aria-labelledby="day-h">
+    <h2 id="day-h" class="kicker" style="margin-bottom:10px">Earth’s history as one day</h2>
+    <div class="day-bar" id="day"></div>
+    <div class="day-legend"><span>00:00 Earth forms</span><span>12:00</span><span>24:00 today</span></div>
+    <p class="note">Life spent most of the day as chemistry and single cells. Bodies, nerves and hunters all arrive after 20:58. Each number is a chapter, where the film puts it on its clock.</p>
+  </section>
 
-<main class="log" id="log" role="tabpanel" aria-labelledby="tab-log" hidden></main>
+  <section id="chapters" aria-labelledby="ch-h">
+    <div class="head"><h2 id="ch-h">The chapters</h2><p>Each one: watch, play, read, try</p></div>
+    <div class="cards" id="cards"></div>
+  </section>
 
+  <section aria-labelledby="ways-h">
+    <h2 id="ways-h" style="font-size:26px;margin-bottom:14px">Other ways in</h2>
+    <div class="ways">
+      <a class="way" href="films/index.html"><img src="films/story/img/act-0-0-title.jpg" alt=""><div><b>Films</b><span>Film 1 in nine acts, and the 4-minute journey of life.</span></div></a>
+      <a class="way" href="dive/index.html"><img src="films/story/img/act-8-1-one-world.jpg" alt=""><div><b>Dive into the planet</b><span>Sink from a whole ecosystem down to molecules.</span></div></a>
+      <a class="way" href="labs/index.html"><img src="films/story/img/act-4-2-clumps-of-eight.jpg" alt=""><div><b>Guided labs</b><span>Change one thing and follow the effect.</span></div></a>
+      <a class="way" href="world/index.html"><img src="films/story/img/act-6-1-a-net-of-nerves.jpg" alt=""><div><b>World Viewer</b><span>Every chapter on one stage.</span></div></a>
+    </div>
+  </section>
+
+  <p class="foot">Small simulated worlds where living systems organise themselves from local rules: no global controller, grounded in biology. Film 1 shows what we think happened and how we know; the simulations let you test it.</p>
+</div>
+
+<script src="lib/story.js"></script>
 <script src="lib/lab-catalogue.js"></script>
-<script src="lib/system-catalogue.js"></script>
-<script src="lib/plates.js"></script>
-<script src="lib/planet.js"></script>
-<script src="lib/globe.js"></script>
-<script src="lib/creature-draw.js"></script>
-<script src="lib/previews.js"></script>
-<script src="home.js"></script>
+<script>
+(function () {
+  'use strict';
+  const S = window.Story;
+  const es = window.I18N && I18N.lang === 'es';
+  const img = (k) => S.IMG + (es ? 'es/' : '') + k + '.jpg';
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const target = (a) => (a.n === 0 ? 'films/index.html#act-0' : a.n === 8 ? 'dive/index.html' : a.sims[0].path);
+  document.getElementById('hero-img').src = img('act-0-1-one-day');
+
+  function draw() {
+    const N = window.SiteNav;
+    // Earth's day: each act where its clock puts it.
+    const ticks = Array.from({ length: 23 }, (_, i) => `<span class="tick" style="left:${((i + 1) / 24 * 100).toFixed(2)}%"></span>`).join('');
+    const pins = S.ACTS.map((a) => {
+      const [h, m] = a.clock.split(':').map(Number);
+      let x = (h + m / 60) / 24 * 100;
+      x = Math.min(98.6, Math.max(1.6, x));
+      // The evening acts (5, 6, 7) are minutes apart: spread them so each stays a target.
+      if (a.n === 5) x = 85.4; if (a.n === 6) x = 89.8; if (a.n === 7) x = 94.2;
+      const bg = a.level == null ? 'var(--sheet)' : S.LEVELS[a.level].colour;
+      return `<a href="${esc(target(a))}" style="left:${x}%;background:${bg}" title="${a.clock} · Chapter ${a.n}: ${esc(a.title)}" aria-label="Chapter ${a.n}: ${esc(a.title)}, ${a.clock}">${a.n}</a>`;
+    }).join('');
+    document.getElementById('day').innerHTML = ticks + pins;
+    document.getElementById('cards').innerHTML = S.ACTS.map((a) => `<a class="card" href="${esc(target(a))}">
+      <img src="${img(a.key)}" alt="" loading="lazy" width="960" height="540">
+      <div class="body"><div class="row"><span class="ls-num">${a.n}</span>${N.clock(a.clock)}${N.levelTag(a.level)}</div>
+        <h3>${esc(a.title)}</h3><p class="line">${esc(a.line)}</p>
+        <p class="play">${a.n === 0 ? 'Watch' : 'Play'} <b>${a.n === 0 ? 'act 0' : a.sims.map((s) => esc(s.name)).join(', ')}</b></p></div></a>`).join('');
+  }
+  if (window.SiteNav) draw(); else window.SiteNavReady = draw;
+})();
+</script>
+<script src="lib/nav.js"></script>
 </body>
 </html>
