@@ -1,0 +1,80 @@
+/* The site's look: film 1's light field notebook (cream paper, ink, flat colour,
+   one colour per level). Loaded by lib/site.js on every page. The pages keep
+   their own CSS; this file repaints their colour tokens and adds the site bar
+   (lib/nav.js). Selectors start with html or body so they win over a page's
+   own :root and element rules, whatever order they load in. */
+html:root {
+  --paper: #f5eedc; --sheet: #fbf7ea; --ink-film: #2c2723; --soft: #6e6458; --faint: #b3a892;
+  --chem: #f3ae3d; --cell: #3597a2; --body-c: #e9634f; --nerve: #8b72d6; --eco: #4fae63;
+  --display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  /* the page tokens every product uses */
+  --bg: #f5eedc; --surface: #fbf7ea; --ink: #2c2723; --muted: #6e6458; --line: #e2d6ba;
+  --accent: #22728a; --danger: #c4493b;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+html body { background: var(--paper); color: var(--ink); }
+body h1, body h2, body h3 { font-family: var(--display); letter-spacing: -0.005em; text-wrap: balance; }
+body h1 { font-weight: 700; }
+body .eyebrow { font-family: var(--display); font-weight: 600; letter-spacing: .08em; }
+body button, body select { border-radius: 10px; }
+body .panel { border-radius: 14px; }
+
+/* ---------- site bar ---------- */
+.ls-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; justify-self: stretch; font-family: var(--display); }
+.ls-bar a { text-decoration: none; color: var(--ink); }
+.ls-logo { display: inline-flex; align-items: center; gap: 9px; font-weight: 700; font-size: 17px; }
+.ls-logo i { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--ink);
+  background: conic-gradient(var(--chem) 0 20%, var(--cell) 0 40%, var(--body-c) 0 60%, var(--nerve) 0 80%, var(--eco) 0);
+  box-shadow: inset 0 0 0 3px var(--paper); }
+.ls-menu { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 4px; flex: 1 1 auto; }
+.ls-menu > a, .ls-drop > button { font: 500 15px var(--display); color: var(--ink); padding: 5px 11px; border-radius: 10px; border: 0; background: none; cursor: pointer; }
+.ls-menu > a:hover, .ls-drop > button:hover, .ls-menu > a[aria-current], .ls-drop > button[aria-expanded="true"] { background: var(--sheet); box-shadow: inset 0 0 0 1px var(--line); }
+.ls-menu small { color: var(--soft); font-weight: 400; }
+.ls-drop { position: relative; }
+.ls-panel { position: absolute; z-index: 50; top: calc(100% + 6px); left: 0; width: min(520px, calc(100vw - 32px)); max-height: min(75vh, 640px); overflow-y: auto;
+  background: var(--sheet); border: 1.5px solid var(--ink); border-radius: 14px; padding: 8px; box-shadow: 0 12px 30px rgba(44, 39, 35, .18); display: grid; gap: 2px; }
+.ls-panel[hidden] { display: none; }
+.ls-panel a { display: grid; grid-template-columns: 32px 1fr auto; gap: 10px; align-items: center; padding: 7px 8px; border-radius: 9px; }
+.ls-panel a:hover, .ls-panel a:focus-visible { background: var(--paper); }
+.ls-panel b { font-weight: 600; font-size: 15px; }
+.ls-panel small { display: block; color: var(--soft); font: 13px var(--sans); }
+.ls-panel a[aria-current] { box-shadow: inset 0 0 0 1.5px var(--ink); }
+.ls-num { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font: 700 14px var(--display); border: 1.5px solid var(--ink); background: var(--paper); }
+.ls-tag { display: inline-flex; align-items: center; gap: 6px; font: 500 12.5px var(--display); padding: 2px 9px; border-radius: 8px; background: var(--sheet); border: 1px solid var(--line); white-space: nowrap; color: var(--ink); }
+.ls-tag i { width: 9px; height: 9px; border-radius: 50%; }
+.ls-bar [data-lang-switch], .ls-bar .lang-switch { margin-left: auto; }
+.ls-bar a:focus-visible, .ls-bar button:focus-visible, .ls-chapter a:focus-visible, .ls-pager a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- the film's furniture: five level dots and the day clock ---------- */
+.ls-dots { display: inline-flex; gap: 5px; align-items: center; padding: 5px 9px; background: var(--sheet); border-radius: 9px; border: 1px solid var(--line); }
+.ls-dots i { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--faint); }
+.ls-dots i.on { border-color: transparent; }
+.ls-dots i.here { width: 14px; height: 14px; }
+.ls-clock { display: inline-flex; gap: 7px; align-items: center; font: 600 16px var(--display); font-variant-numeric: tabular-nums; padding: 3px 10px; background: var(--sheet); border-radius: 9px; border: 1px solid var(--line); color: var(--ink); }
+.ls-clock svg { width: 18px; height: 18px; }
+
+/* ---------- chapter strip (top of a chapter page) and pager (foot) ---------- */
+.ls-chapter { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 14px; border-radius: 14px;
+  background: linear-gradient(120deg, var(--w1, #ece4f3), var(--w2, #f4e8c8)); font-family: var(--display); }
+.ls-chapter .ls-step { font-weight: 600; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+.ls-chapter .sp { flex: 1; }
+.ls-chapter a { color: var(--ink); text-decoration: none; font-weight: 500; font-size: 14px; padding: 4px 11px; border-radius: 999px; background: var(--sheet); border: 1.5px solid var(--ink); white-space: nowrap; }
+.ls-chapter a.watch { background: var(--ink); color: var(--paper); }
+.ls-chapter .sibs { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.ls-chapter .sibs a { border-width: 1px; border-color: var(--line); }
+.ls-chapter .sibs a[aria-current] { border: 1.5px solid var(--ink); font-weight: 600; }
+.ls-pager { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; font-family: var(--display); }
+.ls-pager a { display: grid; gap: 2px; padding: 12px 16px; border-radius: 14px; border: 1.5px solid var(--ink); background: var(--sheet); color: var(--ink); text-decoration: none; }
+.ls-pager a.next { text-align: right; grid-column: 2; }
+.ls-pager small { color: var(--soft); font-size: 13px; }
+.ls-pager b { font-size: 17px; font-weight: 600; }
+@media (max-width: 640px) {
+  .ls-pager { grid-template-columns: 1fr; }
+  .ls-pager a.next { grid-column: 1; text-align: left; }
+}
+
+/* start-here prompt (lib/nav.js) in the paper look */
+body .start-here { border-radius: 14px; border: 1.5px solid var(--ink); background: var(--sheet); font-family: var(--sans); }
+body .start-here a.btn { border-radius: 10px; background: var(--ink); color: var(--paper); font-family: var(--display); }
+body .start-here.done a.btn { background: transparent; color: var(--ink); border: 1.5px solid var(--ink); }

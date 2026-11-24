@@ -12,6 +12,7 @@ Learning Systems is one world, Gaia, seen at different levels of complexity and 
 6. **Engines have no DOM.** They run headless in Node, so results can be checked with fixed seeds.
 7. **Two languages.** Every visible English text gets its Spanish line in `lib/i18n/es/`.
 8. **Plain JS and canvas, no build step.** Code shared between products lives in `lib/`.
+   A page loads `lib/i18n.js` then `lib/site.js` in its `<head>` (the light field-notebook look of film 1) and `lib/nav.js` at the end of `<body>` (the site bar). Its chapter is the act of film 1 it belongs to (`lib/story.js`).
 9. **Rodrigo confirms before code.** A proposal comes first (stage 5); settings changes are proposed, not made.
 
 ## Stages
@@ -43,7 +44,7 @@ Where it goes:
 
 | What you add | Where the time goes |
 |---|---|
-| A product page | An entry in `SYSTEMS` (`lib/system-catalogue.js`) with `t`, `when`, `place`, `evidence`; a stop in `LADDER` (`home.js`); its chapter in `PAGES` (`lib/nav.js`) |
+| A product page | An entry in `SYSTEMS` (`lib/system-catalogue.js`) with `t`, `when`, `place`, `evidence`; a stop in `LADDER` (`dive/home.js`); its page in `PAGES` (`lib/nav.js`) with its `act`, and its name in that act's `sims` (`lib/story.js`) |
 | A World Viewer chapter | A chapter in `world/viewer.js` with its `era`, in time order; a Gaia era in `lib/gaia.js` if it lives in the shared world |
 | A preset or lab world | Its era in the preset's description and in its lab text (`labs.js`), and the matching chapter |
 
