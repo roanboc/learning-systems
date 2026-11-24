@@ -98,6 +98,29 @@
     },
   };
   const STAGE = document.body.dataset.stage || 'cells';
+  // A page can opt in to the film's paint (<body data-paint="film">); the reader
+  // can switch back to the classic colours, and the choice is remembered.
+  const FILM = document.body.dataset.paint === 'film' && !!window.FilmPaint;
+  const PAINT_KEY = 'ls-paint';
+  let classic = false;
+  try { classic = localStorage.getItem(PAINT_KEY) === 'classic'; } catch (e) { /* storage blocked: use the film paint */ }
+  const film = () => FILM && !classic;
+  function paintToggle() {
+    if (!FILM) return;
+    const label = document.createElement('label');
+    label.className = 'controls paint-toggle';
+    label.innerHTML = '<input type="checkbox" id="classic"> <span>Classic colours</span>';
+    $('#clock').before(label);
+    const box = $('#classic', label);
+    box.checked = classic;
+    const apply = () => { document.body.classList.toggle('film-paint', film()); };
+    box.onchange = () => {
+      classic = box.checked;
+      try { localStorage.setItem(PAINT_KEY, classic ? 'classic' : 'film'); } catch (e) { /* not remembered */ }
+      apply();
+    };
+    apply();
+  }
   const CFG = CONFIGS[STAGE], PRESETS = CFG.presets, METRICS = CFG.metrics;
   let metric = METRICS[0].key;
 
@@ -128,6 +151,7 @@
   function build(W) {
     W.sim = makeLife(STAGE, W.seed, PRESETS[W.preset].params);
     W.painter = new MapPainter(W.sim.chem);
+    W.film = null;
     W.cam = { cx: W.sim.earth.cols / 2, cy: W.sim.earth.rows / 2, zoom: 1 };
     W.selected = null; W.follow = false; W.journalShown = 0;
     $('.journal', W.el).innerHTML = '';
@@ -336,8 +360,15 @@
     }
     const ctx = cv.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    drawWorld(ctx, W.painter, r.width, r.height, W.cam, { layer: W.layer, mark: W.mark, background: token('--dish') });
-    drawCells(ctx, W.sim, r.width, r.height, W.cam, { selected: W.selected });
+    if (film()) {
+      // The film's paint (lib/film-paint.js): it shares the classic painter's currents and layers.
+      if (!W.film) { W.film = new FilmPaint.MapPainter(W.sim.chem); W.film.classic = W.painter; W.film.tracers = W.painter.tracers; }
+      FilmPaint.drawWorld(ctx, W.film, r.width, r.height, W.cam, { layer: W.layer, mark: W.mark, background: token('--dish') });
+      FilmPaint.drawCells(ctx, W.sim, r.width, r.height, W.cam, { selected: W.selected });
+    } else {
+      drawWorld(ctx, W.painter, r.width, r.height, W.cam, { layer: W.layer, mark: W.mark, background: token('--dish') });
+      drawCells(ctx, W.sim, r.width, r.height, W.cam, { selected: W.selected });
+    }
   }
 
   let frame = 0;
@@ -397,6 +428,7 @@
     reveal() { $('#worlds').scrollIntoView({ block: 'start', behavior: reduce ? 'auto' : 'smooth' }); },
   };
 
+  paintToggle();
   renderMetrics();
   addWorld(CFG.start, 3);
   requestAnimationFrame(loop);

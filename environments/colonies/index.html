@@ -112,9 +112,13 @@ details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
 :root[lang="es"] .journal:empty::before { content: "Aún no hay notas. Dale unos días a las colonias."; }
 .stats { grid-template-columns: repeat(4, 1fr); }
 @media (max-width: 520px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+/* The film's paint: a paper map with an ink edge, and a light HUD. */
+body.film-paint canvas.map { background: #f5eedc; border: 1.5px solid rgba(44, 39, 35, .35); border-radius: 10px; }
+body.film-paint .hud { color: var(--ink); background: rgba(251, 247, 234, .88); border: 1px solid var(--line); }
+.paint-toggle input { margin: 0; }
 </style>
 </head>
-<body data-stage="colonies">
+<body data-stage="colonies" data-paint="film">
 <div class="wrap">
   <a class="back" href="../../index.html">← Learning Systems</a>
   <header>
@@ -203,6 +207,7 @@ details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
 <script src="../../lib/life.js"></script>
 <script src="../early-earth/draw.js"></script>
 <script src="../first-cells/draw.js"></script>
+<script src="../../lib/film-paint.js"></script>
 <script src="../first-cells/app.js"></script>
 <script src="../../lib/learn.js"></script>
 <script src="labs.js"></script>
