@@ -155,10 +155,13 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
 .ex-syn li button { text-align: left; padding: 3px 8px; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ex-bar-w { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
 .ex-bar-w i { display: block; height: 100%; background: var(--accent); }
+/* Film paint (lib/film-paint.js): paper dishes, ink lines, the film's level colours. */
+body.film-paint { --dish: #f5eedc; --dish-line: rgba(44, 39, 35, 0.09); --green: #4fae63; --violet: #8b72d6; --danger: #e9634f; }
+body.film-paint canvas.dish, body.film-paint canvas.brainview, body.film-paint .ex-fig canvas { border: 1.5px solid rgba(44, 39, 35, 0.3); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } .explorer.ex-zoom { animation: none; } }
 </style>
 </head>
-<body>
+<body data-paint="film">
 <div class="wrap">
   <a class="back" href="../../index.html">← Learning Systems</a>
   <header>
@@ -212,6 +215,7 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
 <script src="../../lib/body.js"></script>
 <script src="engine.js"></script>
 <script src="../../lib/creature-draw.js"></script>
+<script src="../../lib/film-paint.js"></script>
 <script src="explorer.js"></script>
 <script src="plant-explorer.js"></script>
 <script>
@@ -307,11 +311,13 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
   ];
   const MAX_WORLDS = 4;
 
+  // Film paint (lib/film-paint.js): dish colours pass through FP; tokens come from <body>.
+  const FP = window.FilmPaint ? window.FilmPaint.c : (x) => x;
   const css = getComputedStyle(document.documentElement);
   const tok = (name) => css.getPropertyValue(name).trim();
   let colours = {};
   function readColours() {
-    const s = getComputedStyle(document.documentElement);
+    const s = getComputedStyle(document.body);
     colours = {
       ink: s.getPropertyValue('--ink').trim(), muted: s.getPropertyValue('--muted').trim(),
       line: s.getPropertyValue('--line').trim(), dish: s.getPropertyValue('--dish').trim(),
@@ -320,8 +326,10 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
       series: ['--s1', '--s2', '--s3', '--s4'].map((v) => s.getPropertyValue(v).trim()),
     };
   }
+  if (window.FilmPaint) window.FilmPaint.toggle(document.getElementById('clock'));
   readColours();
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { readColours(); drawAll(); });
+  document.addEventListener('paintchange', () => { readColours(); drawAll(); });
   new MutationObserver(() => { readColours(); drawAll(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
   const state = { running: true, speed: 10, metric: 'population', slots: [] };
@@ -486,7 +494,7 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
     let d;
     if (c.brain) { const [g, v] = biteWeights(c); d = Math.tanh((g - v) * 2); }
     else d = Math.tanh((c.g.wGreen - c.g.wViolet) / 2); // +1 green, -1 violet
-    return mix('#e8efe9', d >= 0 ? colours.green : colours.violet, Math.abs(d));
+    return mix(FP('#e8efe9'), d >= 0 ? colours.green : colours.violet, Math.abs(d));
   }
   function hexToRgb(h) {
     h = h.replace('#', '');
@@ -520,7 +528,7 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
         const x = spot.x * k + ox, y = spot.y * k + oy;
         if (x < -r || x > W + r || y < -r || y > W + r) continue;
         const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
-        grad.addColorStop(0, 'rgba(176, 132, 82, 0.28)');
+        grad.addColorStop(0, FP('rgba(176, 132, 82, 0.28)'));
         grad.addColorStop(1, 'rgba(176, 132, 82, 0)');
         ctx.fillStyle = grad;
         ctx.fillRect(x - r, y - r, r * 2, r * 2);
@@ -547,7 +555,7 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
       ctx.arc(pl.x * k, pl.y * k, living ? 1 + 2.6 * pl.size : 2.6, 0, Math.PI * 2);
       ctx.fill();
       if (pl.id !== undefined && pl.id === entry.pickedPlant) {
-        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5;
+        ctx.strokeStyle = FP('#ffffff'); ctx.lineWidth = 1.5;
         ctx.beginPath(); ctx.arc(pl.x * k, pl.y * k, 7, 0, Math.PI * 2); ctx.stroke();
       }
     }
@@ -562,7 +570,7 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
 
     if (picked) {
       const g = picked.g;
-      ctx.strokeStyle = '#ffffff';
+      ctx.strokeStyle = FP('#ffffff');
       ctx.globalAlpha = 0.5;
       ctx.beginPath();
       ctx.moveTo(picked.x * k, picked.y * k);
@@ -613,7 +621,7 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
 
     if (world.speciesList.length > 1) {
       el.species.innerHTML = world.speciesList.map((sp, i) =>
-        `<span>${CreatureDraw.icon(sp, sp.diet === 'meat' ? colours.danger : '#e8efe9')}${sp.name} <b>${h.species[i]}</b></span>`).join('');
+        `<span>${CreatureDraw.icon(sp, sp.diet === 'meat' ? colours.danger : FP('#e8efe9'))}${sp.name} <b>${h.species[i]}</b></span>`).join('');
     } else el.species.innerHTML = '';
 
     const foodIsGreen = world.foodColour === GREEN;
@@ -649,7 +657,7 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
     ctx.fillRect(0, 0, W, H);
     for (let s = 0; s < b.w.length; s++) {
       const a = b.pre[s], d = b.post[s];
-      ctx.strokeStyle = b.type[a] === 2 ? colours.danger : '#9fb8b0';
+      ctx.strokeStyle = b.type[a] === 2 ? colours.danger : FP('#9fb8b0');
       ctx.globalAlpha = Math.min(0.9, 0.15 + b.w[s] / b.p.maxWeight);
       ctx.lineWidth = 0.5 + 2.5 * b.w[s] / b.p.maxWeight;
       ctx.beginPath(); ctx.moveTo(sx(a), sy(a)); ctx.lineTo(sx(d), sy(d)); ctx.stroke();
@@ -657,14 +665,14 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
     ctx.globalAlpha = 1;
     for (let i = 0; i < b.n; i++) {
       if (b.type[i] === 9) continue;   // tissue brains: an empty slot (no neuron lives there)
-      let fill = '#6f7f78';
+      let fill = FP('#6f7f78');
       if (i < R * 2) fill = i % 2 === 0 ? colours.green : colours.violet;
       else if (i === R * 2) fill = colours.green;
       else if (i === R * 2 + 1) fill = colours.violet;
-      else if (animal(i)) fill = '#e39a8f';
-      else if (i < b.nS) fill = '#d8c690';
+      else if (animal(i)) fill = FP('#e39a8f');
+      else if (i < b.nS) fill = FP('#d8c690');
       else if (b.type[i] === 2) fill = colours.danger;
-      else if (b.type[i] === 3) fill = '#e8efe9';
+      else if (b.type[i] === 3) fill = FP('#e8efe9');
       const r = b.type[i] === 3 ? 7 : 4.5;
       ctx.globalAlpha = b.spiked[i] ? 1 : 0.55;
       ctx.fillStyle = fill;
@@ -672,13 +680,13 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
       if (b.newborn && b.newborn[i]) {
         // Newborn neuron from the stem-cell niche: a ring until it matures.
         ctx.globalAlpha = 0.9;
-        ctx.strokeStyle = '#f2d16b';
+        ctx.strokeStyle = FP('#f2d16b');
         ctx.lineWidth = 1.5;
         ctx.beginPath(); ctx.arc(sx(i), sy(i), r + 3.5, 0, Math.PI * 2); ctx.stroke();
       }
     }
     ctx.globalAlpha = 1;
-    ctx.fillStyle = '#b7c4be';
+    ctx.fillStyle = FP('#b7c4be');
     ctx.font = '12px ' + tok('--mono');
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'left';

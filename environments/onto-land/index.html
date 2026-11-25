@@ -111,9 +111,15 @@ td.num { font: 13px var(--mono); font-variant-numeric: tabular-nums; }
 .refs a { color: var(--accent); overflow-wrap: anywhere; }
 .refs b { color: var(--ink); font-weight: 500; }
 @media (max-width: 620px) { .stats { grid-template-columns: repeat(3, 1fr); } }
+/* Film paint (lib/film-paint.js): paper dish, the film's level colours. */
+body.film-paint { --dish: #f5eedc; --green: #4fae63; --violet: #8b72d6; --danger: #e9634f; }
+body.film-paint .key i[style*="#e9c27a"] { background: #f3ae3d !important; }
+body.film-paint .key i[style*="#bfe1ec"] { background: #7fc3cf !important; }
+body.film-paint .key i[style*="#e8efe9"] { background: #d9c7a4 !important; }
+body.film-paint .plan canvas { border: 1px solid rgba(44, 39, 35, 0.25); }
 </style>
 </head>
-<body>
+<body data-paint="film">
 <div class="wrap">
   <a class="back" href="../../index.html">← Learning Systems</a>
   <header>
@@ -272,6 +278,7 @@ td.num { font: 13px var(--mono); font-variant-numeric: tabular-nums; }
 <script src="../../lib/gaia.js"></script>
 <script src="../early-earth/draw.js"></script>
 <script src="../../lib/creature-draw.js"></script>
+<script src="../../lib/film-paint.js"></script>
 <script src="results.js"></script>
 <script src="app.js"></script>
 <script src="../../lib/learn.js"></script>

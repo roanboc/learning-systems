@@ -7,6 +7,8 @@
 //             and a plain-language introduction to what that kind of cell does.
 (function (root) {
   'use strict';
+  // Film paint (lib/film-paint.js): dark-dish colours become paper and ink.
+  const FP = (x) => (root.FilmPaint ? root.FilmPaint.c(x) : x);
 
   const HIST = 400; // steps of history kept for the timeline and traces
   const ANIMAL = '#e39a8f'; // cells that see or touch animals
@@ -387,13 +389,13 @@
         ctx.moveTo(0, 0);
         ctx.arc(0, 0, g.senseRange, a0, a1);
         ctx.closePath();
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = FP('#ffffff');
         ctx.globalAlpha = 0.04;
         ctx.fill();
         if (gStr > 0) { ctx.fillStyle = col.green; ctx.globalAlpha = 0.25 * gStr + 0.05; ctx.fill(); }
         if (vStr > 0) { ctx.fillStyle = col.violet; ctx.globalAlpha = 0.25 * vStr + 0.05; ctx.fill(); }
         ctx.globalAlpha = 0.25;
-        ctx.strokeStyle = '#cfe0d6';
+        ctx.strokeStyle = FP('#cfe0d6');
         ctx.lineWidth = 1 / k;
         ctx.stroke();
       }
@@ -417,19 +419,19 @@
         if (o === c) continue;
         const dx = world.delta(c.x, o.x), dy = world.delta(c.y, o.y);
         if (Math.abs(dx) > view * 1.5 || Math.abs(dy) > view * 1.5) continue;
-        CreatureDraw.draw(ctx, o, dx * k, dy * k, 7, o.meat !== c.meat ? ANIMAL : '#8a9a93');
+        CreatureDraw.draw(ctx, o, dx * k, dy * k, 7, o.meat !== c.meat ? FP(ANIMAL) : FP('#8a9a93'));
       }
       // Mouth reach and the body itself.
-      ctx.strokeStyle = '#e8efe9';
+      ctx.strokeStyle = FP('#e8efe9');
       ctx.globalAlpha = 0.6;
       ctx.setLineDash([3, 3]);
       ctx.beginPath(); ctx.arc(0, 0, world.p.mouth * k, 0, Math.PI * 2); ctx.stroke();
       ctx.setLineDash([]);
       ctx.globalAlpha = 1;
-      CreatureDraw.draw(ctx, c, 0, 0, 12, '#f4f8f5');
+      CreatureDraw.draw(ctx, c, 0, 0, 12, FP('#f4f8f5'));
       ctx.restore();
 
-      ctx.fillStyle = '#b7c4be';
+      ctx.fillStyle = FP('#b7c4be');
       ctx.font = '12px ' + this.font;
       ctx.textAlign = 'left';
       ctx.fillText(`energy ${c.energy.toFixed(0)} · sight ${g.senseRange.toFixed(0)} · field ${(g.fov * 180 / Math.PI).toFixed(0)}°`, 10, h - 10);
@@ -459,7 +461,7 @@
       const colX = [w * 0.16, w * 0.5, w * 0.84];
       const top = 36, bottom = h - 20;
 
-      ctx.fillStyle = '#b7c4be';
+      ctx.fillStyle = FP('#b7c4be');
       ctx.textAlign = 'center';
       ctx.fillText('SENSES', colX[0], 16);
       ctx.fillText('BRAIN', colX[1], 16);
@@ -488,7 +490,7 @@
 
       // Flows: sensors → brain, brain → motors, brightness = recent activity.
       for (let i = 0; i < b.nS; i++) {
-        ctx.strokeStyle = '#9fb8b0';
+        ctx.strokeStyle = FP('#9fb8b0');
         ctx.globalAlpha = 0.08 + Math.min(0.7, recentAll[i] * 3);
         ctx.lineWidth = 1;
         ctx.beginPath(); ctx.moveTo(pos[i][0] + 6, pos[i][1]); ctx.lineTo(bx - brx * 0.9, by + (pos[i][1] - by) * 0.4); ctx.stroke();
@@ -501,58 +503,58 @@
       }
       ctx.globalAlpha = 1;
 
-      ctx.fillStyle = '#1a2420';
-      ctx.strokeStyle = '#3a4a44';
+      ctx.fillStyle = FP('#1a2420');
+      ctx.strokeStyle = FP('#3a4a44');
       ctx.lineWidth = 1.5;
       ctx.beginPath(); ctx.ellipse(bx, by, brx, bry, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
       for (let i = b.nS; i < b.firstMotor; i++) {
         if (b.type[i] === EMPTY) continue;
         const x = bx + (b.x[i] - 0.5) * brx * 1.6, y = by + (b.y[i] - 0.5) * bry * 1.6;
-        ctx.fillStyle = b.type[i] === INH ? col.danger : '#a7b8b1';
+        ctx.fillStyle = b.type[i] === INH ? col.danger : FP('#a7b8b1');
         ctx.globalAlpha = b.spiked[i] ? 1 : 0.35;
         ctx.beginPath(); ctx.arc(x, y, b.spiked[i] ? 4 : 2.5, 0, Math.PI * 2); ctx.fill();
       }
       ctx.globalAlpha = 1;
-      ctx.fillStyle = '#d6e2dc';
+      ctx.fillStyle = FP('#d6e2dc');
       ctx.textAlign = 'center';
       const census = b.kind === 'tissue' ? b.census() : null;
       ctx.fillText(census
         ? `${census.neurons} live neurons · ${census.newborn} newborn · ${b.synapseCount()} synapses`
         : `${b.p.hidden} interneurons · ${b.synapseCount()} synapses`, bx, by + bry + 12 > h - 8 ? h - 8 : by + bry + 12);
-      ctx.fillStyle = '#9fb8b0';
+      ctx.fillStyle = FP('#9fb8b0');
       ctx.fillText('click to enter', bx, by);
       this.hits.push({ canvas: '.ex-pipeline', x: bx, y: by, r: Math.min(brx, bry), go: 'brain' });
 
       // Cells.
       for (let i = 0; i < b.nS; i++) {
         const kind = this.cellKind(i);
-        let fill = '#d8c690';
+        let fill = FP('#d8c690');
         if (kind === 'eye' || kind === 'mouth') fill = (i - (kind === 'mouth' ? R * 2 : 0)) % 2 === 0 ? col.green : col.violet;
-        else if (kind === 'animalEye' || kind === 'animalMouth') fill = ANIMAL;
+        else if (kind === 'animalEye' || kind === 'animalMouth') fill = FP(ANIMAL);
         this.cellDot(ctx, pos[i][0], pos[i][1], 6, fill, b.spiked[i], c.drive[i]);
         this.hits.push({ canvas: '.ex-pipeline', x: pos[i][0], y: pos[i][1], r: 7, cell: i });
       }
-      ctx.fillStyle = '#b7c4be';
+      ctx.fillStyle = FP('#b7c4be');
       ctx.textAlign = 'center';
       ctx.fillText('eye', colX[0], top - 8 + 0);
       ctx.textAlign = 'left';
       ctx.fillText('mouth', colX[0] + 20 + (b.nS > R * 2 + 4 ? 20 : 0), bodyTop + 10);
-      if (b.nS > R * 2 + 4) { ctx.textAlign = 'center'; ctx.fillStyle = ANIMAL; ctx.fillText('animals', colX[0] + 30, top - 8 + 12); ctx.fillStyle = '#b7c4be'; ctx.textAlign = 'left'; }
+      if (b.nS > R * 2 + 4) { ctx.textAlign = 'center'; ctx.fillStyle = FP(ANIMAL); ctx.fillText('animals', colX[0] + 30, top - 8 + 12); ctx.fillStyle = FP('#b7c4be'); ctx.textAlign = 'left'; }
       ctx.fillText('hunger, pain', colX[0] + 20, bodyTop + 36);
       const labels = ['turn right', 'turn left', 'eat'];
       const motorTrace = [c.motorL, c.motorR, null];
       for (let k = 0; k < 3; k++) {
         const i = b.firstMotor + k;
-        this.cellDot(ctx, pos[i][0], pos[i][1], 10, '#e8efe9', b.spiked[i], null);
+        this.cellDot(ctx, pos[i][0], pos[i][1], 10, FP('#e8efe9'), b.spiked[i], null);
         this.hits.push({ canvas: '.ex-pipeline', x: pos[i][0], y: pos[i][1], r: 11, cell: i });
-        ctx.fillStyle = '#d6e2dc';
+        ctx.fillStyle = FP('#d6e2dc');
         ctx.textAlign = 'center';
         ctx.fillText(labels[k], pos[i][0], pos[i][1] + 22);
         // Muscle bar: smoothed motor drive.
         const v = motorTrace[k] === null ? recentAll[i] * 6 : motorTrace[k] / 4;
-        ctx.fillStyle = '#2b3732';
+        ctx.fillStyle = FP('#2b3732');
         ctx.fillRect(pos[i][0] - 30, pos[i][1] + 32, 60, 5);
-        ctx.fillStyle = col.accentDark || '#6db6b8';
+        ctx.fillStyle = col.accentDark || FP('#6db6b8');
         ctx.fillRect(pos[i][0] - 30, pos[i][1] + 32, 60 * Math.min(1, v), 5);
       }
     }
@@ -570,7 +572,7 @@
 
     drawReflexPipeline(ctx, w, h, col) {
       const c = this.creature, g = c.g;
-      ctx.fillStyle = '#d6e2dc';
+      ctx.fillStyle = FP('#d6e2dc');
       ctx.textAlign = 'center';
       const lines = [
         'This creature has no brain. It runs on inherited instincts:',
@@ -589,7 +591,7 @@
     drawTimeline(sel, col, sensesOnly) {
       const cv = this.q(sel);
       const c = this.creature, b = c.brain;
-      if (!b) { const { ctx, w, h } = this.fit(cv, 60); ctx.fillStyle = col.dish; ctx.fillRect(0, 0, w, h); ctx.fillStyle = '#b7c4be'; ctx.font = '12px ' + this.font; ctx.textAlign = 'center'; ctx.fillText('Instinct creatures have no spikes to show.', w / 2, 32); return; }
+      if (!b) { const { ctx, w, h } = this.fit(cv, 60); ctx.fillStyle = col.dish; ctx.fillRect(0, 0, w, h); ctx.fillStyle = FP('#b7c4be'); ctx.font = '12px ' + this.font; ctx.textAlign = 'center'; ctx.fillText('Instinct creatures have no spikes to show.', w / 2, 32); return; }
       const R = this.rays();
       let rows = [];
       if (sensesOnly) {
@@ -621,8 +623,8 @@
       ctx.textBaseline = 'middle';
       groups.forEach((gr, k) => {
         const y0 = 8 + gr.from * rowH, y1 = 8 + (gr.to + 1) * rowH;
-        if (k % 2 === 0) { ctx.fillStyle = '#ffffff'; ctx.globalAlpha = 0.03; ctx.fillRect(labelW, y0, plotW, y1 - y0); ctx.globalAlpha = 1; }
-        ctx.fillStyle = '#b7c4be';
+        if (k % 2 === 0) { ctx.fillStyle = FP('#ffffff'); ctx.globalAlpha = 0.03; ctx.fillRect(labelW, y0, plotW, y1 - y0); ctx.globalAlpha = 1; }
+        ctx.fillStyle = FP('#b7c4be');
         ctx.textAlign = 'right';
         ctx.fillText(gr.name, labelW - 8, (y0 + y1) / 2);
       });
@@ -641,13 +643,13 @@
       rows.forEach((i, r) => {
         const y = 8 + r * rowH;
         const kind = this.cellKind(i);
-        let fill = '#cfe0d6';
+        let fill = FP('#cfe0d6');
         if (kind === 'eye') fill = i % 2 === 0 ? col.green : col.violet;
         else if (kind === 'mouth') fill = (i - R * 2) === 0 ? col.green : col.violet;
-        else if (kind === 'animalEye' || kind === 'animalMouth') fill = ANIMAL;
+        else if (kind === 'animalEye' || kind === 'animalMouth') fill = FP(ANIMAL);
         else if (kind === 'inh') fill = col.danger;
-        else if (kind === 'hunger' || kind === 'pain') fill = '#d8c690';
-        if (i === this.cell && this.level !== 'organism') { ctx.fillStyle = '#ffffff'; ctx.globalAlpha = 0.08; ctx.fillRect(labelW, y, plotW, rowH); ctx.globalAlpha = 1; }
+        else if (kind === 'hunger' || kind === 'pain') fill = FP('#d8c690');
+        if (i === this.cell && this.level !== 'organism') { ctx.fillStyle = FP('#ffffff'); ctx.globalAlpha = 0.08; ctx.fillRect(labelW, y, plotW, rowH); ctx.globalAlpha = 1; }
         ctx.fillStyle = fill;
         for (let k = 0; k < hst.len; k++) {
           if (hst.spk[this.slot(k) * n + i]) ctx.fillRect(x(k), y + 1, Math.max(1.2, plotW / HIST), rowH - 2);
@@ -658,9 +660,9 @@
       // Dopamine trace.
       if (daH) {
         const y0 = 8 + rows.length * rowH + daH / 2 + 4;
-        ctx.strokeStyle = '#3a4a44';
+        ctx.strokeStyle = FP('#3a4a44');
         ctx.beginPath(); ctx.moveTo(labelW, y0); ctx.lineTo(labelW + plotW, y0); ctx.stroke();
-        ctx.strokeStyle = '#f0d27a';
+        ctx.strokeStyle = FP('#f0d27a');
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         for (let k = 0; k < hst.len; k++) {
@@ -670,11 +672,11 @@
         }
         ctx.stroke();
         ctx.lineWidth = 1;
-        ctx.fillStyle = '#b7c4be';
+        ctx.fillStyle = FP('#b7c4be');
         ctx.textAlign = 'right';
         ctx.fillText('dopamine', labelW - 8, y0);
       }
-      ctx.fillStyle = '#7d8d86';
+      ctx.fillStyle = FP('#7d8d86');
       ctx.textAlign = 'left';
       ctx.fillText(`last ${HIST} steps →  now`, labelW, H - 9);
     }
@@ -731,13 +733,13 @@
     // niche, drawn under the neurons (the Tissue Lab's cells).
     drawGlia(ctx, T, X, Y) {
       const G = T.G, cw = X(1 / G) - X(0), ch = Y(1 / G) - Y(0);
-      ctx.fillStyle = VESSEL;
+      ctx.fillStyle = FP(VESSEL);
       ctx.globalAlpha = 0.1;
       for (let c = 0; c < T.vesselMask.length; c++) {
         if (T.vesselMask[c]) ctx.fillRect(X((c % G) / G), Y(Math.floor(c / G) / G), cw + 0.5, ch + 0.5);
       }
       ctx.globalAlpha = 0.5;
-      ctx.strokeStyle = ASTRO;
+      ctx.strokeStyle = FP(ASTRO);
       ctx.lineWidth = 1;
       for (const a of T.astros) {
         for (let k = 0; k < 6; k++) {
@@ -745,10 +747,10 @@
           ctx.beginPath(); ctx.moveTo(X(a.x), Y(a.y)); ctx.lineTo(X(a.x) + 9 * Math.cos(ang), Y(a.y) + 9 * Math.sin(ang)); ctx.stroke();
         }
       }
-      ctx.fillStyle = MICROGLIA;
+      ctx.fillStyle = FP(MICROGLIA);
       for (const m of T.microglia) { ctx.beginPath(); ctx.arc(X(m.x), Y(m.y), 3, 0, Math.PI * 2); ctx.fill(); }
       ctx.globalAlpha = 0.6;
-      ctx.strokeStyle = NEWBORN;
+      ctx.strokeStyle = FP(NEWBORN);
       ctx.setLineDash([3, 3]);
       ctx.beginPath(); ctx.ellipse(X(T.niche.x), Y(T.niche.y), X(T.niche.r) - X(0), (Y(T.niche.r) - Y(0)) * 0.5, 0, 0, Math.PI * 2); ctx.stroke();
       ctx.setLineDash([]);
@@ -774,14 +776,14 @@
       for (let s = 0; s < b.w.length; s++) {
         const a = b.pre[s], d = b.post[s];
         const touches = sel !== null && (a === sel || d === sel);
-        ctx.strokeStyle = b.type[a] === INH ? col.danger : '#9fb8b0';
+        ctx.strokeStyle = b.type[a] === INH ? col.danger : FP('#9fb8b0');
         ctx.globalAlpha = Math.min(0.95, (touches ? 0.5 : 0.12) + b.w[s] / b.p.maxWeight * 0.8);
         ctx.lineWidth = 0.6 + 3 * b.w[s] / b.p.maxWeight;
         ctx.beginPath(); ctx.moveTo(sx(a), sy(a)); ctx.lineTo(sx(d), sy(d)); ctx.stroke();
         if (b.spiked[a]) {
           // A spike travelling: a bright dot along the synapse.
           ctx.globalAlpha = 0.9;
-          ctx.fillStyle = '#ffffff';
+          ctx.fillStyle = FP('#ffffff');
           ctx.beginPath(); ctx.arc((sx(a) * 2 + sx(d)) / 3, (sy(a) * 2 + sy(d)) / 3, 1.8, 0, Math.PI * 2); ctx.fill();
         }
       }
@@ -789,23 +791,23 @@
       for (let i = 0; i < b.n; i++) {
         const kind = this.cellKind(i);
         if (kind === 'empty') continue;
-        let fill = '#7f918a';
+        let fill = FP('#7f918a');
         if (kind === 'eye') fill = i % 2 === 0 ? col.green : col.violet;
         else if (kind === 'mouth') fill = i - R * 2 === 0 ? col.green : col.violet;
-        else if (kind === 'animalEye' || kind === 'animalMouth') fill = ANIMAL;
-        else if (kind === 'hunger' || kind === 'pain') fill = '#d8c690';
+        else if (kind === 'animalEye' || kind === 'animalMouth') fill = FP(ANIMAL);
+        else if (kind === 'hunger' || kind === 'pain') fill = FP('#d8c690');
         else if (kind === 'inh') fill = col.danger;
-        else if (b.type[i] === MOTOR) fill = '#e8efe9';
+        else if (b.type[i] === MOTOR) fill = FP('#e8efe9');
         const r = b.type[i] === MOTOR ? 9 : 5.5;
         this.cellDot(ctx, sx(i), sy(i), r, fill, b.spiked[i], null);
         if (b.newborn && b.newborn[i]) {
-          ctx.strokeStyle = NEWBORN; ctx.lineWidth = 1.5;
+          ctx.strokeStyle = FP(NEWBORN); ctx.lineWidth = 1.5;
           ctx.beginPath(); ctx.arc(sx(i), sy(i), r + 3, 0, Math.PI * 2); ctx.stroke();
         }
-        if (i === sel) { ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(sx(i), sy(i), r + 5, 0, Math.PI * 2); ctx.stroke(); }
+        if (i === sel) { ctx.strokeStyle = FP('#ffffff'); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(sx(i), sy(i), r + 5, 0, Math.PI * 2); ctx.stroke(); }
         this.hits.push({ canvas: '.ex-tissue', x: sx(i), y: sy(i), r: r + 2, cell: i });
       }
-      ctx.fillStyle = '#b7c4be';
+      ctx.fillStyle = FP('#b7c4be');
       ctx.font = '12px ' + this.font;
       ctx.textBaseline = 'middle';
       ctx.textAlign = 'left';
@@ -857,19 +859,19 @@
         ctx.fillRect(x(k) - 1, top, 2, bot - top);
       }
       ctx.globalAlpha = 1;
-      ctx.strokeStyle = '#e07a62';
+      ctx.strokeStyle = FP('#e07a62');
       ctx.setLineDash([4, 4]);
       ctx.beginPath(); ctx.moveTo(pad, Y(b.p.threshold)); ctx.lineTo(w - pad, Y(b.p.threshold)); ctx.stroke();
       ctx.setLineDash([]);
       if (isSensor) {
-        ctx.fillStyle = '#cfe0d6';
+        ctx.fillStyle = FP('#cfe0d6');
         for (let k = 0; k < hst.len; k++) if (hst.spk[this.slot(k) * n + i]) ctx.fillRect(x(k), top + 10, 1.5, bot - top - 10);
-        ctx.fillStyle = '#b7c4be';
+        ctx.fillStyle = FP('#b7c4be');
         ctx.font = '12px ' + this.font;
         ctx.textAlign = 'left';
         ctx.fillText('Sensory cells fire straight from the stimulus; each line is a spike.', pad, h - 12);
       } else {
-        ctx.strokeStyle = '#cfe0d6';
+        ctx.strokeStyle = FP('#cfe0d6');
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         for (let k = 0; k < hst.len; k++) {
@@ -879,7 +881,7 @@
         }
         ctx.stroke();
         ctx.lineWidth = 1;
-        ctx.fillStyle = '#b7c4be';
+        ctx.fillStyle = FP('#b7c4be');
         ctx.font = '12px ' + this.font;
         ctx.textAlign = 'left';
         ctx.fillText('threshold', pad + 4, Y(b.p.threshold) - 8);
