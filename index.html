@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
-  // Old links to the Deep Dive (#list, #colonies, ...) now go to its own page.
+  // Old links to the Deep Dive that was the home page (#list, #colonies, ...) go to that chapter.
   if (location.hash.length > 1 && location.hash !== '#chapters') location.replace('dive/index.html' + location.search + location.hash);
 </script>
 <script src="lib/i18n.js"></script>
@@ -91,9 +91,8 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     <h2 id="ways-h" style="font-size:26px;margin-bottom:14px">Other ways in</h2>
     <div class="ways">
       <a class="way" href="films/index.html"><img src="films/story/img/act-0-0-title.jpg" alt=""><div><b>Films</b><span>Film 1 in nine acts, and the 4-minute journey of life.</span></div></a>
-      <a class="way" href="dive/index.html"><img src="films/story/img/act-8-1-one-world.jpg" alt=""><div><b>Dive into the planet</b><span>Sink from a whole ecosystem down to molecules.</span></div></a>
       <a class="way" href="labs/index.html"><img src="films/story/img/act-4-2-clumps-of-eight.jpg" alt=""><div><b>Guided labs</b><span>Change one thing and follow the effect.</span></div></a>
-      <a class="way" href="world/index.html"><img src="films/story/img/act-6-1-a-net-of-nerves.jpg" alt=""><div><b>World Viewer</b><span>Every chapter on one stage.</span></div></a>
+      <a class="way" href="world/index.html"><img src="films/story/img/act-8-1-one-world.jpg" alt=""><div><b>World Viewer</b><span>Every chapter on one stage.</span></div></a>
     </div>
   </section>
 
@@ -109,7 +108,7 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   const es = window.I18N && I18N.lang === 'es';
   const img = (k) => S.IMG + (es ? 'es/' : '') + k + '.jpg';
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const target = (a) => (a.n === 0 ? 'films/index.html#act-0' : a.n === 8 ? 'dive/index.html' : a.sims[0].path);
+  const target = (a) => a.sims[0].path;
   document.getElementById('hero-img').src = img('act-0-1-one-day');
 
   function draw() {

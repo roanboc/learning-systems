@@ -44,11 +44,11 @@ Where it goes:
 
 | What you add | Where the time goes |
 |---|---|
-| A product page | An entry in `SYSTEMS` (`lib/system-catalogue.js`) with `t`, `when`, `place`, `evidence`; a stop in `LADDER` (`dive/home.js`); its page in `PAGES` (`lib/nav.js`) with its `act`, and its name in that act's `sims` (`lib/story.js`) |
+| A product page | An entry in `SYSTEMS` (`lib/system-catalogue.js`) with `t`, `when`, `place`, `evidence`; its page in `PAGES` (`lib/nav.js`) with its `act`, and its name in that act's `sims` (`lib/story.js`) |
 | A World Viewer chapter | A chapter in `world/viewer.js` with its `era`, in time order; a Gaia era in `lib/gaia.js` if it lives in the shared world |
 | A preset or lab world | Its era in the preset's description and in its lab text (`labs.js`), and the matching chapter |
 
-The timeline must stay in order: check that the new entry sits between its neighbours in `SYSTEMS`, the World Viewer and the Deep Dive.
+The timeline must stay in order: check that the new entry sits between its neighbours in `SYSTEMS`, the World Viewer and `lib/story.js`.
 
 ## The References section
 

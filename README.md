@@ -25,7 +25,7 @@ Follow [AGENTS.md](AGENTS.md): every new scenario is built inside the same world
 
 - `index.html`: the home page, the story first. Film 1's nine acts are the site's chapters (`lib/story.js`): Earth's history as one day with each chapter on it, then a card per chapter that leads to its simulation.
 - `films/`: the Films page (`films/index.html`, film 1 in nine acts with its own player, `films/clip-player.js`; clips and stills in `films/story/`) and the 4-minute film `films/journey/`.
-- `dive/`: the Deep Dive (`dive/index.html` and `dive/home.js`), under Explore. A glowing planet you dive into, level by level, from an ecosystem down to the chemistry life began with; every stop runs the real simulation. The List tab shows every system as a plain list with links to its pages, its guided lab and the history of life. Old links to the home page's Dive (`#list`, `#colonies`, ...) are sent here.
+- `dive/`: only a redirect now. The Deep Dive, a dark glowing planet you dived through, was retired on 25 November 2026 so that every page shares the film's light look (it is in the git history before that date). Old links (`dive/index.html#colonies`, `/#list`, ...) go to the same chapter or to the home page's chapters. `lib/globe.js`, `lib/planet.js` and `lib/plates.js` were its planet and are no longer loaded by any page.
 - `world/`: the World Viewer, one stage for the timeline of life. Each chapter reuses a product's engine.
 - `environments/`: worlds that pose the problem (resources, hazards, change).
 - `nervous-systems/`: brains as living tissue.
