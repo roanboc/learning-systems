@@ -98,29 +98,8 @@
     },
   };
   const STAGE = document.body.dataset.stage || 'cells';
-  // A page can opt in to the film's paint (<body data-paint="film">); the reader
-  // can switch back to the classic colours, and the choice is remembered.
-  const FILM = document.body.dataset.paint === 'film' && !!window.FilmPaint;
-  const PAINT_KEY = 'ls-paint';
-  let classic = false;
-  try { classic = localStorage.getItem(PAINT_KEY) === 'classic'; } catch (e) { /* storage blocked: use the film paint */ }
-  const film = () => FILM && !classic;
-  function paintToggle() {
-    if (!FILM) return;
-    const label = document.createElement('label');
-    label.className = 'controls paint-toggle';
-    label.innerHTML = '<input type="checkbox" id="classic"> <span>Classic colours</span>';
-    $('#clock').before(label);
-    const box = $('#classic', label);
-    box.checked = classic;
-    const apply = () => { document.body.classList.toggle('film-paint', film()); };
-    box.onchange = () => {
-      classic = box.checked;
-      try { localStorage.setItem(PAINT_KEY, classic ? 'classic' : 'film'); } catch (e) { /* not remembered */ }
-      apply();
-    };
-    apply();
-  }
+  // A page can opt in to the film's paint (<body data-paint="film">, lib/film-paint.js).
+  let film = () => false;
   const CFG = CONFIGS[STAGE], PRESETS = CFG.presets, METRICS = CFG.metrics;
   let metric = METRICS[0].key;
 
@@ -428,7 +407,7 @@
     reveal() { $('#worlds').scrollIntoView({ block: 'start', behavior: reduce ? 'auto' : 'smooth' }); },
   };
 
-  paintToggle();
+  if (window.FilmPaint) film = FilmPaint.toggle($('#clock'));
   renderMetrics();
   addWorld(CFG.start, 3);
   requestAnimationFrame(loop);

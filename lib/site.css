@@ -82,3 +82,9 @@ body .panel { border-radius: 14px; }
 body .start-here { border-radius: 14px; border: 1.5px solid var(--ink); background: var(--sheet); font-family: var(--sans); }
 body .start-here a.btn { border-radius: 10px; background: var(--ink); color: var(--paper); font-family: var(--display); }
 body .start-here.done a.btn { background: transparent; color: var(--ink); border: 1.5px solid var(--ink); }
+
+/* The film's paint on simulation maps (lib/film-paint.js, <body data-paint="film">):
+   a paper map with an ink edge and a light HUD. "Classic colours" turns it off. */
+body.film-paint canvas.map { background: #f5eedc; border: 1.5px solid rgba(44, 39, 35, .35); border-radius: 10px; }
+body.film-paint .hud { color: var(--ink); background: rgba(251, 247, 234, .88); border: 1px solid var(--line); }
+.paint-toggle input { margin: 0; }
