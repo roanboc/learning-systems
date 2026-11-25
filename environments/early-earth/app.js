@@ -8,6 +8,8 @@
   const { makeWorld, SPECIES } = window.ChemSim;
   const PRESETS = GENES ? window.ChemSim.GENE_PRESETS : window.ChemSim.PRESETS;
   const { MapPainter, drawWorld, toCell, LAYERS } = window.EarthDraw;
+  // A page can opt in to the film's paint (<body data-paint="film">, lib/film-paint.js).
+  let film = () => false;
   const css = getComputedStyle(document.documentElement);
   const token = (n) => css.getPropertyValue(n).trim();
   const WORLD_COLOURS = ['--s1', '--s2', '--s3'];
@@ -71,6 +73,7 @@
   function build(W) {
     W.sim = makeWorld(W.preset, W.seed);
     W.painter = new MapPainter(W.sim);
+    W.film = null;
     W.cam = { cx: W.sim.earth.cols / 2, cy: W.sim.earth.rows / 2, zoom: 1 };
     W.selected = null; W.follow = false; W.inspectCell = null; W.mark = null; W.journalShown = 0;
     $('.journal', W.el).innerHTML = '';
@@ -328,9 +331,17 @@
     }
     const ctx = cv.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    drawWorld(ctx, W.painter, r.width, r.height, W.cam, {
-      layer: W.layer, selected: W.selected, mark: W.mark, background: token('--dish'),
-    });
+    if (film()) {
+      // The film's paint (lib/film-paint.js): it shares the classic painter's currents and layers.
+      if (!W.film) { W.film = new FilmPaint.MapPainter(W.sim); W.film.classic = W.painter; W.film.tracers = W.painter.tracers; }
+      FilmPaint.drawWorld(ctx, W.film, r.width, r.height, W.cam, {
+        layer: W.layer, selected: W.selected, mark: W.mark, background: token('--dish'),
+      });
+    } else {
+      drawWorld(ctx, W.painter, r.width, r.height, W.cam, {
+        layer: W.layer, selected: W.selected, mark: W.mark, background: token('--dish'),
+      });
+    }
   }
 
   let frame = 0;
@@ -398,6 +409,7 @@
     reveal() { $('#worlds').scrollIntoView({ block: 'start', behavior: reduce ? 'auto' : 'smooth' }); },
   };
 
+  if (window.FilmPaint) film = FilmPaint.toggle($('#clock'));
   renderMetrics();
   addWorld(GENES ? 'genes' : 'full', 3);
   requestAnimationFrame(loop);
