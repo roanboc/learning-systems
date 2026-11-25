@@ -44,6 +44,10 @@ body .panel { border-radius: 14px; }
 .ls-tag { display: inline-flex; align-items: center; gap: 6px; font: 500 12.5px var(--display); padding: 2px 9px; border-radius: 8px; background: var(--sheet); border: 1px solid var(--line); white-space: nowrap; color: var(--ink); }
 .ls-tag i { width: 9px; height: 9px; border-radius: 50%; }
 .ls-bar [data-lang-switch], .ls-bar .lang-switch { margin-left: auto; }
+/* The "more" menu (learn-all.org, LinkedIn) opens to the left, from the bar's right end. */
+.ls-more > button { font-size: 20px; line-height: 1; padding: 3px 10px; }
+.ls-more .ls-panel { left: auto; right: 0; width: min(340px, calc(100vw - 32px)); }
+.ls-more .ls-panel a { grid-template-columns: 32px 1fr; }
 .ls-bar a:focus-visible, .ls-bar button:focus-visible, .ls-chapter a:focus-visible, .ls-pager a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ---------- the film's furniture: five level dots and the day clock ---------- */
