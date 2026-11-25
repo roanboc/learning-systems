@@ -7,8 +7,11 @@
   'use strict';
 
   const $ = (s, el) => (el || document).querySelector(s);
-  const css = () => getComputedStyle(document.documentElement);
+  const css = () => getComputedStyle(document.body);
   const tok = (n) => css().getPropertyValue(n).trim();
+  // Film paint (lib/film-paint.js, <body data-paint="film">): FP swaps dish colours to paper and ink.
+  const FP = (x) => (window.FilmPaint ? window.FilmPaint.c(x) : x);
+  let film = () => false;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   // Seed 1: legs spread and hunters survive (README). On seed 3, the other
   // chapters' seed, the hunters die out.
@@ -122,7 +125,14 @@
     clamp(W, cv);
     const world = W.w, sx = world.sx, k = scale(W, cv);
     ctx.setTransform(d, 0, 0, d, 0, 0);
-    window.EarthDraw.drawWorld(ctx, W.painter, w, h, { cx: W.cam.cx / sx, cy: W.cam.cy / sx, zoom: W.cam.zoom }, { layer: 'nature', background: tok('--dish') });
+    const cam = { cx: W.cam.cx / sx, cy: W.cam.cy / sx, zoom: W.cam.zoom };
+    if (film()) {
+      // Same coast in the film's paint; it shares the classic painter's currents.
+      if (!W.film) { W.film = new window.FilmPaint.MapPainter(W.g.chem); W.film.classic = W.painter; W.film.tracers = W.painter.tracers; }
+      window.FilmPaint.drawWorld(ctx, W.film, w, h, cam, { layer: 'nature' });
+    } else {
+      window.EarthDraw.drawWorld(ctx, W.painter, w, h, cam, { layer: 'nature', background: tok('--dish') });
+    }
     ctx.save();
     ctx.translate(w / 2 - W.cam.cx * k, h / 2 - W.cam.cy * k);
     ctx.scale(k, k);
@@ -136,11 +146,11 @@
     const danger = tok('--danger');
     for (const c of world.creatures) {
       const sz = 4 + Math.min(4, c.energy / 40);
-      window.CreatureDraw.draw(ctx, c, c.x, c.y, sz, c.meat ? danger : LIMB_FILL[world.plan(c).type], { px: k });
+      window.CreatureDraw.draw(ctx, c, c.x, c.y, sz, c.meat ? danger : FP(LIMB_FILL[world.plan(c).type]), { px: k });
     }
     const c = W.selected;
     if (c && world.creatures.includes(c)) {
-      ctx.strokeStyle = '#ffffff'; ctx.globalAlpha = 0.7; ctx.lineWidth = 2 / k;
+      ctx.strokeStyle = FP('#ffffff'); ctx.globalAlpha = 0.7; ctx.lineWidth = 2 / k;
       ctx.beginPath(); ctx.arc(c.x, c.y, 13, 0, Math.PI * 2); ctx.stroke();
       ctx.globalAlpha = 1;
     }
@@ -210,7 +220,7 @@
       const ctx = cv.getContext('2d');
       ctx.scale(d, d);
       const model = { id: 0, age: 0, heading: 0, brain: c.brain, meat: false, g: c.g };
-      window.CreatureDraw.draw(ctx, model, 33, 22, 7, LIMB_FILL[P.type], { px: 1 });
+      window.CreatureDraw.draw(ctx, model, 33, 22, 7, FP(LIMB_FILL[P.type]), { px: 1 });
       const label = `${P.segs} segments, ${limbsText(P)}`;
       cv.setAttribute('role', 'img'); cv.setAttribute('aria-label', label);
       const cap = document.createElement('span');
@@ -313,6 +323,8 @@
   $('#speed').onchange = (e) => { state.speed = e.target.value; };
   $('#restart').onclick = () => { restart(); renderPlans(state.worlds[0]); renderPlans(state.worlds[1]); };
 
+  if (window.FilmPaint) film = window.FilmPaint.toggle($('#clock'));
+  document.addEventListener('paintchange', () => { for (const W of state.worlds) { renderPlans(W); } });
   restart();
   renderResults();
   requestAnimationFrame(loop);

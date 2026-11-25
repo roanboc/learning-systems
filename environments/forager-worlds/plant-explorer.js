@@ -10,6 +10,8 @@
 // simulated one by one, and the page says so.
 (function (root) {
   'use strict';
+  // Film paint (lib/film-paint.js): dark-dish colours become paper and ink.
+  const FP = (x) => (root.FilmPaint ? root.FilmPaint.c(x) : x);
 
   const HIST = 600;
 
@@ -328,7 +330,7 @@
       const rel = (o) => [world.delta(pl.x, o.x) * k, world.delta(pl.y, o.y) * k];
       // Family lines.
       ctx.lineWidth = 1;
-      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      ctx.strokeStyle = FP('rgba(255,255,255,0.35)');
       for (const o of world.plants) {
         if (o.dead || (o.parent !== pl.id && o.id !== pl.parent)) continue;
         const [x, y] = rel(o);
@@ -342,7 +344,7 @@
         if (o.dead) continue;
         const [x, y] = rel(o);
         if (Math.abs(x) > w / 2 + 20 || Math.abs(y) > h / 2 + 20) continue;
-        ctx.fillStyle = 'rgba(0,0,0,0.18)';
+        ctx.fillStyle = FP('rgba(0,0,0,0.18)');
         ctx.beginPath(); ctx.arc(x, y, p.crowdRadius * k * Math.max(0.3, o.size), 0, Math.PI * 2); ctx.fill();
       }
       for (const o of world.plants) {
@@ -358,10 +360,10 @@
       for (const c of world.creatures) {
         const [x, y] = rel(c);
         if (Math.abs(x) > w / 2 + 10 || Math.abs(y) > h / 2 + 10) continue;
-        CreatureDraw.draw(ctx, c, x, y, 5, '#e8efe9');
+        CreatureDraw.draw(ctx, c, x, y, 5, FP('#e8efe9'));
       }
       // The plant itself.
-      ctx.strokeStyle = '#ffffff';
+      ctx.strokeStyle = FP('#ffffff');
       ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(0, 0, (1 + 2.6 * pl.size) * k * 0.9 + 5, 0, Math.PI * 2); ctx.stroke();
       ctx.restore();
@@ -403,7 +405,7 @@
       const plantCol = pl.poison ? col.violet : col.green;
       const colourNow = this.entry.world.plantColour(pl) === 0 ? col.green : col.violet;
       // Roots.
-      ctx.strokeStyle = 'rgba(232, 220, 200, 0.8)';
+      ctx.strokeStyle = FP('rgba(232, 220, 200, 0.8)');
       ctx.lineWidth = 2;
       const rootLen = (h - groundY - 16) * (0.4 + 0.6 * scale);
       const rootTips = [];
@@ -424,7 +426,7 @@
       }
       // Seed head once grown.
       if (s.size > 0.5) {
-        ctx.fillStyle = s.seededRecently ? '#ffe7a3' : 'rgba(255, 231, 163, 0.6)';
+        ctx.fillStyle = s.seededRecently ? FP('#ffe7a3') : FP('rgba(255, 231, 163, 0.6)');
         for (let i = 0; i < 5; i++) {
           const a = (i / 5) * Math.PI * 2 + this.frame * 0.01;
           ctx.beginPath(); ctx.arc(cx + Math.cos(a) * 8, topY - 6 + Math.sin(a) * 6, 3.2, 0, Math.PI * 2); ctx.fill();
@@ -443,11 +445,11 @@
       }
       // Defence cells in the leaves.
       if (s.poison) {
-        ctx.fillStyle = '#d9c2ff';
+        ctx.fillStyle = FP('#d9c2ff');
         for (const [lx, ly] of leaves) { ctx.beginPath(); ctx.arc(lx, ly, 2.5, 0, Math.PI * 2); ctx.fill(); }
       }
       // Growing tips.
-      ctx.fillStyle = s.growthRate > 0.05 ? '#fff6c2' : 'rgba(255,246,194,0.35)';
+      ctx.fillStyle = s.growthRate > 0.05 ? FP('#fff6c2') : 'rgba(255,246,194,0.35)';
       ctx.beginPath(); ctx.arc(cx, topY, 4, 0, Math.PI * 2); ctx.fill();
 
       // Hit spots and labels for each tissue.
@@ -469,19 +471,19 @@
       for (const [part, x, y, label] of spots) {
         this.hits.push({ canvas: sel, x, y, r: detailed ? 14 : 10, part });
         const a = PARTS[part].activity(s);
-        ctx.strokeStyle = `rgba(255,255,255,${(0.35 + 0.6 * Math.min(1, a)).toFixed(2)})`;
+        ctx.strokeStyle = FP(`rgba(255,255,255,${(0.35 + 0.6 * Math.min(1, a)).toFixed(2)})`);
         ctx.lineWidth = 1.5;
         ctx.beginPath(); ctx.arc(x, y, detailed ? 10 : 7, 0, Math.PI * 2); ctx.stroke();
         if (detailed || part === 'leaf' || part === 'root') {
           const right = part === 'meristem' ? false : x >= cx;
-          ctx.fillStyle = '#e8efe9';
+          ctx.fillStyle = FP('#e8efe9');
           ctx.textAlign = right ? 'left' : 'right';
           ctx.fillText(detailed ? `${label} · ${pct(Math.min(1, a))}` : label, x + (right ? 14 : -14), y);
         }
       }
       ctx.textAlign = 'left';
       if (!detailed) {
-        ctx.fillStyle = 'rgba(232,239,233,0.75)';
+        ctx.fillStyle = FP('rgba(232,239,233,0.75)');
         ctx.fillText('click to go inside', 10, h - 12);
       }
     }
@@ -493,7 +495,7 @@
       ctx.fillRect(0, 0, w, h);
       const H = this.h, n = H.len;
       const pad = 8, plotH = h - 34;
-      const series = [['size', '#e8efe9', 'size'], ['light', 'rgb(255,210,110)', 'light'], ['fert', 'rgb(196,150,98)', 'soil']];
+      const series = [['size', FP('#e8efe9'), 'size'], ['light', 'rgb(255,210,110)', 'light'], ['fert', 'rgb(196,150,98)', 'soil']];
       ctx.lineWidth = 1.5;
       for (const [key, c] of series) {
         ctx.strokeStyle = c;
@@ -505,7 +507,7 @@
         }
         ctx.stroke();
       }
-      ctx.fillStyle = '#ffe7a3';
+      ctx.fillStyle = FP('#ffe7a3');
       for (let k = 0; k < n; k++) {
         if (!H.seed[this.slot(k)]) continue;
         const x = pad + (k / (HIST - 1)) * (w - pad * 2);
@@ -514,12 +516,12 @@
       ctx.font = `11px ${getComputedStyle(document.body).fontFamily}`;
       ctx.textBaseline = 'middle';
       let lx = pad;
-      for (const [, c, label] of series.concat([[null, '#ffe7a3', 'seed dropped']])) {
+      for (const [, c, label] of series.concat([[null, FP('#ffe7a3'), 'seed dropped']])) {
         ctx.fillStyle = c; ctx.fillRect(lx, h - 7, 10, 3);
-        ctx.fillStyle = 'rgba(232,239,233,0.8)'; ctx.fillText(label, lx + 14, h - 6);
+        ctx.fillStyle = FP('rgba(232,239,233,0.8)'); ctx.fillText(label, lx + 14, h - 6);
         lx += ctx.measureText(label).width + 34;
       }
-      if (!n) { ctx.fillStyle = 'rgba(232,239,233,0.7)'; ctx.fillText('Recording starts now; press Play if paused.', pad, h / 2); }
+      if (!n) { ctx.fillStyle = FP('rgba(232,239,233,0.7)'); ctx.fillText('Recording starts now; press Play if paused.', pad, h / 2); }
     }
 
     renderFacts(s) {
@@ -558,7 +560,7 @@
       const rr = (x, y, ww, hh, r) => { ctx.beginPath(); ctx.roundRect(x, y, ww, hh, r); };
       const tm = this.frame;
       // Cell wall and membrane; the xylem is a dead, open-ended pipe.
-      ctx.strokeStyle = '#b8c9a0'; ctx.lineWidth = 6;
+      ctx.strokeStyle = FP('#b8c9a0'); ctx.lineWidth = 6;
       if (this.part === 'xylem') {
         ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x0, y0 + ch); ctx.moveTo(x0 + cw, y0); ctx.lineTo(x0 + cw, y0 + ch); ctx.stroke();
         ctx.strokeStyle = 'rgba(184,201,160,0.5)'; ctx.lineWidth = 3;
@@ -570,7 +572,7 @@
         }
       } else {
         rr(x0, y0, cw, ch, 18); ctx.stroke();
-        ctx.strokeStyle = 'rgba(232,239,233,0.5)'; ctx.lineWidth = 1.5;
+        ctx.strokeStyle = FP('rgba(232,239,233,0.5)'); ctx.lineWidth = 1.5;
         rr(x0 + 7, y0 + 7, cw - 14, ch - 14, 14); ctx.stroke();
         // Vacuole: violet when it stores toxin.
         ctx.fillStyle = this.part === 'defence' && s.poison ? 'rgba(169,127,242,0.45)' : 'rgba(150,190,230,0.18)';
@@ -580,7 +582,7 @@
           ctx.fillStyle = 'rgba(232,200,160,0.85)';
           ctx.beginPath(); ctx.arc(x0 + cw * 0.8, y0 + ch * 0.3, 14, 0, Math.PI * 2); ctx.fill();
           if (this.part === 'meristem' && a > 0.05 && Math.floor(tm / 40) % 2) {
-            ctx.strokeStyle = '#fff6c2'; ctx.lineWidth = 2; ctx.setLineDash([3, 3]);
+            ctx.strokeStyle = FP('#fff6c2'); ctx.lineWidth = 2; ctx.setLineDash([3, 3]);
             ctx.beginPath(); ctx.moveTo(x0 + cw / 2, y0 + 10); ctx.lineTo(x0 + cw / 2, y0 + ch - 10); ctx.stroke(); ctx.setLineDash([]);
           }
         }
@@ -597,7 +599,7 @@
             ctx.beginPath(); ctx.arc(x0 + cw * 0.2 + u * cw * 0.7, y0 + ch * (0.3 + 0.4 * ((i * 7) % 10) / 10), 2.5, 0, Math.PI * 2); ctx.fill();
           }
         } else if (this.part === 'root') {
-          ctx.strokeStyle = '#b8c9a0'; ctx.lineWidth = 6;
+          ctx.strokeStyle = FP('#b8c9a0'); ctx.lineWidth = 6;
           ctx.beginPath(); ctx.moveTo(x0 + cw, y0 + ch * 0.6); ctx.lineTo(w - 6, y0 + ch * 0.75); ctx.stroke();
           ctx.fillStyle = 'rgba(120,190,255,0.9)';
           for (let i = 0; i < Math.round(12 * a) + 1; i++) {
@@ -617,9 +619,9 @@
       }
       // Activity over time, from the recorded plant state.
       const H = this.h, n = H.len, ty = h - 40;
-      ctx.strokeStyle = 'rgba(232,239,233,0.25)'; ctx.lineWidth = 1;
+      ctx.strokeStyle = FP('rgba(232,239,233,0.25)'); ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(8, h - 8); ctx.lineTo(w - 8, h - 8); ctx.stroke();
-      ctx.strokeStyle = '#e8efe9'; ctx.lineWidth = 1.5;
+      ctx.strokeStyle = FP('#e8efe9'); ctx.lineWidth = 1.5;
       ctx.beginPath();
       const p = this.entry.world.p, full = p.plantGrow * (this.plant.poison ? p.toxinCost : 1);
       for (let k = 1; k < n; k++) {
@@ -634,7 +636,7 @@
         if (k > 1) ctx.lineTo(x, y); else ctx.moveTo(x, y);
       }
       ctx.stroke();
-      ctx.fillStyle = 'rgba(232,239,233,0.7)';
+      ctx.fillStyle = FP('rgba(232,239,233,0.7)');
       ctx.font = `11px ${getComputedStyle(document.body).fontFamily}`;
       ctx.fillText(`activity now ${pct(a)}`, 8, ty - 6);
     }

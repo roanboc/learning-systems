@@ -7,7 +7,8 @@
   'use strict';
 
   const $ = (s) => document.querySelector(s);
-  const css = () => getComputedStyle(document.documentElement);
+  const css = () => getComputedStyle(document.body);
+  const FP = (x) => (window.FilmPaint ? window.FilmPaint.c(x) : x);
   const tok = (n) => css().getPropertyValue(n).trim();
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const fmt = (v, d) => (Math.abs(v) >= 100 ? Math.round(v).toString() : v.toFixed(d == null ? 2 : d));
@@ -91,6 +92,7 @@
   }
   readColours();
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readColours);
+  document.addEventListener('paintchange', readColours);
 
   // Film paint switch (lib/film-paint.js), placed before the hint in the top bar.
   const film = window.FilmPaint ? window.FilmPaint.toggle(document.querySelector('.top .hint')) : () => false;
@@ -493,13 +495,17 @@
     if (s.coast) {
       // The coast underneath, in its own map cells.
       const sx = world.sx;
-      window.EarthDraw.drawWorld(ctx, s.painter, w, h, { cx: s.cam.cx / sx, cy: s.cam.cy / sx, zoom: s.cam.zoom }, { layer: 'nature', background: tok('--dish') });
+      const cam = { cx: s.cam.cx / sx, cy: s.cam.cy / sx, zoom: s.cam.zoom };
+      if (film()) {
+        if (!s.film) { s.film = new window.FilmPaint.MapPainter(s.painter.world); s.film.classic = s.painter; s.film.tracers = s.painter.tracers; }
+        window.FilmPaint.drawWorld(ctx, s.film, w, h, cam, { layer: 'nature' });
+      } else window.EarthDraw.drawWorld(ctx, s.painter, w, h, cam, { layer: 'nature', background: tok('--dish') });
     } else { ctx.fillStyle = colours.dish; ctx.fillRect(0, 0, w, h); }
     ctx.save();
     ctx.translate(w / 2 - s.cam.cx * k, h / 2 - s.cam.cy * k);
     ctx.scale(k, k);
     if (!s.coast) {
-      ctx.fillStyle = '#121a16'; ctx.fillRect(0, 0, size, size);
+      ctx.fillStyle = FP('#121a16'); ctx.fillRect(0, 0, size, size);
       ctx.strokeStyle = colours.dishLine; ctx.lineWidth = 1 / k;
       ctx.beginPath();
       for (let i = 100; i < size; i += 100) { ctx.moveTo(i, 0); ctx.lineTo(i, size); ctx.moveTo(0, i); ctx.lineTo(size, i); }
@@ -522,12 +528,12 @@
     for (const c of world.creatures) {
       const sz = 4 + Math.min(4, c.energy / 40);
       // Onto land: grazers coloured by limbs (none, fins, legs).
-      const fill = c.meat ? colours.danger : world.p.bodyPlan ? LIMB_FILL[world.plan(c).type] : (c.sp === 1 ? '#f0d58c' : '#e8efe9');
+      const fill = c.meat ? colours.danger : FP(world.p.bodyPlan ? LIMB_FILL[world.plan(c).type] : (c.sp === 1 ? '#f0d58c' : '#e8efe9'));
       window.CreatureDraw.draw(ctx, c, c.x, c.y, sz, fill, { px: k });
     }
     const c = s.selected;
     if (c && world.creatures.includes(c)) {
-      ctx.strokeStyle = '#ffffff'; ctx.globalAlpha = 0.55; ctx.lineWidth = 1.2 / k;
+      ctx.strokeStyle = FP('#ffffff'); ctx.globalAlpha = 0.55; ctx.lineWidth = 1.2 / k;
       ctx.beginPath(); ctx.moveTo(c.x, c.y);
       ctx.arc(c.x, c.y, c.g.senseRange, c.heading - c.g.fov / 2, c.heading + c.g.fov / 2); ctx.closePath(); ctx.stroke();
       ctx.globalAlpha = 1; ctx.lineWidth = 2 / k;
