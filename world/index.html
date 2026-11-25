@@ -202,10 +202,12 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
 .legend i { width: 10px; height: 10px; border-radius: 50%; justify-self: center; }
 .legend i.big { width: 14px; height: 14px; }
 .legend b { font: 500 13px var(--mono); color: var(--muted); }
+/* The film's paint: the stage is paper while it is on (lib/film-paint.js). */
+body.film-paint .stage { background: #f5eedc; border: 1.5px solid rgba(44, 39, 35, .35); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } .explorer.ex-zoom { animation: none; } }
 </style>
 </head>
-<body>
+<body data-paint="film">
 <div class="app">
   <a class="back" href="../index.html">← Learning Systems</a>
   <div class="top">
@@ -293,6 +295,7 @@ canvas.ex-outside { cursor: default; aspect-ratio: 1; }
 <script src="../lib/life.js"></script>
 <script src="../environments/early-earth/draw.js"></script>
 <script src="../environments/first-cells/draw.js"></script>
+<script src="../lib/film-paint.js"></script>
 <script src="../lib/brain.js"></script>
 <script src="../nervous-systems/tissue-lab/engine.js"></script>
 <script src="../environments/forager-worlds/tissue-brain.js"></script>
