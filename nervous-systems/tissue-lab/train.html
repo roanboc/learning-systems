@@ -93,9 +93,15 @@ canvas.square { width: 100%; aspect-ratio: 1; display: block; background: var(--
 .story { margin: 0; padding-left: 18px; color: var(--muted); font-size: 13px; display: grid; gap: 5px; max-width: 90ch; }
 .story b { color: var(--ink); font-weight: 600; }
 @media (prefers-reduced-motion: reduce) { .bar .track i { transition: none; } }
+/* Film paint (lib/film-paint.js): the slice on paper, cells in ink and the film's level colours. */
+body.film-paint {
+  --dish: #f5eedc; --exc: #5e5348; --inh: #e9634f; --newborn: #4fae63; --astro: #d49a2e; --micro: #8b72d6;
+  --vessel: #c0504d; --tag: #e0952a; --debris: #a39684; --syn: #9a8c7c; --focus: #2c2723; --smell: #8b72d6; --dopa: #e0952a;
+}
+body.film-paint canvas.dish, body.film-paint canvas.square, body.film-paint .ex-tissue, body.film-paint .ex-near { border: 1.5px solid rgba(44, 39, 35, 0.3); }
 </style>
 </head>
-<body>
+<body data-paint="film">
 <div class="wrap">
   <a class="back" href="index.html">← Tissue Lab</a>
   <header>
@@ -200,6 +206,7 @@ canvas.square { width: 100%; aspect-ratio: 1; display: block; background: var(--
 <script src="../../lib/cell.js"></script>
 <script src="engine.js"></script>
 <script src="../../environments/forager-worlds/tissue-brain.js"></script>
+<script src="../../lib/film-paint.js"></script>
 <script src="draw.js"></script>
 <script src="trainer.js"></script>
 <script>
@@ -210,8 +217,9 @@ canvas.square { width: 100%; aspect-ratio: 1; display: block; background: var(--
   const TAU = Math.PI * 2;
 
   let colours = {};
+  if (window.FilmPaint) window.FilmPaint.toggle(document.getElementById('clock'));
   function readColours() {
-    const s = getComputedStyle(document.documentElement);
+    const s = getComputedStyle(document.body);
     const v = (n) => s.getPropertyValue(n).trim();
     colours = {
       ink: v('--ink'), muted: v('--muted'), line: v('--line'), dish: v('--dish'), accent: v('--accent'),
@@ -223,6 +231,7 @@ canvas.square { width: 100%; aspect-ratio: 1; display: block; background: var(--
   }
   readColours();
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { readColours(); drawAll(); });
+  document.addEventListener('paintchange', () => { readColours(); drawAll(); });
   new MutationObserver(() => { readColours(); drawAll(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   const monoFont = getComputedStyle(document.documentElement).getPropertyValue('--mono').trim();
 
@@ -317,7 +326,7 @@ canvas.square { width: 100%; aspect-ratio: 1; display: block; background: var(--
     const label = (c, text, colour, align) => {
       ctx.fillStyle = colour;
       ctx.beginPath(); ctx.arc(c.x * W, c.y * W, c.spiked ? 10 : 7, 0, TAU); ctx.fill();
-      ctx.fillStyle = '#d7e2dc'; ctx.font = `12px ${monoFont}`; ctx.textBaseline = 'middle';
+      ctx.fillStyle = window.FilmPaint && window.FilmPaint.isFilm() ? '#3d352e' : '#d7e2dc'; ctx.font = `12px ${monoFont}`; ctx.textBaseline = 'middle';
       ctx.textAlign = align;
       ctx.fillText(text, c.x * W + (align === 'left' ? 14 : -14), c.y * W - 14);
     };

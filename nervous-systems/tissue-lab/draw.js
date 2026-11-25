@@ -28,7 +28,9 @@
     if (fieldCanvas.width !== G) { fieldCanvas.width = G; fieldCanvas.height = G; }
     const fctx = fieldCanvas.getContext('2d');
     const img = fctx.createImageData(G, G);
-    const [r, g, b] = field.rgb;
+    // In the film paint the pale Activity glow would vanish on paper: it is drawn in ink.
+    const film = root.FilmPaint && root.FilmPaint.isFilm();
+    const [r, g, b] = film && field.key === 'act' ? [44, 39, 35] : field.rgb;
     for (let c = 0; c < G * G; c++) {
       const v = Math.min(1, Math.sqrt(Math.max(0, f[c]) / field.scale));
       img.data[c * 4] = r; img.data[c * 4 + 1] = g; img.data[c * 4 + 2] = b;
