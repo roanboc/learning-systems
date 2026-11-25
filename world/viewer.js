@@ -92,6 +92,8 @@
   readColours();
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readColours);
 
+  // Film paint switch (lib/film-paint.js), placed before the hint in the top bar.
+  const film = window.FilmPaint ? window.FilmPaint.toggle(document.querySelector('.top .hint')) : () => false;
   const explorer = new window.Explorer({ colours: () => colours, font: tok('--mono'), onClose: () => { cv.focus(); renderSide(); } });
   explorer.isPaused = () => !state.running;
   explorer.pauseBtn.addEventListener('click', () => { togglePlay(); explorer.draw(); });
@@ -537,9 +539,6 @@
   // ---------- Cells (chapters 1 to 4) ----------
   const { ROLE_RGB, PREDATOR_RGB } = window.LifeDraw;
 
-  function drawLife(ctx, s, w, h) {
-    window.LifeDraw.drawCells(ctx, s.w, w, h, s.cam, { selected: s.selected });
-  }
 
   function renderLegend(s) {
     const L = s.w, st = L.p.stage, counts = [0, 0, 0, 0, 0];
@@ -548,8 +547,9 @@
     if (st !== 'cells') rows.push([1, st === 'colonies' ? 'Cell in a colony' : 'Cell in a body, no role yet']);
     if (st === 'bodies' || st === 'nerves') rows.push([2, 'Contracting cell: squeezes, never divides'], [3, 'Germ cell: divides, never moves']);
     if (st === 'nerves') rows.push([4, 'Nerve cell: passes signals on']);
-    let html = rows.map(([r, label]) => `<div><i style="background:${ROLE_RGB[r]}"></i>${label}<b>${counts[r]}</b></div>`).join('');
-    if (st !== 'cells') html += `<div><i class="big" style="background:${PREDATOR_RGB}"></i>Predator: swallows small things<b>${L.predators.length}</b></div>`;
+    const K = film() ? window.FilmPaint : { ROLE_RGB, PREDATOR_RGB };
+    let html = rows.map(([r, label]) => `<div><i style="background:${K.ROLE_RGB[r]}"></i>${label}<b>${counts[r]}</b></div>`).join('');
+    if (st !== 'cells') html += `<div><i class="big" style="background:${K.PREDATOR_RGB}"></i>Predator: swallows small things<b>${L.predators.length}</b></div>`;
     if (st === 'bodies' || st === 'nerves') html += `<div><i style="background:${window.LifeDraw.CONTRACT_RGB}"></i>Orange: squeezing right now</div>`;
     if (st === 'nerves') html += '<div><i style="background:#fff"></i>Flash: a cell firing</div>';
     if (st === 'cells') html += '<div><i style="background:#d0302a"></i>Eyespot (zoom in close)</div><div><i style="background:rgba(230,245,238,0.75)"></i>Tail: flagellum, the motor</div>';
@@ -616,13 +616,18 @@
       if (!alive) { s.follow = false; renderSide(); }
       else { s.cam.cx = s.selected.x; s.cam.cy = s.selected.y; clampCam(s); }
     }
+    // The film's paint (lib/film-paint.js) for the coast chapters, unless the
+    // reader chose Classic colours. It shares the classic painter's currents and layers.
+    const F = film() && s.kind !== 'forager' ? window.FilmPaint : null;
+    if (F && !s.film) { s.film = new F.MapPainter(s.kind === 'life' ? s.w.chem : s.w); s.film.classic = s.painter; s.film.tracers = s.painter.tracers; }
+    const D = F || window.EarthDraw, painter = F ? s.film : s.painter;
     if (s.kind === 'earth') {
-      window.EarthDraw.drawWorld(ctx, s.painter, w, h, s.cam, {
+      D.drawWorld(ctx, painter, w, h, s.cam, {
         layer: s.layer || 'nature', selected: s.selected, mark: s.mark, background: tok('--dish'),
       });
     } else if (s.kind === 'life') {
-      window.EarthDraw.drawWorld(ctx, s.painter, w, h, s.cam, { layer: s.layer || 'nature', mark: s.mark, background: tok('--dish') });
-      drawLife(ctx, s, w, h);
+      D.drawWorld(ctx, painter, w, h, s.cam, { layer: s.layer || 'nature', mark: s.mark, background: tok('--dish') });
+      (F || window.LifeDraw).drawCells(ctx, s.w, w, h, s.cam, { selected: s.selected });
     } else drawForager(ctx, s, w, h);
   }
 
